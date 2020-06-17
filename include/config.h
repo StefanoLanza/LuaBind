@@ -2,5 +2,5 @@
 
 // Not yet fully supported
 #ifndef TY_LUA_TYPE_SAFE
-#define TY_LUA_TYPE_SAFE 0
+#define TY_LUA_TYPE_SAFE 1
 #endif

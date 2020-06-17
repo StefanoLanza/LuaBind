@@ -2,6 +2,7 @@
 
 #if TY_LUA_TYPE_SAFE
 
+#include "autoBlock.h"
 #include <unordered_map>
 
 namespace Typhoon::LUA::detail {
@@ -27,6 +28,24 @@ void registerPointerType(const void* ptr, TypeId typeId) {
 
 void unregisterPointerType(const void* ptr) {
 	pointerMap.erase(ptr);
+}
+
+bool checkType(lua_State* ls, int index, const char* className) {
+	assert(index >= 1);
+	AutoBlock autoBlock(ls);
+	lua_getfield(ls, LUA_REGISTRYINDEX, className);
+	lua_getmetatable(ls, index);
+	// Stack:
+	// -2: table containing the class methods
+	// -1: userdata's meta table
+	while (lua_istable(ls, -1)) {
+		if (lua_rawequal(ls, -1, -2)) {
+			return true;
+		}
+		lua_getfield(ls, -1, "_base");
+		lua_replace(ls, -2);
+	}
+	return false;
 }
 
 } // namespace Typhoon::LUA::detail

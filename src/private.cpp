@@ -5,14 +5,14 @@
 #include <cassert>
 #include <core/allocator.h>
 #include <core/linearAllocator.h>
+#include <memory>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LUA::detail {
 
-extern LinearAllocator* temporaryAllocator;
-extern Allocator*       boxedAllocator;
+extern std::unique_ptr<LinearAllocator> temporaryAllocator;
+extern Allocator*                       boxedAllocator;
 
-namespace detail {
-void* AllocateBoxed(size_t size, size_t alignment) {
+void* allocateBoxed(size_t size, size_t alignment) {
 	return boxedAllocator->Alloc(size, alignment);
 }
 
@@ -20,24 +20,6 @@ void* allocTemporary(size_t size, size_t alignment) {
 	void* ptr = temporaryAllocator->Allocate(size, alignment);
 	assert(ptr != nullptr);
 	return ptr;
-}
-
-bool CheckType(lua_State* ls, int index, const char* className) {
-	assert(index >= 1);
-	AutoBlock autoBlock(ls);
-	lua_getfield(ls, LUA_REGISTRYINDEX, className);
-	lua_getmetatable(ls, index);
-	// Stack:
-	// -2: table containing the class methods
-	// -1: userdata's meta table
-	while (lua_istable(ls, -1)) {
-		if (lua_rawequal(ls, -1, -2)) {
-			return true;
-		}
-		lua_getfield(ls, -1, "_base");
-		lua_replace(ls, -2);
-	}
-	return false;
 }
 
 void* retrievePointerFromTable(lua_State* ls, int idx) {
@@ -89,8 +71,4 @@ void PushFunctionAsUpvalue(lua_State* ls, lua_CFunction closure, const void* fun
 	lua_pushcclosure(ls, closure, 1);
 }
 
-
-
-} // namespace detail
-
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LUA::detail

@@ -1,5 +1,4 @@
 #include "table.h"
-#include "auxFunc.h"
 #include <cassert>
 
 namespace Typhoon::LUA {

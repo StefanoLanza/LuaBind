@@ -9,6 +9,7 @@
 #include <src/tableIterator.h>
 #include <src/value.h>
 #include <src/voidPtrWrapper.h>
+#include <src/typeSafefy.h>
 
 struct lua_State;
 typedef int (*lua_CFunction)(lua_State* L);

@@ -22,24 +22,12 @@ enum class Flags : uint32_t {
 	call = 1,
 };
 
-// Check type of an object on the stack
-/*! \param index stack index
- * \param className expected class name
- */
-bool CheckType(lua_State* ls, int index, const char* className);
-
-// Check type of an object on the stack
-/*! \param index stack index
- */
-template <class Type>
-bool CheckType(lua_State* ls, int index);
-
 void* allocTemporary(size_t size, size_t alignment);
 
 // Create a new object as a light user data
 // Used for lightweight temporaries (SimdVector, Quaternion etc)
 template <typename Type>
-int CreateTemporaryObject(lua_State* ls);
+int createTemporaryObject(lua_State* ls);
 
 // Delete an object after collection
 template <class Type>
@@ -50,10 +38,7 @@ int GarbageCollect(lua_State* ls);
 void* retrievePointerFromTable(lua_State* ls, int idx);
 
 // Boxing
-void* AllocateBoxed(size_t size, size_t alignment);
-
-template <class T>
-T* AllocateBoxed();
+void* allocateBoxed(size_t size, size_t alignment);
 
 int CollectBoxed(lua_State* ls);
 

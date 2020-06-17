@@ -11,10 +11,6 @@
 
 namespace Typhoon::LUA {
 
-HeapAllocator    heapAllocator;
-Allocator*       boxedAllocator = nullptr;
-LinearAllocator* temporaryAllocator = nullptr;
-
 namespace {
 
 lua_State*  g_ls = nullptr;
@@ -51,7 +47,16 @@ int panicFunction(lua_State* ls) {
 	return 0;
 }
 
+HeapAllocator heapAllocator;
+
 } // namespace
+
+namespace detail {
+
+Allocator*                       boxedAllocator = nullptr;
+std::unique_ptr<LinearAllocator> temporaryAllocator;
+
+} // namespace detail
 
 lua_State* createState(size_t temporaryCapacity) {
 	lua_State* ls = lua_newstate(allocFunction, &memoryStats);
@@ -65,8 +70,8 @@ lua_State* createState(size_t temporaryCapacity) {
 	g.SetFunction("RegisterLuaClass", detail::registerLuaClass);
 	g.SetFunction("GetClassMetatable", detail::getClassMetatable);
 
-	boxedAllocator = &heapAllocator;
-	temporaryAllocator = new LinearAllocator(heapAllocator, temporaryCapacity);
+	detail::boxedAllocator = &heapAllocator;
+	detail::temporaryAllocator = std::make_unique<LinearAllocator>(heapAllocator, temporaryCapacity);
 	g_ls = ls;
 	return ls;
 }
@@ -75,9 +80,8 @@ void closeState(lua_State* ls) {
 	// Clean up lua
 	lua_gc(ls, LUA_GCCOLLECT, 0); // collect garbage
 	lua_close(ls);
-	delete temporaryAllocator;
-	temporaryAllocator = nullptr;
-	boxedAllocator = nullptr;
+	detail::temporaryAllocator.reset();
+	detail::boxedAllocator = nullptr;
 	g_ls = nullptr;
 }
 
@@ -86,7 +90,7 @@ lua_State* getLuaState() {
 }
 
 void updateFrame() {
-	temporaryAllocator->Rewind();
+	detail::temporaryAllocator->Rewind();
 }
 
 void registerLoader(lua_State* ls, lua_CFunction loader, void* userData) {
@@ -198,13 +202,12 @@ Result doBuffer(lua_State* ls, const char* buffer, size_t size, const char* name
 	}
 }
 
-
-void*                   saveTemporaryPool() {
-    return temporaryAllocator->GetOffset();
+void* saveTemporaryPool() {
+	return detail::temporaryAllocator->GetOffset();
 }
 
 void restoreTemporaryPool(void* offset) {
-	temporaryAllocator->Rewind(offset);
+	detail::temporaryAllocator->Rewind(offset);
 }
 
 } // namespace Typhoon::LUA

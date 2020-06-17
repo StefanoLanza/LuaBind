@@ -189,7 +189,7 @@ struct Overload {
 
 #define LUA_SET_NEW_OPERATOR_TEMPORARY()                                                                 \
 	do {                                                                                                 \
-		detail::registerNewOperator(ls__, tableStackIndex, detail::CreateTemporaryObject<boundClass__>); \
+		detail::registerNewOperator(ls__, tableStackIndex, detail::createTemporaryObject<boundClass__>); \
 	} while (0)
 
 #define LUA_SET_NEW_OPERATOR(function)                                                                                             \

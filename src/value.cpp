@@ -1,5 +1,4 @@
 #include "value.h"
-#include "auxFunc.h"
 #include "stackUtils.h"
 #include "table.h"
 #include "typeSafefy.h"

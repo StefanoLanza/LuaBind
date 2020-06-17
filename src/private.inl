@@ -20,14 +20,6 @@ T* newTemporary() {
 namespace Typhoon::LUA::detail {
 
 template <class Type>
-bool CheckType(lua_State* ls, int index) {
-	assert(index >= 1);
-	AutoBlock         autoBlock(ls);
-	const char* const className = typeName<Type>();
-	return CheckType(ls, index, className);
-}
-
-template <class Type>
 int GarbageCollect(lua_State* ls) {
 	// Extract pointer from user data
 	Type** const ptrptr = static_cast<Type**>(lua_touserdata(ls, 1));
@@ -40,7 +32,7 @@ int GarbageCollect(lua_State* ls) {
 }
 
 template <typename T>
-int CreateTemporaryObject(lua_State* ls) {
+int createTemporaryObject(lua_State* ls) {
 	// Allocate user data in temporary memory and construct new object in that memory
 	T* const ud = newTemporary<T>();
 	lua_pushlightuserdata(ls, ud);
@@ -77,13 +69,9 @@ int newObject(lua_State* ls) {
 }
 
 template <class T>
-T* AllocateBoxed() {
-	return reinterpret_cast<T*>(AllocateBoxed(sizeof(T), std::alignment_of_v<T>));
-}
-
-template <class Type>
 int Box(lua_State* ls) {
-	Type* boxed = new (AllocateBoxed<Type>()) Type;
+	void* mem = allocateBoxed(sizeof(T), std::alignment_of_v<T>);
+	T* boxed = new (mem) T;
 
 	// Allocate full user data
 	void* const ud = lua_newuserdata(ls, sizeof boxed);

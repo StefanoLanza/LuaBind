@@ -1,10 +1,11 @@
 #pragma once
 
+#include "typeWrapper.h"
 #include <utility>
 
 struct lua_State;
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 // Wrapper for std::pair
 template <typename T1, typename T2>
@@ -17,8 +18,8 @@ public:
 	}
 	static int Push(lua_State* ls, const pairType& pair) {
 		int n = 0;
-		n += LUA::Push(ls, pair.first);
-		n += LUA::Push(ls, pair.second);
+		n += push(ls, pair.first);
+		n += push(ls, pair.second);
 		return n;
 	};
 	static pairType Get(lua_State* ls, int idx) {
@@ -28,4 +29,4 @@ public:
 	static constexpr int stackSize = Wrapper<T1>::stackSize + Wrapper<T2>::stackSize;
 };
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

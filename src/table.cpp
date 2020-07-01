@@ -1,7 +1,7 @@
 #include "table.h"
 #include <cassert>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 Table::Table()
     : ls(nullptr)
@@ -10,15 +10,15 @@ Table::Table()
 
 Table::Table(lua_State* ls, StackIndex stackIndex)
     : ls { ls } {
-	assert(lua_istable(ls, stackIndex.GetIndex()));
-	lua_pushvalue(ls, stackIndex.GetIndex());
+	assert(lua_istable(ls, stackIndex.getIndex()));
+	lua_pushvalue(ls, stackIndex.getIndex());
 	ref = luaL_ref(ls, LUA_REGISTRYINDEX);
 }
 
 Table::Table(lua_State* ls, Reference ref_)
     : ls { ls } {
 	// Duplicate reference to avoid double unreferencing
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref_.GetValue());
+	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref_.getValue());
 	assert(lua_istable(ls, -1));
 	ref = luaL_ref(ls, LUA_REGISTRYINDEX);
 }
@@ -41,7 +41,7 @@ Table& Table::operator=(Table&& table) noexcept {
 	return *this;
 }
 
-void Table::SetFunction(const char* name, lua_CFunction f) {
+void Table::setFunction(const char* name, lua_CFunction f) {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	lua_pushstring(ls, name);
 	lua_pushcfunction(ls, f);
@@ -50,7 +50,7 @@ void Table::SetFunction(const char* name, lua_CFunction f) {
 	// clean stack verified
 }
 
-bool Table::GetFunction(const char* functionName) {
+bool Table::getFunction(const char* functionName) {
 	assert(ls);
 	assert(functionName);
 
@@ -64,14 +64,14 @@ bool Table::GetFunction(const char* functionName) {
 	return true;
 }
 
-size_t Table::GetLength() const {
+size_t Table::getLength() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	const size_t len = lua_rawlen(ls, -1);
 	lua_pop(ls, 1);
 	return len;
 }
 
-int Table::GetCount() const {
+int Table::getCount() const {
 	int count = 0;
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	lua_pushnil(ls);
@@ -86,8 +86,8 @@ int Table::GetCount() const {
 	return count;
 }
 
-bool Table::HasElement(int index) const {
-	assert(IsValid());
+bool Table::hasElement(int index) const {
+	assert(isValid());
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	lua_rawgeti(ls, -1, index);
 	const bool res = lua_isnil(ls, -1) ? false : true;
@@ -98,7 +98,7 @@ bool Table::HasElement(int index) const {
 
 Value Table::operator[](const char* key) const {
 	assert(key);
-	assert(IsValid());
+	assert(isValid());
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	lua_getfield(ls, -1, key);
 	Value value { ls, topStackIndex };
@@ -107,7 +107,7 @@ Value Table::operator[](const char* key) const {
 }
 
 Value Table::operator[](int key) const {
-	assert(IsValid());
+	assert(isValid());
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	lua_pushinteger(ls, static_cast<lua_Integer>(key));
 	lua_gettable(ls, -2);
@@ -121,7 +121,7 @@ Value Table::operator[](unsigned int key) const {
 }
 
 Value Table::operator[](double key) const {
-	assert(IsValid());
+	assert(isValid());
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	lua_pushnumber(ls, static_cast<lua_Number>(key));
 	lua_gettable(ls, -2);
@@ -131,13 +131,21 @@ Value Table::operator[](double key) const {
 }
 
 Value Table::operator[](void* key) const {
-	assert(IsValid());
+	assert(isValid());
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	lua_pushlightuserdata(ls, key);
 	lua_gettable(ls, -2);
 	Value value { ls, topStackIndex };
 	lua_pop(ls, 2); // table, value
 	return value;
+}
+
+TableIterator Table::begin() const {
+	return TableIterator(ls, ref, 0);
+}
+
+TableIterator Table::end() const {
+	return TableIterator(ls, ref, getCount());
 }
 
 Table globals(lua_State* ls) {
@@ -156,4 +164,4 @@ Table newtable(lua_State* ls) {
 	return table;
 }
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

@@ -4,12 +4,12 @@
 
 struct lua_State;
 
-#if TY_LUA_TYPE_SAFE
+#if TY_LUABIND_TYPE_SAFE
 
 #include <cassert>
 #include <core/typeId.h>
 
-namespace Typhoon::LUA::detail {
+namespace Typhoon::LuaBind::detail {
 
 bool checkPointerType(const void* ptr, TypeId typeInfo);
 void registerPointerType(const void* ptr, TypeId typeInfo);
@@ -35,13 +35,13 @@ bool checkType(lua_State* ls, int index, const char* className);
 // Check type of an object on the stack
 /*! \param index stack index
  */
-template <class Type>
+template <class T>
 bool checkType(lua_State* ls, int index) {
 	assert(index >= 1);
-	const char* const className = typeName<Type>();
+	const char* const className = typeName<T>();
 	return checkType(ls, index, className);
 }
 
-} // namespace Typhoon::LUA::detail
+} // namespace Typhoon::LuaBind::detail
 
 #endif

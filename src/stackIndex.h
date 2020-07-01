@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 //! Lua stack index wrapper
 class StackIndex {
@@ -12,10 +12,10 @@ public:
 	    : index(index) {
 	}
 
-	int GetIndex() const {
+	int getIndex() const {
 		return index;
 	}
-	bool IsValid() const {
+	bool isValid() const {
 		return (index != 0);
 	}
 
@@ -28,11 +28,11 @@ constexpr StackIndex topStackIndex { -1 };
 constexpr StackIndex invalidStackIndex { 0 };
 
 inline bool operator==(StackIndex a, StackIndex b) {
-	return (a.GetIndex() == b.GetIndex());
+	return (a.getIndex() == b.getIndex());
 }
 
 inline bool operator!=(StackIndex a, StackIndex b) {
 	return ! (a == b);
 }
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

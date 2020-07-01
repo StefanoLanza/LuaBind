@@ -1,7 +1,7 @@
 #include "stackUtils.h"
 #include <cassert>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 bool toString(lua_State* ls, int numArg, const char*& s) {
 	if (! lua_isstring(ls, numArg)) {
@@ -61,4 +61,4 @@ bool toDouble(lua_State* ls, int numArg, double& d) {
 	return true;
 }
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

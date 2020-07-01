@@ -2,7 +2,7 @@
 
 #include <cstdarg>
 
-namespace Typhoon {
+namespace Typhoon::LuaBind {
 
 class Result {
 public:
@@ -17,7 +17,6 @@ public:
 	explicit operator bool() const {
 		return result;
 	}
-	void setErrorMessage(const char* msg, ...);
 
 private:
 	void setErrorMessage(const char* msg, va_list args);
@@ -27,4 +26,4 @@ private:
 	const char* errorMessage;
 };
 
-} // namespace Typhoon
+} // namespace Typhoon::LuaBind

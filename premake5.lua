@@ -50,26 +50,27 @@ project("Lua")
 
 project("Core")
 	kind "StaticLib"
-	files "core/**.cpp"
-	files "core/**.h"
+	files "external/core/**.cpp"
+	files "external/core/**.h"
 	includedirs { "./", }
 
 project("LuaBind")
 	kind "StaticLib"
 	files "src/**.cpp"
 	files "src/**.h"
+	files "src/**.inl"
 	files "include/**.h"
-	includedirs { "./", "include/", "./thirdParty/", }
+	includedirs { ".", "external", "include", "thirdParty", }
 	links({"Core", "Lua"})
 
 project("Example1")
 	kind "ConsoleApp"
 	files "examples/example1.cpp"
-	includedirs { "./", "include/", "./thirdParty/", }
+	includedirs { ".", "external", "include", "thirdParty", }
 	links({"LuaBind", })
 
 project("UnitTest")
 	kind "ConsoleApp"
 	links({"LuaBind", })
 	files "test/*.*"
-	includedirs { "./", "include/", "./thirdParty/", }
+	includedirs { ".", "external", "include", "thirdParty", }

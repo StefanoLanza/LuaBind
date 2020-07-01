@@ -1,10 +1,12 @@
 #pragma once
 
+#include "table.h"
+#include "typeWrapper.h"
 #include <vector>
 
 struct lua_State;
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 // Wrapper for std::vector
 // Limitations: only support containers of primitive values (those supported by LUA::Value)
@@ -22,11 +24,11 @@ public:
 		// Push container values into table
 		int idx = 1;
 		for (auto it = v.begin(), eit = v.end(); it != eit; ++it, ++idx) {
-			table.RawSet(idx, *it);
+			table.rawSet(idx, *it);
 		}
 
 		// push table on stack
-		lua_rawgeti(ls, LUA_REGISTRYINDEX, table.GetReference().GetValue());
+		lua_rawgeti(ls, LUA_REGISTRYINDEX, table.getReference().getValue());
 		return 1;
 	};
 
@@ -34,7 +36,7 @@ public:
 	static std::vector<T> Get(lua_State* ls, int idx) {
 		// Open table from stack
 		Table table { ls, StackIndex { idx } };
-		if (! table.IsValid()) {
+		if (! table.isValid()) {
 			return {};
 		}
 
@@ -45,7 +47,7 @@ public:
 			Value value = table[i];
 			if (value) {
 				T elm;
-				if (value.Cast(elm)) {
+				if (value.cast(elm)) {
 					v.insert(v.end(), elm);
 				}
 			}
@@ -60,4 +62,4 @@ public:
 	static constexpr int stackSize = 1;
 };
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

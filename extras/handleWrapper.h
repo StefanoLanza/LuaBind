@@ -1,10 +1,10 @@
-#include <LuaBind/typeWrapper.h>
+#include <src/typeWrapper.h>
 #include <core/handle.h>
 
 namespace Typhoon {
 
 template <>
-class LUA::Wrapper<Handle> {
+class LuaBind::Wrapper<Handle> {
 public:
 	static constexpr int stackSize = 1;
 	static int           Match(lua_State* ls, int idx) {

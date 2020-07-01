@@ -8,14 +8,36 @@
 #include <lua/src/lua.hpp>
 #include <string>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
+
+namespace detail {
 
 template <class T>
-T* newTemporary();
+T* allocTemporary();
+
+}
 
 // typename = void is used for specializations based on std::enable_if. See the enum specialization
-template <class Type, typename = void>
-class Wrapper;
+template <class T, typename = void>
+class Wrapper {
+public:
+	static int Match(lua_State* ls, int idx) {
+		static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+		return 0;
+	}
+	static int PushAsKey(lua_State* ls, T) {
+		static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+		return 0;
+	}
+	static int Push(lua_State* ls, T) {
+		static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+		return 0;
+	}
+	static T Get(lua_State* ls, int idx) {
+		static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+		return {};
+	}
+};
 
 template <>
 class Wrapper<Nil> {
@@ -259,23 +281,23 @@ public:
 };
 
 //! Raw pointer wrapper
-template <class Type>
-class Wrapper<Type*> {
+template <class T>
+class Wrapper<T*> {
 public:
 	static int Match(lua_State* ls, int idx) {
 		const int luaType = lua_type(ls, idx);
 		return (luaType == LUA_TLIGHTUSERDATA || luaType == LUA_TUSERDATA || luaType == LUA_TTABLE);
 	}
 
-	static int PushAsKey(lua_State* ls, Type* ptr) {
+	static int PushAsKey(lua_State* ls, T* ptr) {
 		lua_pushlightuserdata(ls, ptr);
 		return 1;
 	}
 
-	static int Push(lua_State* ls, Type* ptr) {
+	static int Push(lua_State* ls, T* ptr) {
 		if (ptr) {
 			// Remove const from pointer type
-			using non_const_ptr = std::remove_const_t<Type>*;
+			using non_const_ptr = std::remove_const_t<T>*;
 			void* const ud = const_cast<non_const_ptr>(ptr);
 
 			// Get userdata/table associated with the pointer from registry
@@ -297,12 +319,12 @@ public:
 		return 1;
 	}
 
-	static Type* Get(lua_State* ls, int idx) {
-		Type*     ptr = nullptr;
+	static T* Get(lua_State* ls, int idx) {
+		T*     ptr = nullptr;
 		const int luaType = lua_type(ls, idx);
 		if (luaType == LUA_TLIGHTUSERDATA) {
 			// Light user data
-			ptr = static_cast<Type*>(lua_touserdata(ls, idx));
+			ptr = static_cast<T*>(lua_touserdata(ls, idx));
 		}
 		else if (luaType == LUA_TUSERDATA) {
 			std::memcpy(&ptr, lua_touserdata(ls, idx), sizeof ptr);
@@ -314,11 +336,11 @@ public:
 				lua_pop(ls, 1);
 				luaL_error(ls, "cannot retrieve raw pointer to C++ object: invalid _ptr field");
 			}
-			ptr = static_cast<Type*>(lua_touserdata(ls, -1));
+			ptr = static_cast<T*>(lua_touserdata(ls, -1));
 			lua_pop(ls, 1);
 		}
 
-#if TY_LUA_TYPE_SAFE
+#if TY_LUABIND_TYPE_SAFE
 		if (ptr && ! detail::checkPointerType(ptr, getTypeId(ptr))) {
 			luaL_argerror(ls, idx, "invalid pointer type");
 			ptr = nullptr;
@@ -331,35 +353,35 @@ public:
 };
 
 //! Reference wrapper
-template <class Type>
-class Wrapper<Type&> {
+template <class T>
+class Wrapper<T&> {
 public:
 	static constexpr int stackSize = 1;
 	static int           Match(lua_State* ls, int idx) {
-        return Wrapper<Type*>::Match(ls, idx);
+        return Wrapper<T*>::Match(ls, idx);
 	}
-	static Type& Get(lua_State* ls, int idx) {
-		Type* ptr = Wrapper<Type*>::Get(ls, idx);
+	static T& Get(lua_State* ls, int idx) {
+		T* ptr = Wrapper<T*>::Get(ls, idx);
 		assert(ptr);
 		return *ptr;
 	}
 };
 
 //! Const reference wrapper
-template <class Type>
-class Wrapper<const Type&> {
+template <class T>
+class Wrapper<const T&> {
 public:
 	static constexpr int stackSize = 1;
 	static int           Match(lua_State* ls, int idx) {
-        return Wrapper<const Type*>::Match(ls, idx);
+        return Wrapper<const T*>::Match(ls, idx);
 	}
-	static const Type& Get(lua_State* ls, int idx) {
+	static const T& Get(lua_State* ls, int idx) {
 		// Fetch pointer and convert to const reference
-		return *Wrapper<const Type*>::Get(ls, idx);
+		return *Wrapper<const T*>::Get(ls, idx);
 	}
-	static int Push(lua_State* ls, const Type& ref) {
+	static int Push(lua_State* ls, const T& ref) {
 		// Push a copy
-		return Wrapper<Type>::Push(ls, ref);
+		return Wrapper<T>::Push(ls, ref);
 	}
 };
 
@@ -394,8 +416,8 @@ public:
 		return Push(ls, stackIndex);
 	}
 	static int Push(lua_State* ls, StackIndex stackIndex) {
-		assert(stackIndex.IsValid());
-		lua_pushvalue(ls, stackIndex.GetIndex());
+		assert(stackIndex.isValid());
+		lua_pushvalue(ls, stackIndex.getIndex());
 		return 1;
 	}
 	static StackIndex Get(lua_State* /*ls*/, int idx) {
@@ -415,8 +437,8 @@ public:
 		return Push(ls, ref);
 	}
 	static int Push(lua_State* ls, Reference ref) {
-		if (ref.IsValid()) {
-			lua_rawgeti(ls, LUA_REGISTRYINDEX, ref.GetValue());
+		if (ref.isValid()) {
+			lua_rawgeti(ls, LUA_REGISTRYINDEX, ref.getValue());
 		}
 		else {
 			lua_pushnil(ls);
@@ -459,8 +481,8 @@ struct WrapperAsTemporary {
         return lua_isuserdata(ls, idx);
 	}
 	static int Push(lua_State* ls, const T& value) {
-		T* ud = new (newTemporary<T>()) T { value };
-#if TY_LUA_TYPE_SAFE
+		T* ud = new (detail::allocTemporary<T>()) T { value };
+#if TY_LUABIND_TYPE_SAFE
 		detail::registerPointerType(ud);
 #endif
 		// detail::PushObjectAsFullUserData(ls, ud);
@@ -469,7 +491,7 @@ struct WrapperAsTemporary {
 	}
 	static T Get(lua_State* ls, int idx) {
 		void* const userData = lua_touserdata(ls, idx);
-#if TY_LUA_TYPE_SAFE
+#if TY_LUABIND_TYPE_SAFE
 		if (! detail::checkPointerType<T>(userData)) {
 			luaL_argerror(ls, idx, "Invalid pointer type"); // TODO better message
 		}
@@ -478,48 +500,4 @@ struct WrapperAsTemporary {
 	}
 };
 
-// Helpers
-template <class T>
-inline int Match(lua_State* ls, const T& /*object*/, int stackIndex) {
-	return Wrapper<T>::Match(ls, stackIndex);
-}
-
-template <class T>
-inline int Push(lua_State* ls, const T& object) {
-	return Wrapper<T>::Push(ls, object);
-}
-
-template <class T>
-inline int Push(lua_State* ls, T* object) {
-	return Wrapper<T*>::Push(ls, object);
-}
-
-template <class T>
-inline int PushAsKey(lua_State* ls, const T& object) {
-	return Wrapper<T>::PushAsKey(ls, object);
-}
-
-inline int PushAsKey(lua_State* ls, const char* str) {
-	return Wrapper<const char*>::PushAsKey(ls, str);
-}
-
-inline int Push(lua_State* ls, const char* str) {
-	return Wrapper<const char*>::Push(ls, str);
-}
-
-template <class T>
-inline T Get(lua_State* ls, int idx) {
-	return Wrapper<T>::Get(ls, idx);
-}
-
-template <class T>
-inline constexpr int GetStackSize(const T&) {
-	return Wrapper<T>::stackSize;
-}
-
-template <class T>
-inline constexpr int GetStackSize() {
-	return Wrapper<T>::stackSize;
-}
-
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

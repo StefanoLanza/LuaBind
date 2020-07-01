@@ -2,7 +2,7 @@
 #include "autoBlock.h"
 #include <cassert>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 bool Object::hasMethod(const char* func) const {
 	assert(func);
@@ -18,17 +18,17 @@ bool Object::hasMethod(const char* func) const {
 	return lua_isfunction(ls, -1);
 }
 
-Result Object::CallMethod(const char* func) const {
+Result Object::callMethod(const char* func) const {
 	AutoBlock autoBlock(ls);
 
-	auto [validCall, resStackIndex] = BeginCall(func);
+	const auto [validCall, resStackIndex] = beginCall(func);
 	if (! validCall) {
 		return Result { false };
 	}
-	return CallMethodImpl(0, 0);
+	return callMethodImpl(0, 0);
 }
 
-std::pair<bool, int> Object::BeginCall(const char* func) const {
+std::pair<bool, int> Object::beginCall(const char* func) const {
 	// Push self
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	const int stackIndex = lua_gettop(ls);
@@ -51,7 +51,7 @@ std::pair<bool, int> Object::BeginCall(const char* func) const {
 	return { true, stackIndex + 1 };
 }
 
-Result Object::CallMethodImpl(int narg, int nres) const {
+Result Object::callMethodImpl(int narg, int nres) const {
 	// Stack:
 	// function
 	// self
@@ -68,4 +68,4 @@ Result Object::CallMethodImpl(int narg, int nres) const {
 	return res;
 }
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

@@ -1,4 +1,4 @@
-#include "private.h"
+#include "detail.h"
 #include "autoBlock.h"
 #include "class.h"
 #include "table.h"
@@ -7,7 +7,7 @@
 #include <core/linearAllocator.h>
 #include <memory>
 
-namespace Typhoon::LUA::detail {
+namespace Typhoon::LuaBind::detail {
 
 extern std::unique_ptr<LinearAllocator> temporaryAllocator;
 extern Allocator*                       boxedAllocator;
@@ -40,7 +40,7 @@ void* retrievePointerFromTable(lua_State* ls, int idx) {
 	return ptr;
 }
 
-void PushObjectAsFullUserData(lua_State* ls, void* objectPtr, const char* className) {
+void pushObjectAsFullUserData(lua_State* ls, void* objectPtr, const char* className) {
 	assert(objectPtr);
 	assert(className);
 
@@ -56,14 +56,14 @@ void PushObjectAsFullUserData(lua_State* ls, void* objectPtr, const char* classN
 	lua_setmetatable(ls, -2);
 }
 
-int CollectBoxed(lua_State* ls) {
+int collectBoxed(lua_State* ls) {
 	// Extract pointer from user data
 	void** const ptrptr = static_cast<void**>(lua_touserdata(ls, 1));
 	boxedAllocator->Free(*ptrptr);
 	return 0;
 }
 
-void PushFunctionAsUpvalue(lua_State* ls, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize, Flags flags) {
+void pushFunctionAsUpvalue(lua_State* ls, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize, Flags flags) {
 	// Save pointer to caller and function as upvalue
 	uint8_t* buffer = static_cast<uint8_t*>(lua_newuserdata(ls, functionPtrSize + sizeof(flags)));
 	std::memcpy(buffer, functionPtr, functionPtrSize);
@@ -71,4 +71,4 @@ void PushFunctionAsUpvalue(lua_State* ls, lua_CFunction closure, const void* fun
 	lua_pushcclosure(ls, closure, 1);
 }
 
-} // namespace Typhoon::LUA::detail
+} // namespace Typhoon::LuaBind::detail

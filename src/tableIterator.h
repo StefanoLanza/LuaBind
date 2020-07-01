@@ -7,7 +7,7 @@
 
 struct lua_State;
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 class Value;
 
@@ -22,7 +22,7 @@ public:
 	TableIterator  operator++(int);
 	TableIterator& operator--() { // predecrement
 		assert(index >= 0);
-		Dec();
+		dec();
 		return (*this);
 	}
 
@@ -54,12 +54,12 @@ public:
 
 	//! return difference of iterators
 	difference_type operator-(const TableIterator& _Right) const {
-		Compat(_Right);
+		compat(_Right);
 		return (index - _Right.index);
 	}
 
 	bool operator==(const TableIterator& _Right) const { // test for iterator equality
-		Compat(_Right);
+		compat(_Right);
 		return (index == _Right.index);
 	}
 
@@ -68,8 +68,7 @@ public:
 	}
 
 	bool operator<(const TableIterator& _Right) const { // test if this < _Right
-
-		Compat(_Right);
+		compat(_Right);
 		return (index < _Right.index);
 	}
 
@@ -85,21 +84,15 @@ public:
 		return (! (*this < _Right));
 	}
 	Value operator*() {
-		return GetValue();
+		return getValue();
 	}
-	Value GetValue() const;
-	Value GetKey() const;
+	Value getValue() const;
+	Value getKey() const;
 
 private:
-	void Compat(const TableIterator& _Right) const {
-		(void)_Right;
-		assert(tableRef == _Right.tableRef);
-	}
-
-	void Dec() {
-		--index;
-	}
-	bool PushKeyValue() const;
+	void compat(const TableIterator& _Right) const;
+	void dec();
+	bool pushKeyValue() const;
 
 private:
 	lua_State* ls;
@@ -107,4 +100,4 @@ private:
 	int        index;
 };
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

@@ -1,11 +1,12 @@
 #include "class.h"
 #include "autoBlock.h"
+#include "detail.h"
 #include "table.h"
 #include <cassert>
 
 struct undef;
 
-namespace Typhoon::LUA::detail {
+namespace Typhoon::LuaBind::detail {
 
 namespace {
 
@@ -136,7 +137,7 @@ void registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure, c
 
 	lua_pushliteral(ls, "__call");
 	// Push the closure with flags ==, so that we skip the first element on the stack (a table representing the caller)
-	PushFunctionAsUpvalue(ls, closure, &functionPtr, functionPtrSize, detail::Flags::call);
+	pushFunctionAsUpvalue(ls, closure, &functionPtr, functionPtrSize, detail::Flags::call);
 	lua_settable(ls, mt); // mt.__call = closure
 }
 
@@ -173,4 +174,4 @@ int getClassMetatable(lua_State* ls) {
 	return lua_istable(ls, -1) ? 1 : 0;
 }
 
-} // namespace Typhoon::LUA::detail
+} // namespace Typhoon::LuaBind::detail

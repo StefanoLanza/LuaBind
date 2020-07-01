@@ -4,12 +4,12 @@
 #include "typeSafefy.h"
 #include <cassert>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 Value::Value(lua_State* ls, StackIndex stackIndex)
     : ls(ls) {
 	// Create and store a reference to the value on the stack
-	lua_pushvalue(ls, stackIndex.GetIndex());
+	lua_pushvalue(ls, stackIndex.getIndex());
 	ref = luaL_ref(ls, LUA_REGISTRYINDEX);
 }
 
@@ -40,56 +40,56 @@ int Value::getType() const {
 	return type;
 }
 
-bool Value::IsNil() const {
+bool Value::isNil() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	const bool isNil = lua_isnil(ls, -1);
 	lua_pop(ls, 1);
 	return isNil;
 }
 
-bool Value::Cast(int& value) const {
+bool Value::cast(int& value) const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	bool res = toInteger(ls, -1, value);
 	lua_pop(ls, 1);
 	return res;
 }
 
-bool Value::Cast(double& value) const {
+bool Value::cast(double& value) const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	bool res = toDouble(ls, -1, value);
 	lua_pop(ls, 1);
 	return res;
 }
 
-bool Value::Cast(float& value) const {
+bool Value::cast(float& value) const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	bool res = toFloat(ls, -1, value);
 	lua_pop(ls, 1);
 	return res;
 }
 
-bool Value::Cast(std::string& str) const {
+bool Value::cast(std::string& str) const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	bool res = toString(ls, -1, str);
 	lua_pop(ls, 1);
 	return res;
 }
 
-bool Value::Cast(const char*& str) const {
+bool Value::cast(const char*& str) const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	bool res = toString(ls, -1, str);
 	lua_pop(ls, 1);
 	return res;
 }
 
-bool Value::Cast(bool& value) const {
+bool Value::cast(bool& value) const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	bool res = toBool(ls, -1, value);
 	lua_pop(ls, 1);
 	return res;
 }
 
-bool Value::Cast(void*& ptr) const {
+bool Value::cast(void*& ptr) const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	bool res = false;
 	ptr = nullptr;
@@ -106,7 +106,7 @@ bool Value::Cast(void*& ptr) const {
 	return res;
 }
 
-bool Value::Cast(Table& table) const {
+bool Value::cast(Table& table) const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	bool res = false;
 	if (lua_istable(ls, -1)) {
@@ -117,7 +117,7 @@ bool Value::Cast(Table& table) const {
 	return res;
 }
 
-bool Value::Cast(void*& userData, TypeId typeId) const {
+bool Value::cast(void*& userData, TypeId typeId) const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	bool res = false;
 	userData = nullptr;
@@ -136,9 +136,11 @@ bool Value::Cast(void*& userData, TypeId typeId) const {
 			userData = nullptr;
 			res = false;
 		}
+#else
+	(void)typeId;
 #endif
 	}
 	return res;
 }
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

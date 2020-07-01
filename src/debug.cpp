@@ -2,7 +2,7 @@
 #include <iostream>
 #include <lua/src/lua.hpp>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 // traceback function, adapted from lua.c
 // when a runtime error occurs, this will append the call stack to the error message
@@ -63,4 +63,4 @@ void dumpStack(lua_State* ls) {
 	}
 }
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

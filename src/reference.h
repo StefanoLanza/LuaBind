@@ -2,7 +2,7 @@
 
 #include <lua/src/lua.hpp>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 // Lua reference wrapper
 class Reference {
@@ -14,17 +14,17 @@ public:
 	    : value(value) {
 	}
 
-	int GetValue() const {
+	int getValue() const {
 		return value;
 	}
-	bool IsValid() const {
+	bool isValid() const {
 		return (value != LUA_NOREF);
 	}
 	void Release() {
 		value = LUA_NOREF;
 	}
 	explicit operator bool() const {
-		return IsValid();
+		return isValid();
 	}
 
 private:
@@ -34,11 +34,11 @@ private:
 constexpr Reference nullRef;
 
 inline bool operator==(Reference a, Reference b) {
-	return (a.GetValue() == b.GetValue());
+	return (a.getValue() == b.getValue());
 }
 
 inline bool operator!=(Reference a, Reference b) {
 	return ! (a == b);
 }
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

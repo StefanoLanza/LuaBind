@@ -1,15 +1,14 @@
 #include "luaBind.h"
 #include "autoBlock.h"
 #include "debug.h"
-#include "private.h"
+#include "detail.h"
+#include "result.h"
 #include "table.h"
 #include <algorithm>
 #include <core/heapAllocator.h>
 #include <core/linearAllocator.h>
-#include <core/result.h>
-//#include <logging/logger.h>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 namespace {
 
@@ -34,10 +33,11 @@ void* allocFunction(void* ud, void* ptr, size_t osize, size_t nsize) {
 }
 
 int logFunction(lua_State* ls) {
-	// TODO Remove this dependency
 	Logger* logger = static_cast<Logger*>(lua_touserdata(ls, lua_upvalueindex(1)));
-	if (lua_isstring(ls, 1)) {
-		// LogInfo(*logger, lua_tostring(ls, 1));
+	if (logger) {
+		if (lua_isstring(ls, 1)) {
+			(*logger)(lua_tostring(ls, 1));
+		}
 	}
 	return 0;
 }
@@ -48,6 +48,7 @@ int panicFunction(lua_State* ls) {
 }
 
 HeapAllocator heapAllocator;
+Logger        g_logger;
 
 } // namespace
 
@@ -67,8 +68,8 @@ lua_State* createState(size_t temporaryCapacity) {
 
 	AutoBlock autoBlock(ls);
 	Table     g = globals(ls);
-	g.SetFunction("RegisterLuaClass", detail::registerLuaClass);
-	g.SetFunction("GetClassMetatable", detail::getClassMetatable);
+	g.setFunction("RegisterLuaClass", detail::registerLuaClass);
+	g.setFunction("GetClassMetatable", detail::getClassMetatable);
 
 	detail::boxedAllocator = &heapAllocator;
 	detail::temporaryAllocator = std::make_unique<LinearAllocator>(heapAllocator, temporaryCapacity);
@@ -110,9 +111,10 @@ void registerLoader(lua_State* ls, lua_CFunction loader, void* userData) {
 	lua_pop(ls, 1); // pop table
 }
 
-void registerLogger(lua_State* ls, Logger* logger) {
+void registerLogger(lua_State* ls, Logger&& logger) {
+	g_logger = std::move(logger);
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
-	lua_pushlightuserdata(ls, logger);
+	lua_pushlightuserdata(ls, &g_logger);
 	lua_pushcclosure(ls, logFunction, 1);
 	lua_setfield(ls, -2, "log");
 	lua_pop(ls, 1); // table
@@ -210,4 +212,4 @@ void restoreTemporaryPool(void* offset) {
 	detail::temporaryAllocator->Rewind(offset);
 }
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

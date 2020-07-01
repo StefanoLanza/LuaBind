@@ -3,7 +3,7 @@
 #include "value.h"
 #include <cassert>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 TableIterator::TableIterator(lua_State* ls, int tableRef, int index)
     : ls(ls)
@@ -22,8 +22,8 @@ TableIterator TableIterator::operator++(int) {
 	return tmp;
 }
 
-Value TableIterator::GetValue() const {
-	PushKeyValue();
+Value TableIterator::getValue() const {
+	pushKeyValue();
 	// 'key' is at index -2 and 'value' at index -1
 	// remove key
 	lua_remove(ls, -2);
@@ -31,8 +31,8 @@ Value TableIterator::GetValue() const {
 	return Value(ls, topStackIndex);
 }
 
-Value TableIterator::GetKey() const {
-	PushKeyValue();
+Value TableIterator::getKey() const {
+	pushKeyValue();
 	// 'key' is at index -2 and 'value' at index -1
 	// remove value
 	lua_remove(ls, -1);
@@ -40,7 +40,16 @@ Value TableIterator::GetKey() const {
 	return Value(ls, topStackIndex);
 }
 
-bool TableIterator::PushKeyValue() const {
+void TableIterator::compat(const TableIterator& _Right) const {
+	(void)_Right;
+	assert(tableRef == _Right.tableRef);
+}
+
+void TableIterator::dec() {
+	--index;
+}
+
+bool TableIterator::pushKeyValue() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, tableRef);
 	lua_pushnil(ls); /* first key */
 	int i = 0;
@@ -61,4 +70,4 @@ bool TableIterator::PushKeyValue() const {
 	return false;
 }
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

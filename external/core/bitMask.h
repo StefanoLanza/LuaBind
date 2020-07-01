@@ -12,8 +12,8 @@ struct BitMask {
 	StorageType value;
 };
 
-template <class Type>
-inline void setBit(Type& bitMask, Type mask, bool value) {
+template <class T>
+inline void setBit(T& bitMask, T mask, bool value) {
 	if (value) {
 		bitMask |= mask;
 	}
@@ -22,8 +22,8 @@ inline void setBit(Type& bitMask, Type mask, bool value) {
 	}
 }
 
-template <class Type>
-inline bool getBit(Type bitMask, Type mask) {
+template <class T>
+inline bool getBit(T bitMask, T mask) {
 	return (bitMask & mask) ? true : false;
 }
 

@@ -4,7 +4,7 @@
 #include <cassert>
 #include <core/typeId.h>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 Reference registerObjectAsTable(lua_State* ls, void* objectPtr, TypeId typeId);
 
@@ -42,4 +42,4 @@ Reference registerObjectAsTable(lua_State* ls, T objectPtr) {
 	return registerObjectAsTable(ls, static_cast<void*>(objectPtr), typeId);
 }
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

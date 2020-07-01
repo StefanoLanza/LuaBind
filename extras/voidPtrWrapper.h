@@ -1,10 +1,10 @@
 #pragma once
 
+#include <src/typeWrapper.h>
 #include <core/typedVoidPtr.h>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
-//
 template <>
 class Wrapper<VoidPtr> {
 public:
@@ -46,4 +46,4 @@ public:
 	static constexpr int stackSize = 1;
 };
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

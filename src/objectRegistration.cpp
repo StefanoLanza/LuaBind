@@ -1,11 +1,12 @@
 #include "objectRegistration.h"
 #include "autoBlock.h"
+#include "stackUtils.h"
 #include "table.h"
 #include "typeSafefy.h"
 #include <cassert>
 #include <core/linearAllocator.h>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 Reference registerObjectAsTable(lua_State* ls, void* objectPtr, TypeId typeId) {
 	assert(objectPtr);
@@ -31,8 +32,8 @@ Reference registerObjectAsTable(lua_State* ls, void* objectPtr, TypeId typeId) {
 	const int tableStackIndex = lua_gettop(ls);
 
 	// table["_ptr"] = objectPtr
-	PushAsKey(ls, "_ptr");
-	Push(ls, objectPtr);
+	pushAsKey(ls, "_ptr");
+	push(ls, objectPtr);
 	lua_rawset(ls, tableStackIndex);
 
 	// registry[objectPtr] = table
@@ -95,6 +96,8 @@ Reference registerObjectAsLightUserData(lua_State* ls, void* objectPtr, TypeId t
 	// TODO in the userdata instead?
 #if LUA_TYPE_SAFE
 	detail::registerPointerType(objectPtr, typeId);
+#else
+	(void)typeId;
 #endif
 	return Reference { luaL_ref(ls, LUA_REGISTRYINDEX) };
 }
@@ -134,10 +137,10 @@ Reference registerTable(lua_State* ls, const char* className) {
 }
 
 void unregisterObject(lua_State* ls, Reference ref) {
-	assert(ref.IsValid());
+	assert(ref.isValid());
 	AutoBlock autoBlock(ls);
 
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref.GetValue());
+	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref.getValue());
 	const int objectIndex = lua_gettop(ls);
 	const int luaType = lua_type(ls, objectIndex);
 	// Retrieve object pointer
@@ -173,7 +176,7 @@ void unregisterObject(lua_State* ls, Reference ref) {
 	}
 
 	// Delete reference
-	luaL_unref(ls, LUA_REGISTRYINDEX, ref.GetValue());
+	luaL_unref(ls, LUA_REGISTRYINDEX, ref.getValue());
 }
 
 void unregisterObject(lua_State* ls, void* objectPtr) {
@@ -200,4 +203,4 @@ void unregisterObject(lua_State* ls, void* objectPtr) {
 	// TODO remove from typeSafety table
 }
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

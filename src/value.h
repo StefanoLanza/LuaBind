@@ -9,7 +9,7 @@
 
 struct lua_State;
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 class Table;
 
@@ -22,26 +22,26 @@ public:
 	Value& operator=(Value&& value) noexcept;
 
 	explicit operator bool() const {
-		return ! IsNil();
+		return ! isNil();
 	}
-	Reference GetReference() const {
+	Reference getReference() const {
 		return Reference { ref };
 	}
 	int  getType() const;
-	bool IsNil() const;
-	bool Cast(int& value) const;
-	bool Cast(float& value) const;
-	bool Cast(double& value) const;
-	bool Cast(bool& value) const;
-	bool Cast(std::string& value) const;
-	bool Cast(const char*& value) const;
-	bool Cast(void*& ptr) const;
-	bool Cast(Table& table) const;
+	bool isNil() const;
+	bool cast(int& value) const;
+	bool cast(float& value) const;
+	bool cast(double& value) const;
+	bool cast(bool& value) const;
+	bool cast(std::string& value) const;
+	bool cast(const char*& value) const;
+	bool cast(void*& ptr) const;
+	bool cast(Table& table) const;
 
 	template <class T>
 	explicit operator T() const {
 		T v;
-		Cast(v);
+		cast(v);
 		return v;
 	}
 
@@ -49,25 +49,25 @@ public:
 	template <class T>
 	explicit operator T*() const {
 		void* userData = nullptr;
-		Cast(userData, getTypeId<T>());
+		cast(userData, getTypeId<T>());
 		return static_cast<T*>(userData);
 	}
 
 	// Not type safe
 	explicit operator void*() const {
 		void* userData = nullptr;
-		Cast(userData);
+		cast(userData);
 		return userData;
 	}
 
 	explicit operator const char*() const {
 		const char* str = nullptr;
-		Cast(str);
+		cast(str);
 		return str;
 	}
 
 private:
-	bool Cast(void*& userData, TypeId typeId) const;
+	bool cast(void*& userData, TypeId typeId) const;
 
 private:
 	lua_State* ls;
@@ -83,11 +83,11 @@ public:
         return true;
 	}
 	static int PushAsKey(lua_State* ls, const Value& value) {
-		lua_rawgeti(ls, LUA_REGISTRYINDEX, value.GetReference().GetValue());
+		lua_rawgeti(ls, LUA_REGISTRYINDEX, value.getReference().getValue());
 		return 1;
 	}
 	static int Push(lua_State* ls, const Value& value) {
-		lua_rawgeti(ls, LUA_REGISTRYINDEX, value.GetReference().GetValue());
+		lua_rawgeti(ls, LUA_REGISTRYINDEX, value.getReference().getValue());
 		return 1;
 	}
 	static Value Get(lua_State* ls, int idx) {
@@ -95,4 +95,4 @@ public:
 	}
 };
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

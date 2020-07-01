@@ -4,11 +4,11 @@
 #include <cstdlib>
 #include <xutility>
 
-namespace Typhoon {
+namespace Typhoon::LuaBind {
 
 namespace {
 
-char tempBuffer[128];
+char tempBuffer[64];
 
 }
 
@@ -26,17 +26,10 @@ Result::Result(const char* errorMessage, ...)
 	va_end(args);
 }
 
-void Result::setErrorMessage(const char* msg, ...) {
-	va_list args;
-	va_start(args, msg);
-	setErrorMessage(msg, args);
-	va_end(args);
-}
-
 void Result::setErrorMessage(const char* msg, va_list args) {
 	vsnprintf_s(tempBuffer, std::size(tempBuffer), std::size(tempBuffer) - 1, msg, args);
 	errorMessage = tempBuffer;
 	result = false;
 }
 
-} // namespace Typhoon
+} // namespace Typhoon::LuaBind

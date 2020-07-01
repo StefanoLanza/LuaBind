@@ -1,11 +1,11 @@
 #include "typeSafefy.h"
 
-#if TY_LUA_TYPE_SAFE
+#if TY_LUABIND_TYPE_SAFE
 
 #include "autoBlock.h"
 #include <unordered_map>
 
-namespace Typhoon::LUA::detail {
+namespace Typhoon::LuaBind::detail {
 
 namespace {
 
@@ -48,6 +48,6 @@ bool checkType(lua_State* ls, int index, const char* className) {
 	return false;
 }
 
-} // namespace Typhoon::LUA::detail
+} // namespace Typhoon::LuaBind::detail
 
 #endif

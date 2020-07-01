@@ -1,10 +1,13 @@
 #pragma once
 
+#include "table.h"
+#include "tableTraits.h"
+#include "typeWrapper.h"
 #include <array>
 
 struct lua_State;
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 // Wrapper for std::vector
 // Limitations: only support containers of primitive values (those supported by LUA::Value)
@@ -26,11 +29,11 @@ public:
 		// Push container values into table
 		int index = 1;
 		for (size_t i = 0; i < v.size(); ++i, ++index) {
-			table.RawSet(index, v[i]);
+			table.rawSet(index, v[i]);
 		}
 
 		// Push table on stack
-		return LUA::Push(ls, table);
+		return Wrapper<Table>::Push(ls, table);
 	};
 
 	//\note the container is not cleared
@@ -39,7 +42,7 @@ public:
 
 		// Open table from stack
 		const Table table(ls, StackIndex { idx });
-		if (! table.IsValid()) {
+		if (! table.isValid()) {
 			return array;
 		}
 
@@ -48,7 +51,7 @@ public:
 		for (size_t i = 0; i < array.size(); ++i, ++tableIndex) {
 			Value value = table[tableIndex];
 			if (value) {
-				value.Cast(array[i]);
+				value.cast(array[i]);
 			}
 			else {
 				break; // nil
@@ -59,4 +62,4 @@ public:
 	}
 };
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

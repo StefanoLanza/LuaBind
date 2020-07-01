@@ -3,7 +3,7 @@
 #include <core/uncopyable.h>
 #include <lua/src/lua.hpp>
 
-namespace Typhoon::LUA {
+namespace Typhoon::LuaBind {
 
 // Helper class to automatically restore the Lua stack when a function exits
 class AutoBlock : Uncopyable {
@@ -27,4 +27,4 @@ private:
 	int        stackTop;
 };
 
-} // namespace Typhoon::LUA
+} // namespace Typhoon::LuaBind

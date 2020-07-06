@@ -8,7 +8,7 @@ class Result {
 public:
 	explicit Result(bool result);
 	explicit Result(const char* errorMessage, ...);
-	bool GetResult() const {
+	bool getResult() const {
 		return result;
 	}
 	const char* getErrorMessage() const {

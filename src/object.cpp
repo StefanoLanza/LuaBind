@@ -4,6 +4,12 @@
 
 namespace Typhoon::LuaBind {
 
+Object::Object(lua_State* ls, int ref)
+    : ls(ls)
+    , ref(ref) {
+	assert(ref != LUA_NOREF);
+}
+
 bool Object::hasMethod(const char* func) const {
 	assert(func);
 	AutoBlock autoBlock(ls);

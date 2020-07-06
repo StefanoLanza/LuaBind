@@ -4,7 +4,7 @@
 
 namespace Typhoon::LuaBind {
 
-// Lua reference wrapper
+/// @brief Lua reference wrapper
 class Reference {
 public:
 	constexpr Reference()

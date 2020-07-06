@@ -54,12 +54,12 @@ void setIdentity(Quat& q) {
 template <>
 class LuaBind::Wrapper<Vec3> : public LuaBind::WrapperAsTemporary<Vec3> {};
 
-void BindTestClasses(lua_State* ls);
+void bindTestClasses(lua_State* ls);
 
 int __cdecl main(int argc, char* argv[]) {
 	lua_State* const ls = LuaBind::createState(8192);
 	g_ls = ls;
-	BindTestClasses(ls);
+	bindTestClasses(ls);
 	const int result = Catch::Session().run(argc, argv);
 	LuaBind::closeState(ls);
 	return result;
@@ -213,17 +213,6 @@ TEST_CASE("Properties") {
 		Table properties = (Table)ptest["p"];
 		REQUIRE(properties);
 	}
-}
-
-TEST_CASE("Iterator") {
-	using namespace LuaBind;
-	lua_State* ls = g_ls;
-	AutoBlock  autoblock(ls);
-	if (Table test = (Table)globals(ls)["test_table"]; test) {
-		REQUIRE(test);
-		// TODO
-	}
-	CHECK(lua_gettop(ls) == 0);
 }
 
 TEST_CASE("VoidPtr") {
@@ -430,7 +419,7 @@ TEST_CASE("Class") {
 	}
 }
 
-void BindTestClasses(lua_State* ls) {
+void bindTestClasses(lua_State* ls) {
 	using namespace LuaBind;
 
 	LUA_BEGIN_BINDING(ls);

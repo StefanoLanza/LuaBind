@@ -22,22 +22,11 @@ TableIterator TableIterator::operator++(int) {
 	return tmp;
 }
 
-Value TableIterator::getValue() const {
+TableKeyValue TableIterator::operator*() {
 	pushKeyValue();
-	// 'key' is at index -2 and 'value' at index -1
-	// remove key
-	lua_remove(ls, -2);
-	// return value
-	return Value(ls, topStackIndex);
-}
-
-Value TableIterator::getKey() const {
-	pushKeyValue();
-	// 'key' is at index -2 and 'value' at index -1
-	// remove value
-	lua_remove(ls, -1);
-	// return key
-	return Value(ls, topStackIndex);
+	TableKeyValue kv = { Value(ls, StackIndex(-2)), Value(ls, StackIndex(-1)) };
+	lua_pop(ls, 2); // remove key and value from stack
+	return kv;
 }
 
 void TableIterator::compat(const TableIterator& _Right) const {

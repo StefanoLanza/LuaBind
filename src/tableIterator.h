@@ -11,6 +11,11 @@ namespace Typhoon::LuaBind {
 
 class Value;
 
+struct TableKeyValue {
+	Value key;
+	Value value;
+};
+
 class TableIterator {
 public:
 	using difference_type = int;
@@ -83,11 +88,7 @@ public:
 	bool operator>=(const TableIterator& _Right) const { // test if this >= _Right
 		return (! (*this < _Right));
 	}
-	Value operator*() {
-		return getValue();
-	}
-	Value getValue() const;
-	Value getKey() const;
+	TableKeyValue operator*();
 
 private:
 	void compat(const TableIterator& _Right) const;

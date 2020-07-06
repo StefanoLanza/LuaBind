@@ -1,6 +1,7 @@
 #pragma once
 
 #include "result.h"
+#include "reference.h"
 #include <utility>
 #include <cassert>
 
@@ -18,7 +19,7 @@ public:
 	 * @param ls lua state
 	 * @param ref object reference
 	*/
-	Object(lua_State* ls, int ref);
+	Object(lua_State* ls, Reference ref);
 
 	/**
 	 * @brief 

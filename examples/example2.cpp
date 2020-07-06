@@ -1,16 +1,33 @@
-// This example shows how to access tables defined in Lua
+// This example shows how to access interact with objects defined in Lua
 
 #include <include/luaBind.h>
-#include <string>
 #include <iostream>
+#include <string>
 
 void example(lua_State* ls);
 
 const char* script = R"(
-	testTable = {
-		name = "Stefano",
-		surName = "Lanza",
+	testObject = {
+		name = "Penguin",
+		canFly = false,
+		speed = 10.,
 	}
+
+	function testObject:getName()
+		return self.name
+	end
+
+	function testObject:canFly()
+		return self.canFly
+	end
+
+	function testObject:getSpeed()
+		return self.speed
+	end
+
+	function testObject:setSpeed(newSpeed)
+		self.speed = newSpeed
+	end
 )";
 
 int __cdecl main(int /*argc*/, char* /*argv*/[]) {
@@ -24,26 +41,57 @@ int __cdecl main(int /*argc*/, char* /*argv*/[]) {
 void example(lua_State* ls) {
 	using namespace LuaBind;
 	const AutoBlock autoblock(ls);
+	std::cout << std::boolalpha;
 
 	if (Result res = doCommand(ls, script); ! res) {
 		std::cout << res.getErrorMessage() << std::endl;
 		return;
 	}
 
-	/*Table table = newtable(ls);
-
-	const int numIndices = 101;
-	for (int i = 0; i < numIndices; ++i) {
-		table.rawSeti(i, i * i); // table[i] = i * i
+	Table test = (Table)globals(ls)["testObject"];
+	if (! test) {
+		return;
 	}
 
-	const int key = 10;
-	const int value = 20;
-	table.set(key, value);
-	const int ret_value = (int)table[key];
-	*/
-	if (Table test = (Table)globals(ls)["testTable"]; test) {
-		std::string name, surName;
-		test["name"].cast(name);
+	Object obj(ls, test.getReference());
+
+	std::string name;
+	Result      r = obj.callMethodRet("getName", name);
+	if (r) {
+		std::cout << "Name: " << name << std::endl;
+	}
+	else {
+		std::cout << r.getErrorMessage() << std::endl;
+	}
+
+	float speed;
+	r = obj.callMethodRet("getSpeed", speed);
+	if (r) {
+		std::cout << "Speed: " << speed << std::endl;
+	}
+	else {
+		std::cout << r.getErrorMessage() << std::endl;
+	}
+
+	r = obj.callMethod("setSpeed", speed * 2.f);
+	if (! r) {
+		std::cout << r.getErrorMessage() << std::endl;
+	}
+
+	r = obj.callMethodRet("getSpeed", speed);
+	if (r) {
+		std::cout << "New speed: " << speed << std::endl;
+	}
+	else {
+		std::cout << r.getErrorMessage() << std::endl;
+	}
+
+	bool canFly;
+	r = obj.callMethodRet("canFly", canFly);
+	if (r) {
+		std::cout << "Can fly?: " << canFly << std::endl;
+	}
+	else {
+		std::cout << r.getErrorMessage() << std::endl;
 	}
 }

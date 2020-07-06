@@ -4,10 +4,10 @@
 
 namespace Typhoon::LuaBind {
 
-Object::Object(lua_State* ls, int ref)
+Object::Object(lua_State* ls, Reference ref)
     : ls(ls)
-    , ref(ref) {
-	assert(ref != LUA_NOREF);
+    , ref(ref.getValue()) {
+	assert(ref.isValid());
 }
 
 bool Object::hasMethod(const char* func) const {

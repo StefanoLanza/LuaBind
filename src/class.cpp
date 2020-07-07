@@ -11,7 +11,7 @@ namespace Typhoon::LuaBind::detail {
 namespace {
 
 // Store method table in globals so that scripts can add functions written in Lua.
-void RegisterClassInGlobals(lua_State* ls, const char* className, int methodsIndex) {
+void registerClassInGlobals(lua_State* ls, const char* className, int methodsIndex) {
 	AutoBlock autoBlock(ls);
 
 	// globals[classname] = methodsIndex
@@ -31,13 +31,14 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 
 	// Create a metatable in the registry
 	if (luaL_newmetatable(ls, className) == 0) {
+		assert(false);
 		return Reference {}; // name already in use
 	}
 	const int metatableIndex = lua_gettop(ls);
 
 	// Create a new table of methods representing the class
-	lua_newtable(ls);
-	const int methodsIndex = lua_gettop(ls);
+	//lua_newtable(ls);
+	const int methodsIndex = metatableIndex;// lua_gettop(ls);
 
 	// Create table for uniqueness
 	// lua_newtable(ls);
@@ -90,12 +91,13 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 		}
 		else {
 			// base class has not been registered
+			assert(false);
 			return Reference {};
 		}
 	}
 
 	// Register className as global so that Lua scripts can access it
-	RegisterClassInGlobals(ls, className, methodsIndex);
+	registerClassInGlobals(ls, className, methodsIndex);
 
 	registerTypeName(classID, className);
 

@@ -8,7 +8,7 @@ namespace Typhoon::LuaBind {
 
 namespace {
 
-char tempBuffer[64];
+char tempBuffer[256];
 
 }
 

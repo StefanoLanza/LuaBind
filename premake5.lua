@@ -44,8 +44,8 @@ filter "configurations:Release*"
 
 project("Lua")
 	kind "StaticLib"
-	files "thirdParty/lua/src/*.c"
-	files "thirdParty/lua/src/*.h"
+	files "external/lua/src/*.c"
+	files "external/lua/src/*.h"
 --	includedirs { "TinyXML", }
 
 project("Core")
@@ -60,23 +60,29 @@ project("LuaBind")
 	files "src/**.h"
 	files "src/**.inl"
 	files "include/**.h"
-	includedirs { ".", "external", "include", "thirdParty", }
+	includedirs { ".", "external", "include", }
 	links({"Core", "Lua"})
 
 project("Example1")
 	kind "ConsoleApp"
 	files "examples/example1.cpp"
-	includedirs { ".", "external", "include", "thirdParty", }
+	includedirs { ".", "external", "include", }
 	links({"LuaBind", })
 
 project("Example2")
 	kind "ConsoleApp"
 	files "examples/example2.cpp"
-	includedirs { ".", "external", "include", "thirdParty", }
+	includedirs { ".", "external", "include", }
+	links({"LuaBind", })
+
+project("Example3")
+	kind "ConsoleApp"
+	files "examples/example3.cpp"
+	includedirs { ".", "external", "include", }
 	links({"LuaBind", })
 
 project("UnitTest")
 	kind "ConsoleApp"
 	links({"LuaBind", })
 	files "test/*.*"
-	includedirs { ".", "external", "include", "thirdParty", }
+	includedirs { ".", "external", "include", }

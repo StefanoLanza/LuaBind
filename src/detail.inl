@@ -1,6 +1,7 @@
 #include "autoBlock.h"
 #include "table.h"
 #include <cassert>
+#include <core/typeId.h>
 #include <type_traits>
 
 namespace Typhoon::LuaBind::detail {
@@ -8,11 +9,10 @@ namespace Typhoon::LuaBind::detail {
 template <class T>
 int garbageCollect(lua_State* ls) {
 	// Extract pointer from user data
-	T** const ptrptr = static_cast<T**>(lua_touserdata(ls, 1));
-	assert(ptrptr);
-	// Delete object
-	T* const obj = *ptrptr;
+	T* obj = nullptr;
+	std::memcpy(&obj, lua_touserdata(ls, 1), sizeof obj);
 	assert(obj);
+	// Delete object
 	delete obj;
 	return 0;
 }
@@ -93,27 +93,49 @@ void pushObjectAsFullUserData(lua_State* ls, T* objectPtr) {
 }
 
 template <typename T>
-void pushDestructor(lua_State* ls) {
+void addDestructor(lua_State* ls) {
 	// Set metatable for userdata (required for __gc)
-	lua_newtable(ls);                         // mt, ud
-	lua_pushvalue(ls, -1);                    // mt, mt, ud
-	lua_pushcfunction(ls, garbageCollect<T>); // func, mt, mt, ud
-	lua_setfield(ls, -2, "__gc");             // mt, mt, ud
-	lua_setmetatable(ls, -3);                 // mt, ud
-	lua_pop(ls, 1);                           // ud
+	lua_newtable(ls);                         // ud, mt
+	lua_pushcfunction(ls, garbageCollect<T>); // ud, mt, func
+	lua_setfield(ls, -2, "__gc");             // ud, mt          mt[__gc] = func
+	lua_setmetatable(ls, -2);                 // ud              ud.mt = mt
 }
 
 template <typename T>
 int newObject(lua_State* ls) {
+	const auto     typeId = getTypeId<T>();
+	const TypeName typeName = typeIdToName(typeId);
+
 	T* const ptr = new T;
 	// Allocate full user data
 	void* const ud = lua_newuserdata(ls, sizeof(ptr));
 	// Store the object pointer in the user data
-	std::memcpy(ud, &ptr, sizeof(ptr));
+	std::memcpy(ud, &ptr, sizeof ptr);
 	// Push destructor if not trivially destructible
 	if constexpr (! std::is_trivially_destructible_v<T>) {
-		pushDestructor<T>(ls);
+		addDestructor<T>(ls);
+		// Set metatable of user data
+		// Because the destructor already introduced a mt, we need to nest two mts, 
+		// the destructor one and the one associated with the object type
+
+		lua_getmetatable(ls, -1); // mt0
+		assert(lua_istable(ls, -1));
+
+		lua_pushliteral(ls, "__index");  // mt0, __index
+		luaL_getmetatable(ls, typeName); // mt0, __index, mt1
+		lua_pushliteral(ls, "__index");  // mt0, __index, mt1, __index
+		lua_rawget(ls, -2);              // mt0, __index, mt1, mt1.t
+		lua_remove(ls, -2);              // mt0, __index, mt1.t
+		lua_settable(ls, -3);            // mt0                              mt0.__index = mt1.t
+		lua_pop(ls, 1);
 	}
+	else {
+		// Set metatable of user data
+		luaL_getmetatable(ls, typeName);
+		assert(lua_istable(ls, -1)); // mt
+		lua_setmetatable(ls, -2);    // ud.mt = mt
+	}
+
 #if LUA_TYPE_SAFE
 	// TODO in the userdata instead?
 	registerPointerType(ptr, getTypeId<T>());

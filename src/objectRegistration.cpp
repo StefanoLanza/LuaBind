@@ -13,7 +13,6 @@ Reference registerObjectAsTable(lua_State* ls, void* objectPtr, TypeId typeId) {
 
 	AutoBlock autoBlock(ls);
 
-	//	assert(registry(ls)[objectPtr].IsNil());
 	const TypeName classID = typeIdToName(typeId);
 
 	// TODO store type_info inside the table ?

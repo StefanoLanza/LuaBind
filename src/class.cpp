@@ -34,11 +34,14 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 		assert(false);
 		return Reference {}; // name already in use
 	}
+
+	// Use the same table as a metatable and to store the class methods
 	const int metatableIndex = lua_gettop(ls);
 
-	// Create a new table of methods representing the class
-	//lua_newtable(ls);
-	const int methodsIndex = metatableIndex;// lua_gettop(ls);
+	// metatable.__index = metatable
+	lua_pushliteral(ls, "__index");
+	lua_pushvalue(ls, metatableIndex);
+	lua_settable(ls, metatableIndex);
 
 	// Create table for uniqueness
 	// lua_newtable(ls);
@@ -55,54 +58,40 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 	lua_settable(ls, metatableIndex);
 */
 
-	// metatable.__index = methodsIndex
-	lua_pushliteral(ls, "__index");
-	lua_pushvalue(ls, methodsIndex);
-	lua_settable(ls, metatableIndex);
-
 	if (baseClassID != nullTypeId) {
 		// Get base table of methods
 		const TypeName baseClassName = typeIdToName(baseClassID);
 		assert(baseClassName);
 		luaL_getmetatable(ls, baseClassName);
-		if (lua_istable(ls, -1)) {
-			const int baseMetaTable = lua_gettop(ls);
-			lua_pushliteral(ls, "__index");
-			lua_rawget(ls, baseMetaTable);
-			assert(lua_istable(ls, -1));
-			const int baseMethods = lua_gettop(ls);
+		assert(lua_istable(ls, -1));
 
-			// metatable._base = base meta table
-			// _base is used for type safety
-			lua_pushliteral(ls, "_base");
-			lua_pushvalue(ls, baseMetaTable);
-			lua_settable(ls, metatableIndex);
+		const int baseMetaTable = lua_gettop(ls);
 
-			// Create metatable for methods table
-			lua_newtable(ls);
-			lua_pushvalue(ls, -1); // dup metatable
-			lua_setmetatable(ls, methodsIndex);
-			const int mt = lua_gettop(ls);
+		// metatable._base = base meta table
+		// _base is used for type safety
+		lua_pushliteral(ls, "_base");
+		lua_pushvalue(ls, baseMetaTable);
+		lua_settable(ls, metatableIndex);
 
-			// methods.metatable.__index = base.methods
-			lua_pushliteral(ls, "__index");
-			lua_pushvalue(ls, baseMethods);
-			lua_rawset(ls, mt);
-		}
-		else {
-			// base class has not been registered
-			assert(false);
-			return Reference {};
-		}
+		// Create metatable for methods table
+		lua_newtable(ls);
+		lua_pushvalue(ls, -1); // dup metatable
+		lua_setmetatable(ls, metatableIndex);
+		const int mt = lua_gettop(ls);
+
+		// methods.metatable.__index = baseMetaTable
+		lua_pushliteral(ls, "__index");
+		lua_pushvalue(ls, baseMetaTable);
+		lua_rawset(ls, mt);
 	}
 
 	// Register className as global so that Lua scripts can access it
-	registerClassInGlobals(ls, className, methodsIndex);
+	registerClassInGlobals(ls, className, metatableIndex);
 
 	registerTypeName(classID, className);
 
 	// Create reference to table
-	lua_pushvalue(ls, methodsIndex);
+	lua_pushvalue(ls, metatableIndex);
 	return Reference { luaL_ref(ls, LUA_REGISTRYINDEX) };
 }
 

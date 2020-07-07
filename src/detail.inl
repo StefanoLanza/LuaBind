@@ -121,12 +121,17 @@ int newObject(lua_State* ls) {
 		lua_getmetatable(ls, -1); // mt0
 		assert(lua_istable(ls, -1));
 
-		lua_pushliteral(ls, "__index");  // mt0, __index
+/*		lua_pushliteral(ls, "__index");  // mt0, __index
 		luaL_getmetatable(ls, typeName); // mt0, __index, mt1
 		lua_pushliteral(ls, "__index");  // mt0, __index, mt1, __index
 		lua_rawget(ls, -2);              // mt0, __index, mt1, mt1.t
 		lua_remove(ls, -2);              // mt0, __index, mt1.t
 		lua_settable(ls, -3);            // mt0                              mt0.__index = mt1.t
+		lua_pop(ls, 1);*/
+
+		lua_pushliteral(ls, "__index");  // mt0, __index
+		luaL_getmetatable(ls, typeName); // mt0, __index, mt1
+		lua_settable(ls, -3);            // mt0                              mt0.__index = mt1
 		lua_pop(ls, 1);
 	}
 	else {

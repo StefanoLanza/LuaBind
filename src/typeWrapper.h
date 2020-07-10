@@ -475,7 +475,7 @@ public:
 
 // Helper to push and pop temporary objects as light user data
 template <class T>
-struct WrapperAsTemporary {
+struct Temporary {
 	static constexpr int stackSize = 1;
 	static int           Match(lua_State* ls, int idx) {
         return lua_isuserdata(ls, idx);
@@ -485,7 +485,6 @@ struct WrapperAsTemporary {
 #if TY_LUABIND_TYPE_SAFE
 		detail::registerPointerType(ud);
 #endif
-		// detail::PushObjectAsFullUserData(ls, ud);
 		lua_pushlightuserdata(ls, ud);
 		return 1;
 	}

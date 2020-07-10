@@ -91,10 +91,10 @@ private:
 
 const char* script = R"(
 	-- Create an object in Lua directly
-	local luaHuman = Human()
-	luaHuman:setName("luaHuman")
-	local name = luaHuman:getName()
-	print ("luaHuman name:"..name)
+--	local luaHuman = Human.new()
+--	luaHuman:setName("luaHuman")
+--	local name = luaHuman:getName()
+--	print ("luaHuman name:"..name)
 
 	-- cppHuman and cppMonster were created by native code and bound to Lua
 
@@ -135,7 +135,7 @@ void example(lua_State* ls) {
 	obj1.setName("cppMonster");
 
 	// Expose cpp object to Lua as a full userdata
-	const Reference ref0 = registerObjectAsUserData(ls, &obj0);
+	const Reference ref0 { registerObjectAsUserData(ls, &obj0)/*, ls*/ };
 	globals(ls).rawSet("cppHuman", ref0);
 
 	// Expose cpp object to Lua as a table. This way, in Lua we can associate custom elements to the object
@@ -144,8 +144,11 @@ void example(lua_State* ls) {
 
 	if (Result res = doCommand(ls, script); ! res) {
 		std::cout << res.getErrorMessage() << std::endl;
-		return;
 	}
+
+	// Unregister objects
+	unregisterObject(ls, ref0);
+	unregisterObject(ls, ref1);
 }
 
 void bindClass(lua_State* ls) {

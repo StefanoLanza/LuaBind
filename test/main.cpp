@@ -29,17 +29,8 @@ struct Quat {
 };
 
 // Custom new
-int newVec3(lua_State* ls) {
-	Vec3* v = LuaBind::newTemporary<Vec3>();
-	// todo merge ?
-	lua_pushlightuserdata(ls, v);
-#if TY_LUABIND_TYPE_SAFE
-	LuaBind::detail::registerPointerType(v);
-#endif
-	v->x = lua_isnumber(ls, 2) ? lua_tonumber(ls, 2) : 0;
-	v->y = lua_isnumber(ls, 3) ? lua_tonumber(ls, 3) : 0;
-	v->z = lua_isnumber(ls, 4) ? lua_tonumber(ls, 4) : 0;
-	return 1;
+Vec3 newVec3(float x, float y, float z) {
+	return Vec3 {x, y, z };
 }
 
 Vec3 add(const Vec3& v0, const Vec3& v1) {
@@ -52,7 +43,7 @@ void setIdentity(Quat& q) {
 
 // Treat Vec3 as a temporary object in Lua
 template <>
-class LuaBind::Wrapper<Vec3> : public LuaBind::WrapperAsTemporary<Vec3> {};
+class LuaBind::Wrapper<Vec3> : public LuaBind::Temporary<Vec3> {};
 
 void bindTestClasses(lua_State* ls);
 
@@ -317,7 +308,7 @@ TEST_CASE("Class") {
 		}
 
 		SECTION("creating C++ object in Lua") {
-			CHECK(doCommand(ls, "obj = GameObject()"));
+			CHECK(doCommand(ls, "obj = GameObject.new()"));
 			CHECK(doCommand(ls, "GameObject.SetA(obj, 20)"));
 			CHECK(doCommand(ls, "GameObject.SetName(obj, 'Stanley')"));
 			CHECK(doCommand(ls, "GameObject.setState(obj, 0)"));
@@ -392,24 +383,30 @@ TEST_CASE("Class") {
 }
 #endif
 	SECTION("temporaries") {
-		CHECK(doCommand(ls, "vec0 = Vec3(0., 1., 2.)"));
-		CHECK(doCommand(ls, "vec1 = Vec3(3., 4., 5.)"));
+		CHECK(doCommand(ls, "vec0 = Vec3.new(0., 1., 2.)"));
+		CHECK(doCommand(ls, "vec1 = Vec3.new(3., 4., 5.)"));
 		CHECK(doCommand(ls, "vec2 = Vec3.add(vec0, vec1)"));
 		const Vec3* vptr = static_cast<const Vec3*>(globals(ls)["vec0"]);
 		REQUIRE(vptr);
-		CHECK(vptr->x == 0.);
-		CHECK(vptr->y == 1.);
-		CHECK(vptr->z == 2.);
+		if (vptr) {
+			CHECK(vptr->x == 0.);
+			CHECK(vptr->y == 1.);
+			CHECK(vptr->z == 2.);
+		}
 		const Vec3* v1ptr = static_cast<const Vec3*>(globals(ls)["vec1"]);
 		REQUIRE(v1ptr);
-		CHECK(v1ptr->x == 3.);
-		CHECK(v1ptr->y == 4.);
-		CHECK(v1ptr->z == 5.);
+		if (v1ptr) {
+			CHECK(v1ptr->x == 3.);
+			CHECK(v1ptr->y == 4.);
+			CHECK(v1ptr->z == 5.);
+		}
 		const Vec3* v2ptr = static_cast<const Vec3*>(globals(ls)["vec2"]);
 		REQUIRE(v2ptr);
-		CHECK(v2ptr->x == 3.);
-		CHECK(v2ptr->y == 5.);
-		CHECK(v2ptr->z == 7.);
+		if (v2ptr) {
+			CHECK(v2ptr->x == 3.);
+			CHECK(v2ptr->y == 5.);
+			CHECK(v2ptr->z == 7.);
+		}
 #if TY_LUABIND_TYPE_SAFE
 		// Type safefy
 		// const Quat* q = static_cast<const Quat*>(globals(ls)["vec0"]);
@@ -458,7 +455,7 @@ void bindTestClasses(lua_State* ls) {
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Vec3);
-	LUA_SET_NEW_OPERATOR_LUA_CFUNC(newVec3);
+	LUA_NEW_OPERATOR(newVec3);
 	LUA_ADD_FUNCTION(add);
 	LUA_BOX_OPERATOR();
 	LUA_END_CLASS();

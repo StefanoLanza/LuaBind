@@ -81,6 +81,12 @@ project("Example3")
 	includedirs { ".", "external", "include", }
 	links({"LuaBind", })
 
+project("Example4")
+	kind "ConsoleApp"
+	files "examples/example4.cpp"
+	includedirs { ".", "external", "include", }
+	links({"LuaBind", })
+
 project("UnitTest")
 	kind "ConsoleApp"
 	links({"LuaBind", })

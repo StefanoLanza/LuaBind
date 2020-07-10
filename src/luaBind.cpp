@@ -90,7 +90,7 @@ lua_State* getLuaState() {
 	return g_ls;
 }
 
-void updateFrame() {
+void newFrame() {
 	detail::temporaryAllocator->Rewind();
 }
 

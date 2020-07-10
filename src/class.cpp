@@ -85,6 +85,11 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 		lua_rawset(ls, mt);
 	}
 
+	// Idea: associate the destructor here. In the destructor, we'd need to tell pointers created by Lua from those created and registered
+	// natively, and destroy only the Lua ones. This would simplify the logic of newObject<T>
+//	lua_pushcfunction(ls, destructor);
+//	lua_setfield(ls, metatableIndex, "__gc");
+
 	// Register className as global so that Lua scripts can access it
 	registerClassInGlobals(ls, className, metatableIndex);
 
@@ -97,39 +102,16 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 
 void registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure) {
 	assert(closure);
-
-	AutoBlock autoBlock(ls);
-
-	// Create metatable for table of class methods
-	if (! lua_getmetatable(ls, tableIndex)) {
-		lua_newtable(ls);
-		lua_pushvalue(ls, -1);
-		lua_setmetatable(ls, tableIndex);
-	}
-	const int mt = lua_gettop(ls);
-
-	// Set __call
-	// Save className as upvalue
-	lua_pushliteral(ls, "__call");
+	lua_pushliteral(ls, "new");
 	lua_pushcfunction(ls, closure);
-	lua_settable(ls, mt); // mt.__call = new_T
+	lua_settable(ls, tableIndex); // table.new = new_T
 }
 
 void registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize) {
-	AutoBlock autoBlock(ls);
-
-	// Create metatable for table of class methods
-	if (! lua_getmetatable(ls, tableIndex)) {
-		lua_newtable(ls);
-		lua_pushvalue(ls, -1);
-		lua_setmetatable(ls, tableIndex);
-	}
-	const int mt = lua_gettop(ls);
-
-	lua_pushliteral(ls, "__call");
 	// Push the closure with flags ==, so that we skip the first element on the stack (a table representing the caller)
-	pushFunctionAsUpvalue(ls, closure, &functionPtr, functionPtrSize, detail::Flags::call);
-	lua_settable(ls, mt); // mt.__call = closure
+	lua_pushliteral(ls, "new");
+	pushFunctionAsUpvalue(ls, closure, &functionPtr, functionPtrSize);
+	lua_settable(ls, tableIndex); // table.new = closure
 }
 
 int registerLuaClass(lua_State* ls) {

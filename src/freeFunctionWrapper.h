@@ -17,7 +17,6 @@ int freeFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, ar
 
 	// Extract function pointer and flags from Lua user data
 	const func_ptr func = serializePOD<func_ptr>(ud, 0);
-	const Flags    flags = serializePOD<Flags>(ud, sizeof func_ptr);
 
 	// Get stack size of all arguments
 	// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument
@@ -25,7 +24,7 @@ int freeFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, ar
 
 	// Compute stack indices
 	int argStackIndex[sizeof...(argTypes) + 1] = {};
-	argStackIndex[0] = (flags == Flags::call) ? 2 : 1;
+	argStackIndex[0] = 1;
 	for (size_t i = 1; i < sizeof...(argTypes); ++i) {
 		argStackIndex[i] = argStackIndex[i - 1] + argStackSize[i - 1];
 	}
@@ -52,7 +51,7 @@ template <typename retType, typename... argType>
 inline void registerFunction(lua_State* ls, retType (*functionPtr)(argType...), const char* functionName, int tableStackIndex) {
 	lua_pushstring(ls, functionName);
 	lua_CFunction luaFunc = freeFunctionWrapper<retType, argType...>;
-	pushFunctionAsUpvalue(ls, luaFunc, &functionPtr, sizeof(functionPtr), Flags::none);
+	pushFunctionAsUpvalue(ls, luaFunc, &functionPtr, sizeof(functionPtr));
 	lua_settable(ls, tableStackIndex);
 }
 

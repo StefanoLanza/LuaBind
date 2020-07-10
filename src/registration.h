@@ -5,9 +5,9 @@
 #include "freeFunctionWrapper.h"
 #include "memberFunctionWrapper.h"
 #include "objectRegistration.h"
-#include "stdSharedPtrWrapper.h"
 #include "stdArrayWrapper.h"
 #include "stdPairWrapper.h"
+#include "stdSharedPtrWrapper.h"
 #include "stdVectorWrapper.h"
 #include "tableTraits.h"
 #include <cassert>
@@ -166,37 +166,28 @@ struct Overload {
 	}                       \
 	while (0)
 
-#define LUA_ADD_FUNCTION_RENAMED(function, functionName)                                                                   \
-	do {                                                                                                                   \
-		LuaBind::detail::registerFunction(ls__, Overload<boundClass__>::GetFunc(function), functionName, tableStackIndex); \
+#define LUA_FUNCTION_RENAMED(function, functionName)                                                                    \
+	do {                                                                                                                    \
+		LuaBind::detail::registerFunction(ls__, Overload<boundClass__>::GetFunc(function), #functionName, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_FUNCTION(function) LUA_ADD_FUNCTION_RENAMED(function, #function)
+#define LUA_ADD_FUNCTION(function) LUA_FUNCTION_RENAMED(function, function)
 
 #define LUA_ADD_OVERLOADED_FUNCTION(function, ret_type, ...)                                                                    \
 	do {                                                                                                                        \
 		LuaBind::detail::registerFunction(ls__, static_cast<ret_type (*)(__VA_ARGS__)>(&function), #function, tableStackIndex); \
 	} while (0)
 
+// TODO Remove
+// Instead, use LUA_NEW_OPERATOR only. And let the Wrapper create a temporary or full userdata (with __gc)
 #define LUA_SET_DEFAULT_NEW_OPERATOR()                                                    \
 	do {                                                                                  \
 		LuaBind::detail::registerDefaultNewOperator<boundClass__>(ls__, tableStackIndex); \
 	} while (0)
 
-#define LUA_SET_NEW_OPERATOR_LUA_CFUNC(luaCFunc)                               \
+#define LUA_NEW_OPERATOR(function)                                         \
 	do {                                                                       \
-		LuaBind::detail::registerNewOperator(ls__, tableStackIndex, luaCFunc); \
-	} while (0)
-
-#define LUA_SET_NEW_OPERATOR_TEMPORARY()                                                                                   \
-	do {                                                                                                                   \
-		LuaBind::detail::registerNewOperator(ls__, tableStackIndex, LuaBind::detail::createTemporaryObject<boundClass__>); \
-	} while (0)
-
-#define LUA_SET_NEW_OPERATOR(function)                                                                                                               \
-	do {                                                                                                                                             \
-		auto functionPtr = &function;                                                                                                                \
-		LuaBind::detail::registerNewOperator(ls__, tableStackIndex, LuaBind::detail::createLuaCFunction(function), functionPtr, sizeof functionPtr); \
+		LuaBind::detail::registerNewOperator(ls__, tableStackIndex, function); \
 	} while (0)
 
 #define LUA_BOX_OPERATOR()                                                         \

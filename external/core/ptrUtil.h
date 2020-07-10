@@ -32,7 +32,7 @@ inline T* advancePointer(T* ptr, ptrdiff_t offset) {
 }
 
 template <typename T>
-inline T serializePOD(const void* ptr, ptrdiff_t offset) {
+inline T serializePOD(const void* ptr, ptrdiff_t offset = 0) {
 	static_assert(std::is_pod_v<T>);
 	T obj;
 	std::memcpy(&obj, advancePointer(ptr, offset), sizeof obj);

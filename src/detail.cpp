@@ -63,11 +63,10 @@ int collectBoxed(lua_State* ls) {
 	return 0;
 }
 
-void pushFunctionAsUpvalue(lua_State* ls, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize, Flags flags) {
+void pushFunctionAsUpvalue(lua_State* ls, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize) {
 	// Save pointer to caller and function as upvalue
-	uint8_t* buffer = static_cast<uint8_t*>(lua_newuserdata(ls, functionPtrSize + sizeof(flags)));
+	uint8_t* buffer = static_cast<uint8_t*>(lua_newuserdata(ls, functionPtrSize));
 	std::memcpy(buffer, functionPtr, functionPtrSize);
-	std::memcpy(buffer + functionPtrSize, &flags, sizeof flags);
 	lua_pushcclosure(ls, closure, 1);
 }
 

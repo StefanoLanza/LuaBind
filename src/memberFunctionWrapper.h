@@ -19,6 +19,7 @@ int memberFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, 
 	objType* const self = get<objType*>(ls, 1);
 	if (! self) {
 		luaL_argerror(ls, 1, "nil self");
+		return 0;
 	}
 
 	// Get stack size of all arguments
@@ -53,7 +54,7 @@ template <typename objType, typename retType, typename... argType>
 inline void registerMemberFunction(lua_State* ls, retType (objType::*func)(argType...), const char* functionName, int tableStackIndex) {
 	lua_pushstring(ls, functionName);
 	lua_CFunction luaFunc = memberFunctionWrapper<objType, retType, argType...>;
-	pushFunctionAsUpvalue(ls, luaFunc, &func, sizeof(func), Flags::none);
+	pushFunctionAsUpvalue(ls, luaFunc, &func, sizeof(func));
 	lua_settable(ls, tableStackIndex);
 }
 
@@ -62,7 +63,7 @@ template <typename objType, typename retType, typename... argType>
 inline void registerMemberFunction(lua_State* ls, retType (objType::*func)(argType...) const, const char* functionName, int tableStackIndex) {
 	lua_pushstring(ls, functionName);
 	lua_CFunction luaFunc = memberFunctionWrapper<objType, retType, argType...>;
-	pushFunctionAsUpvalue(ls, luaFunc, &func, sizeof(func), Flags::none);
+	pushFunctionAsUpvalue(ls, luaFunc, &func, sizeof(func));
 	lua_settable(ls, tableStackIndex);
 }
 

@@ -9,6 +9,7 @@
 #include <src/tableIterator.h>
 #include <src/typeSafefy.h>
 #include <src/value.h>
+#include <src/uniqueRef.h>
 
 #include <functional>
 
@@ -33,7 +34,7 @@ void               closeState(lua_State* ls);
 lua_State*         getLuaState();
 Result             doCommand(lua_State*, const char* command);
 Result             doBuffer(lua_State*, const char* buffer, size_t size, const char* name);
-void               updateFrame();
+void               newFrame();
 void               registerLoader(lua_State* ls, lua_CFunction loader, void* userData);
 void               registerLogger(lua_State* ls, Logger&& logger);
 const char*        getPath(lua_State* ls);

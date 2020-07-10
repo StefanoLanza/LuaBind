@@ -5,16 +5,8 @@
 #include "typeWrapper.h"
 #include <cassert>
 #include <cstdint>
-#include <lua/src/lua.hpp>
 
-namespace Typhoon::LuaBind {
-
-namespace detail {
-
-enum class Flags : uint32_t {
-	none = 0,
-	call = 1,
-};
+namespace Typhoon::LuaBind::detail {
 
 void* allocTemporary(size_t size, size_t alignment);
 
@@ -23,11 +15,6 @@ template <class T>
 inline T* allocTemporary() {
 	return static_cast<T*>(allocTemporary(sizeof(T), alignof(T)));
 }
-
-// Create a new object as a light user data
-// Used for lightweight temporaries (SimdVector, Quaternion etc)
-template <typename T>
-int createTemporaryObject(lua_State* ls);
 
 // Delete an object after collection
 template <class T>
@@ -118,7 +105,7 @@ void registerSetter(lua_State* ls, MEMBER_TYPE OBJECT_TYPE::*field, size_t offse
 	lua_settable(ls, tableStackIndex);
 }
 
-void pushFunctionAsUpvalue(lua_State* ls, lua_CFunction closure, const void* functionPointer, size_t functionPointerSize, Flags flags);
+void pushFunctionAsUpvalue(lua_State* ls, lua_CFunction closure, const void* functionPointer, size_t functionPointerSize);
 
 template <class T>
 void pushObjectAsFullUserData(lua_State* ls, T* objectPtr);
@@ -145,8 +132,6 @@ inline void checkArgs(lua_State* ls, const int stackIndices[], std::integer_sequ
 template <typename T>
 int newObject(lua_State* ls);
 
-} // namespace detail
-
-} // namespace Typhoon::LuaBind
+} // namespace Typhoon::LuaBind::detail
 
 #include "detail.inl"

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "reference.h"
-#include "stackIndex.h"
 #include "typeWrapper.h"
 #include <cassert>
 #include <cstdint>
@@ -24,30 +23,10 @@ int garbageCollect(lua_State* ls);
 // Returns nullptr on error
 void* retrievePointerFromTable(lua_State* ls, int idx);
 
-// Boxing
-void* allocateBoxed(size_t size, size_t alignment);
-
-int collectBoxed(lua_State* ls);
-
-//
-template <class T>
-int box(lua_State* ls);
-
-//
-template <class T>
-int store(lua_State* ls);
-
-//
-template <class T>
-int retrieve(lua_State* ls);
-
-template <class T>
-void pushBoxingFunctions(lua_State* ls, int tableStackIndex);
-
 template <class obj_type, class ret_type>
 class MemberVariableGetter {
 public:
-	static int Closure(lua_State* ls) {
+	static int closure(lua_State* ls) {
 		const size_t offset = static_cast<size_t>(lua_tonumber(ls, lua_upvalueindex(1)));
 
 		// Get self
@@ -66,7 +45,7 @@ public:
 template <class obj_type, class ret_type>
 class MemberVariableSetter {
 public:
-	static int Closure(lua_State* ls) {
+	static int closure(lua_State* ls) {
 		const size_t offset = static_cast<size_t>(lua_tonumber(ls, lua_upvalueindex(1)));
 
 		// Get self
@@ -89,7 +68,7 @@ template <typename OBJECT_TYPE, typename MEMBER_TYPE>
 void registerGetter(lua_State* ls, MEMBER_TYPE OBJECT_TYPE::*field, size_t offset, const char* functionName, int tableStackIndex) {
 	(void)field;
 	lua_pushstring(ls, functionName);
-	lua_CFunction closure = MemberVariableGetter<OBJECT_TYPE, MEMBER_TYPE>::Closure;
+	lua_CFunction closure = MemberVariableGetter<OBJECT_TYPE, MEMBER_TYPE>::closure;
 	lua_pushnumber(ls, static_cast<lua_Number>(offset));
 	lua_pushcclosure(ls, closure, 1);
 	lua_settable(ls, tableStackIndex);
@@ -99,7 +78,7 @@ template <typename OBJECT_TYPE, typename MEMBER_TYPE>
 void registerSetter(lua_State* ls, MEMBER_TYPE OBJECT_TYPE::*field, size_t offset, const char* functionName, int tableStackIndex) {
 	(void)field;
 	lua_pushstring(ls, functionName);
-	lua_CFunction closure = MemberVariableSetter<OBJECT_TYPE, MEMBER_TYPE>::Closure;
+	lua_CFunction closure = MemberVariableSetter<OBJECT_TYPE, MEMBER_TYPE>::closure;
 	lua_pushnumber(ls, static_cast<lua_Number>(offset));
 	lua_pushcclosure(ls, closure, 1);
 	lua_settable(ls, tableStackIndex);

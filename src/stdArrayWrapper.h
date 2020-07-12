@@ -1,11 +1,8 @@
 #pragma once
 
 #include "table.h"
-#include "tableTraits.h"
-#include "typeWrapper.h"
+#include "tableWrapper.h"
 #include <array>
-
-struct lua_State;
 
 namespace Typhoon::LuaBind {
 

@@ -3,8 +3,6 @@
 #include "typeWrapper.h"
 #include <utility>
 
-struct lua_State;
-
 namespace Typhoon::LuaBind {
 
 // Wrapper for std::pair

@@ -4,8 +4,8 @@
 #include <iostream>
 #include <string>
 
-void bindClass(lua_State* ls);
-void example(lua_State* ls);
+void bind(lua_State* ls);
+void runExample(lua_State* ls);
 
 enum class GameObjectState {
 	alive = 0,
@@ -117,14 +117,14 @@ const char* script = R"(
 
 int __cdecl main(int /*argc*/, char* /*argv*/[]) {
 	lua_State* const ls = LuaBind::createState(8192);
-	bindClass(ls);
-	example(ls);
+	bind(ls);
+	runExample(ls);
 	LuaBind::closeState(ls);
 
 	return 0;
 }
 
-void example(lua_State* ls) {
+void runExample(lua_State* ls) {
 	using namespace LuaBind;
 
 	// Construct objects
@@ -151,7 +151,7 @@ void example(lua_State* ls) {
 	unregisterObject(ls, ref1);
 }
 
-void bindClass(lua_State* ls) {
+void bind(lua_State* ls) {
 	using namespace LuaBind;
 
 	LUA_BEGIN_BINDING(ls);

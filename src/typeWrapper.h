@@ -37,6 +37,13 @@ public:
 		static_assert(false, "Not implemented. Specialize Wrapper for this type.");
 		return {};
 	}
+	static constexpr bool isLightweight() {
+		return false; // default
+	}
+	static constexpr int getStackSize() {
+		//static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+		return 0;
+	}
 };
 
 template <>
@@ -320,7 +327,7 @@ public:
 	}
 
 	static T* Get(lua_State* ls, int idx) {
-		T*     ptr = nullptr;
+		T*        ptr = nullptr;
 		const int luaType = lua_type(ls, idx);
 		if (luaType == LUA_TLIGHTUSERDATA) {
 			// Light user data
@@ -475,7 +482,7 @@ public:
 
 // Helper to push and pop temporary objects as light user data
 template <class T>
-struct Temporary {
+struct Lightweight {
 	static constexpr int stackSize = 1;
 	static int           Match(lua_State* ls, int idx) {
         return lua_isuserdata(ls, idx);
@@ -496,6 +503,9 @@ struct Temporary {
 		}
 #endif
 		return *static_cast<const T*>(userData);
+	}
+	static constexpr bool isLightweight() {
+		return true;
 	}
 };
 

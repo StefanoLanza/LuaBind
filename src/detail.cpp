@@ -10,11 +10,6 @@
 namespace Typhoon::LuaBind::detail {
 
 extern std::unique_ptr<LinearAllocator> temporaryAllocator;
-extern Allocator*                       boxedAllocator;
-
-void* allocateBoxed(size_t size, size_t alignment) {
-	return boxedAllocator->Alloc(size, alignment);
-}
 
 void* allocTemporary(size_t size, size_t alignment) {
 	void* ptr = temporaryAllocator->Allocate(size, alignment);
@@ -54,13 +49,6 @@ void pushObjectAsFullUserData(lua_State* ls, void* objectPtr, const char* classN
 
 	// Set metatable of user data
 	lua_setmetatable(ls, -2);
-}
-
-int collectBoxed(lua_State* ls) {
-	// Extract pointer from user data
-	void** const ptrptr = static_cast<void**>(lua_touserdata(ls, 1));
-	boxedAllocator->Free(*ptrptr);
-	return 0;
 }
 
 void pushFunctionAsUpvalue(lua_State* ls, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize) {

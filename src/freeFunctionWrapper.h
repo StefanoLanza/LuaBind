@@ -55,4 +55,29 @@ inline void registerFunction(lua_State* ls, retType (*functionPtr)(argType...), 
 	lua_settable(ls, tableStackIndex);
 }
 
+// Pick the overload with the first argument matching the bound class
+template <typename T>
+struct Overload {
+	template <typename retType, typename... argType>
+	static auto GetFunc(retType(func)(T self, argType...)) {
+		return func;
+	}
+	template <typename retType, typename... argType>
+	static auto GetFunc(retType(func)(T* self, argType...)) {
+		return func;
+	}
+	template <typename retType, typename... argType>
+	static auto GetFunc(retType(func)(const T* self, argType...)) {
+		return func;
+	}
+	template <typename retType, typename... argType>
+	static auto GetFunc(retType(func)(T& self, argType...)) {
+		return func;
+	}
+	template <typename retType, typename... argType>
+	static auto GetFunc(retType(func)(const T& self, argType...)) {
+		return func;
+	}
+};
+
 } // namespace Typhoon::LuaBind::detail

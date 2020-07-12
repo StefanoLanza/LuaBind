@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-void example(lua_State* ls);
+void runExample(lua_State* ls);
 void printTable(const LuaBind::Table& table);
 
 const char* script = R"(
@@ -18,13 +18,13 @@ const char* script = R"(
 
 int __cdecl main(int /*argc*/, char* /*argv*/[]) {
 	lua_State* const ls = LuaBind::createState(8192);
-	example(ls);
+	runExample(ls);
 	LuaBind::closeState(ls);
 
 	return 0;
 }
 
-void example(lua_State* ls) {
+void runExample(lua_State* ls) {
 	using namespace LuaBind;
 	const AutoBlock autoblock(ls);
 

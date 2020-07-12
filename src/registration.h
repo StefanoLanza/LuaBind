@@ -9,7 +9,7 @@
 #include "stdPairWrapper.h"
 #include "stdSharedPtrWrapper.h"
 #include "stdVectorWrapper.h"
-#include "tableTraits.h"
+#include "tableWrapper.h"
 #include <cassert>
 
 namespace Typhoon::LuaBind::detail {
@@ -29,16 +29,15 @@ int beginNamespace(lua_State* ls, const char* name);
 	while (0)             \
 	__pragma(warning(pop))
 
-#define LUA_BEGIN_CLASS_(class, className, baseClassId)                                                                                \
-	do {                                                                                                                               \
-		using boundClass__ = class;                                                                                                    \
-		const char* const className__ = className;                                                                                     \
-		const Reference   ref = LuaBind::detail::registerCppClass(ls__, className__, Typhoon::getTypeId<boundClass__>(), baseClassId); \
-		if (ref) {                                                                                                                     \
-			AutoBlock autoBlock(ls__);                                                                                                 \
-			lua_rawgeti(ls__, LUA_REGISTRYINDEX, ref.getValue());                                                                      \
-			assert(lua_istable(ls__, -1));                                                                                             \
-			const int tableStackIndex = lua_gettop(ls__);                                                                              \
+#define LUA_BEGIN_CLASS_(class, className, baseClassId)                                                      \
+	do {                                                                                                     \
+		using boundClass__ = class;                                                                          \
+		const Reference ref = LuaBind::detail::registerCppClass<boundClass__>(ls__, className, baseClassId); \
+		if (ref) {                                                                                           \
+			AutoBlock autoBlock(ls__);                                                                       \
+			lua_rawgeti(ls__, LUA_REGISTRYINDEX, ref.getValue());                                            \
+			assert(lua_istable(ls__, -1));                                                                   \
+			const int tableStackIndex = lua_gettop(ls__);                                                    \
 			(void)tableStackIndex;
 
 #define LUA_BEGIN_CLASS_NAMED(class, name) LUA_BEGIN_CLASS_(class, #name, Typhoon::nullTypeId)
@@ -74,40 +73,17 @@ int beginNamespace(lua_State* ls, const char* name);
 		lua_settable(ls__, tableStackIndex);       \
 	} while (0)
 
-// Pick the overload with the first argument matching the bound class
-template <typename StructType>
-struct Overload {
-	template <typename retType, typename... argType>
-	static auto GetFunc(retType(func)(StructType self, argType...)) {
-		return func;
-	}
-	template <typename retType, typename... argType>
-	static auto GetFunc(retType(func)(StructType* self, argType...)) {
-		return func;
-	}
-	template <typename retType, typename... argType>
-	static auto GetFunc(retType(func)(const StructType* self, argType...)) {
-		return func;
-	}
-	template <typename retType, typename... argType>
-	static auto GetFunc(retType(func)(StructType& self, argType...)) {
-		return func;
-	}
-	template <typename retType, typename... argType>
-	static auto GetFunc(retType(func)(const StructType& self, argType...)) {
-		return func;
-	}
-};
-
 #define LUA_ADD_FREE_FUNCTION(function)                                                \
 	do {                                                                               \
 		LuaBind::detail::registerFunction(ls__, function, #function, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_STATIC_FUNCTION(func)                                                        \
-	do {                                                                                     \
-		LuaBind::detail::registerFunction(ls__, boundClass__::func, #func, tableStackIndex); \
+#define LUA_ADD_STATIC_FUNCTION_RENAMED(function, functionName)                                          \
+	do {                                                                                                 \
+		LuaBind::detail::registerFunction(ls__, boundClass__::function, #functionName, tableStackIndex); \
 	} while (0)
+
+#define LUA_ADD_STATIC_FUNCTION(function) LUA_ADD_STATIC_FUNCTION_RENAMED(function, function)
 
 #define LUA_ADD_OPERATOR(name, op)                                                                          \
 	do {                                                                                                    \
@@ -166,9 +142,9 @@ struct Overload {
 	}                       \
 	while (0)
 
-#define LUA_FUNCTION_RENAMED(function, functionName)                                                                    \
-	do {                                                                                                                    \
-		LuaBind::detail::registerFunction(ls__, Overload<boundClass__>::GetFunc(function), #functionName, tableStackIndex); \
+#define LUA_FUNCTION_RENAMED(function, functionName)                                                                                         \
+	do {                                                                                                                                     \
+		LuaBind::detail::registerFunction(ls__, LuaBind::detail::Overload<boundClass__>::GetFunc(function), #functionName, tableStackIndex); \
 	} while (0)
 
 #define LUA_ADD_FUNCTION(function) LUA_FUNCTION_RENAMED(function, function)
@@ -185,12 +161,7 @@ struct Overload {
 		LuaBind::detail::registerDefaultNewOperator<boundClass__>(ls__, tableStackIndex); \
 	} while (0)
 
-#define LUA_NEW_OPERATOR(function)                                         \
+#define LUA_NEW_OPERATOR(function)                                             \
 	do {                                                                       \
 		LuaBind::detail::registerNewOperator(ls__, tableStackIndex, function); \
-	} while (0)
-
-#define LUA_BOX_OPERATOR()                                                         \
-	do {                                                                           \
-		LuaBind::detail::pushBoxingFunctions<boundClass__>(ls__, tableStackIndex); \
 	} while (0)

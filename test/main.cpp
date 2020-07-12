@@ -41,9 +41,9 @@ void setIdentity(Quat& q) {
 	q = { 0., 0., 0., 1. };
 }
 
-// Treat Vec3 as a temporary object in Lua
+// Treat Vec3 as a temporary, lightweight object in Lua
 template <>
-class LuaBind::Wrapper<Vec3> : public LuaBind::Temporary<Vec3> {};
+class LuaBind::Wrapper<Vec3> : public LuaBind::Lightweight<Vec3> {};
 
 void bindTestClasses(lua_State* ls);
 
@@ -457,7 +457,6 @@ void bindTestClasses(lua_State* ls) {
 	LUA_BEGIN_CLASS(Vec3);
 	LUA_NEW_OPERATOR(newVec3);
 	LUA_ADD_FUNCTION(add);
-	LUA_BOX_OPERATOR();
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Quat);

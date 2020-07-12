@@ -4,8 +4,6 @@
 #include "typeWrapper.h"
 #include <vector>
 
-struct lua_State;
-
 namespace Typhoon::LuaBind {
 
 // Wrapper for std::vector

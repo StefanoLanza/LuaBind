@@ -1,6 +1,9 @@
 **Typhoon Lua** is a C++ library for binding Lua and C++
 
 # Features
+* Support for primitive types, 
+* Support for std containers
+* 
 * No exceptions
 * No RTTI
 

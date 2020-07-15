@@ -1,6 +1,7 @@
 // This example shows how to access tables defined in Lua
 
 #include <include/luaBind.h>
+#include <include/version.h>
 #include <iostream>
 #include <string>
 
@@ -17,6 +18,7 @@ const char* script = R"(
 )";
 
 int __cdecl main(int /*argc*/, char* /*argv*/[]) {
+	std::cout << "LuaBind version: " << LuaBind::getVersionString() << std::endl;
 	lua_State* const ls = LuaBind::createState(8192);
 	runExample(ls);
 	LuaBind::closeState(ls);

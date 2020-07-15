@@ -1,6 +1,7 @@
 // This example shows how to create a minimal C++ math library that can be used in Lua scripts
 
 #include <include/luaBind.h>
+#include <include/version.h>
 #include <iostream>
 #include <string>
 
@@ -16,8 +17,7 @@ struct Vec3 {
 // This means that Vec3 objects created by Lua are are allocated in C++ from a temporary memory buffer and treated as light user data pointers.
 // This buffer is reset every frame. For permanent storage, you have to manually box and unbox Vec3 objects. See the example scripts
 template <>
-class LuaBind::Wrapper<Vec3> : public LuaBind::Lightweight<Vec3> {
-};
+class LuaBind::Wrapper<Vec3> : public LuaBind::Lightweight<Vec3> {};
 
 // Custom new
 Vec3 newVec3(float x, float y, float z) {
@@ -59,7 +59,8 @@ const char* updateScript = R"(
 )";
 
 int __cdecl main(int /*argc*/, char* /*argv*/[]) {
-	lua_State* const ls = LuaBind::createState(8192);
+	std::cout << "LuaBind version: " << LuaBind::getVersionString() << std::endl;
+	lua_State* const       ls = LuaBind::createState(8192);
 	bind(ls);
 	runExample(ls);
 	LuaBind::closeState(ls);
@@ -100,7 +101,7 @@ void bind(lua_State* ls) {
 	LUA_GETTER(x, getX);
 	LUA_GETTER(y, getY);
 	LUA_GETTER(z, getZ);
-	//LUA_BOX_OPERATOR();
+	// LUA_BOX_OPERATOR();
 	LUA_END_CLASS();
 
 	LUA_END_BINDING();

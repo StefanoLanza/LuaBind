@@ -46,13 +46,14 @@ project("Lua")
 	kind "StaticLib"
 	files "external/lua/src/*.c"
 	files "external/lua/src/*.h"
+	excludes { "external/lua/src/luac.c", } 
 --	includedirs { "TinyXML", }
 
 project("Core")
 	kind "StaticLib"
 	files "external/core/**.cpp"
 	files "external/core/**.h"
-	includedirs { "./", }
+	includedirs { ".", "external", }
 
 project("LuaBind")
 	kind "StaticLib"

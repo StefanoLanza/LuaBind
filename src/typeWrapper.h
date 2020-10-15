@@ -22,19 +22,19 @@ template <class T, typename = void>
 class Wrapper {
 public:
 	static int Match(lua_State* ls, int idx) {
-		static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+		//static_assert(false, "Not implemented. Specialize Wrapper for this type.");
 		return 0;
 	}
 	static int PushAsKey(lua_State* ls, T) {
-		static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+		//static_assert(false, "Not implemented. Specialize Wrapper for this type.");
 		return 0;
 	}
 	static int Push(lua_State* ls, T) {
-		static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+		//static_assert(false, "Not implemented. Specialize Wrapper for this type.");
 		return 0;
 	}
 	static T Get(lua_State* ls, int idx) {
-		static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+		//static_assert(false, "Not implemented. Specialize Wrapper for this type.");
 		return {};
 	}
 	static constexpr bool isLightweight() {

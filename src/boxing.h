@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stddef.h>
+
 struct lua_State;
 
 namespace Typhoon::LuaBind::detail {

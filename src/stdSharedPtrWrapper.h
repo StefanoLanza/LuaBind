@@ -15,7 +15,7 @@ public:
 		return (type == LUA_TLIGHTUSERDATA || type == LUA_TUSERDATA || type == LUA_TTABLE || type == LUA_TNIL);
 	}
 	static int Push(lua_State* ls, const std::shared_ptr<T>& ptr) {
-		return Wrapper<T*>.Push(ls, ptr.get());
+		return Wrapper<T*>::Push(ls, ptr.get());
 	};
 #if 0
 	static int Get(lua_State* /*ls*/, int /*idx*/, std::shared_ptr<Type>& /*sharedPtr*/) 

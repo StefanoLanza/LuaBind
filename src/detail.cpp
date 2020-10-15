@@ -4,7 +4,6 @@
 #include "table.h"
 #include <cassert>
 #include <core/allocator.h>
-#include <core/linearAllocator.h>
 #include <memory>
 
 namespace Typhoon::LuaBind::detail {
@@ -12,7 +11,7 @@ namespace Typhoon::LuaBind::detail {
 extern std::unique_ptr<LinearAllocator> temporaryAllocator;
 
 void* allocTemporary(size_t size, size_t alignment) {
-	void* ptr = temporaryAllocator->Allocate(size, alignment);
+	void* ptr = temporaryAllocator->alloc(size, alignment);
 	assert(ptr != nullptr);
 	return ptr;
 }

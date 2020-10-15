@@ -5,8 +5,7 @@
 #include "result.h"
 #include "table.h"
 #include <algorithm>
-#include <core/heapAllocator.h>
-#include <core/linearAllocator.h>
+#include <core/allocator.h>
 
 namespace Typhoon::LuaBind {
 
@@ -72,7 +71,7 @@ lua_State* createState(size_t temporaryCapacity) {
 	g.setFunction("GetClassMetatable", detail::getClassMetatable);
 
 	detail::boxedAllocator = &heapAllocator;
-	detail::temporaryAllocator = std::make_unique<LinearAllocator>(heapAllocator, temporaryCapacity);
+	detail::temporaryAllocator = std::make_unique<LinearAllocator>(heapAllocator, temporaryCapacity, nullptr);
 	g_ls = ls;
 	return ls;
 }
@@ -91,7 +90,7 @@ lua_State* getLuaState() {
 }
 
 void newFrame() {
-	detail::temporaryAllocator->Rewind();
+	detail::temporaryAllocator->rewind();
 }
 
 void registerLoader(lua_State* ls, lua_CFunction loader, void* userData) {
@@ -205,11 +204,11 @@ Result doBuffer(lua_State* ls, const char* buffer, size_t size, const char* name
 }
 
 void* saveTemporaryPool() {
-	return detail::temporaryAllocator->GetOffset();
+	return detail::temporaryAllocator->getOffset();
 }
 
 void restoreTemporaryPool(void* offset) {
-	detail::temporaryAllocator->Rewind(offset);
+	detail::temporaryAllocator->rewind(offset);
 }
 
 } // namespace Typhoon::LuaBind

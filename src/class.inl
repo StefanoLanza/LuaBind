@@ -26,7 +26,7 @@ template <typename retType, typename... argType>
 inline void registerNewOperator(lua_State* ls, int tableStackIndex, retType (*functionPtr)(argType...)) {
 	lua_CFunction luaFunc = freeFunctionWrapper<retType, argType...>;
 	// FIXME Warning: implicit conversion between pointer-to-function and pointer-to-object is a Microsoft extension
-	registerNewOperator(ls, tableStackIndex, luaFunc, functionPtr, sizeof functionPtr);
+	registerNewOperator(ls, tableStackIndex, luaFunc, reinterpret_cast<const void*>(functionPtr), sizeof functionPtr);
 }
 
 template <typename T>

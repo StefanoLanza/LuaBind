@@ -1,82 +1,74 @@
 #pragma once
 
-#include <core/uncopyable.h>
+#include <type_traits>
+#include <cstddef>
 
 namespace Typhoon {
 
-class Allocator : Uncopyable {
+/**
+ * @brief Allocator
+ */
+class Allocator {
 public:
-	explicit Allocator(size_t defaultAlignment);
 	virtual ~Allocator() = default;
 
-	size_t GetDefaultAlignment() const {
-		return m_defaultAlignment;
-	}
-	void*         Alloc(size_t bytes);
-	virtual void* Alloc(size_t bytes, size_t alignment) = 0;
-	virtual void  Free(void* ptr) = 0;
-	void*         Realloc(void* ptr, size_t bytes);
-	virtual void* Realloc(void* ptr, size_t bytes, size_t alignment) = 0;
+	virtual void* alloc(size_t size, size_t alignment) = 0;
+	virtual void  free(void* ptr, size_t size) = 0;
+	virtual void* realloc(void* ptr, size_t bytes, size_t alignment) = 0;
 
 	template <class T>
-	T* Alloc(size_t size) {
-		return reinterpret_cast<T*>(Alloc(size));
+	T* alloc() {
+		return static_cast<T*>(alloc(sizeof(T), alignof(T)));
 	}
 
 	template <class T>
-	T* Alloc() {
-		return reinterpret_cast<T*>(Alloc(sizeof(T)));
+	T* allocArray(size_t count) {
+		static_assert(std::is_pod_v<T>);
+		return static_cast<T*>(alloc(sizeof(T) * count, alignof(T)));	
 	}
 
-	template <class T>
-	T* AllocArray(size_t numElements) {
-		void* const memptr = Alloc(sizeof(T) * numElements);
-		if (memptr) {
-			// Construct elements
-			for (size_t i = 0; i < numElements; ++i) {
-				new (reinterpret_cast<char*>(memptr) + sizeof(T) * i) T;
-			}
-		}
-		return reinterpret_cast<T*>(memptr);
-	}
-
-protected:
-	size_t m_defaultAlignment;
+	static constexpr size_t defaultAlignment = 4;
 };
 
-inline void* Allocator::Alloc(size_t bytes) {
-	return Alloc(bytes, m_defaultAlignment);
-}
+/**
+ * @brief Heap allocator
+ */
+class HeapAllocator final : public Allocator {
+public:
+	void* alloc(size_t size, size_t alignment) override;
+	void  free(void* ptr, size_t size) override;
+	void* realloc(void* ptr, size_t bytes, size_t alignment) override;
+};
 
-inline void* Allocator::Realloc(void* ptr, size_t bytes) {
-	return Realloc(ptr, bytes, m_defaultAlignment);
-}
+/**
+ * @brief Linear allocator
+ */
+class LinearAllocator final : public Allocator {
+public:
+	LinearAllocator(char* buffer, size_t bufferSize, Allocator* backup);
+	LinearAllocator(Allocator& allocator, size_t bufferSize, Allocator* backup);
+	~LinearAllocator();
 
-template <class T>
-inline void tdelete(T* p, Allocator* allocator) {
-	if (p) {
-		p->~T();
-		allocator->Free(p);
-	}
-}
+	void*  alloc(size_t size, size_t alignment) override;
+	void   free(void* ptr, size_t size) override;
+	void*  realloc(void* ptr, size_t bytes, size_t alignment) override;
+	void   rewind();
+	void   rewind(void* ptr);
+	void*  getBuffer() const;
+	void*  getOffset() const;
+	size_t getPointerOffset(const void*) const;
 
-template <class T>
-inline void tdelete_array(T* ptr, size_t numElements, Allocator* allocator) {
-	if (ptr) {
-		// Destruct elements
-		for (size_t i = 0; i < numElements; ++i) {
-			ptr[i].~T();
-		}
-		allocator->Free(ptr);
-	}
+private:
+	char*      buffer;
+	void*      offset;
+	size_t     bufferSize;
+	size_t     freeSize;
+	Allocator* backup;
+	Allocator* parent;
+};
+
+inline void* LinearAllocator::getOffset() const {
+	return offset;
 }
 
 } // namespace Typhoon
-
-inline void* _cdecl operator new(size_t size, Typhoon::Allocator& allocator) throw() {
-	return allocator.Alloc(size);
-}
-
-inline void _cdecl operator delete(void* ptr, Typhoon::Allocator& allocator) throw() {
-	return allocator.Free(ptr);
-}

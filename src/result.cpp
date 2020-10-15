@@ -2,7 +2,8 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
-#include <xutility>
+#include <array>
+//#include <xutility>
 
 namespace Typhoon::LuaBind {
 
@@ -27,7 +28,7 @@ Result::Result(const char* errorMessage, ...)
 }
 
 void Result::setErrorMessage(const char* msg, va_list args) {
-	vsnprintf_s(tempBuffer, std::size(tempBuffer), std::size(tempBuffer) - 1, msg, args);
+	vsnprintf(tempBuffer, std::size(tempBuffer), msg, args);
 	errorMessage = tempBuffer;
 	result = false;
 }

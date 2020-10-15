@@ -19,15 +19,14 @@ int beginNamespace(lua_State* ls, const char* name);
 }
 
 #define LUA_BEGIN_BINDING(ls)                                      \
-	__pragma(warning(push)) __pragma(warning(disable : 4127)) do { \
+	do { \
 		using namespace LuaBind;                                   \
 		lua_State* ls__ = ls;                                      \
 		(void)ls__;
 
 #define LUA_END_BINDING() \
 	}                     \
-	while (0)             \
-	__pragma(warning(pop))
+	while (0)             
 
 #define LUA_BEGIN_CLASS_(class, className, baseClassId)                                                      \
 	do {                                                                                                     \

@@ -10,6 +10,13 @@
 #define CATCH_CONFIG_RUNNER
 #include <Catch-master/single_include/catch2/catch.hpp>
 
+// VISUAL LEAK DETECTOR
+#ifdef _DEBUG
+#if __has_include(<vld.h>)
+#include <vld.h>
+#endif
+#endif
+
 lua_State* g_ls = nullptr;
 
 void globalFunction() {

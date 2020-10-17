@@ -4,7 +4,6 @@
 #include "table.h"
 #include "typeSafefy.h"
 #include <cassert>
-#include <core/linearAllocator.h>
 
 namespace Typhoon::LuaBind {
 

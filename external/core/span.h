@@ -6,9 +6,7 @@ namespace Typhoon {
 template <class T>
 class span {
 public:
-	span(T* data, size_t size)
-	    : data_(data)
-	    , size_(size) {
+	span(T* data, size_t size) : data_(data), size_(size) {
 	}
 	T* data() const {
 		return data_;

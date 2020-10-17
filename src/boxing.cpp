@@ -11,9 +11,10 @@ void* allocateBoxed(size_t size, size_t alignment) {
 }
 
 int collectBoxed(lua_State* ls) {
+	const size_t size = static_cast<size_t>(lua_tonumber(ls, lua_upvalueindex(1)));
 	// Extract pointer from user data
 	void** const ptrptr = static_cast<void**>(lua_touserdata(ls, 1));
-	boxedAllocator->free(*ptrptr, 0); //FIXME
+	boxedAllocator->free(*ptrptr, size);
 	return 0;
 }
 

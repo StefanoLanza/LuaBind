@@ -45,8 +45,14 @@ constexpr TypeId getTypeId(const T* /*dummy*/) noexcept {
 
 using TypeName = const char*;
 
+//
 TypeName typeIdToName(TypeId typeId);
-void     registerTypeName(TypeId typeId, const char* className);
+
+//
+TypeId typeNameToId(const char* typeName);
+
+//
+void registerTypeName(TypeId typeId, const char* className);
 
 template <typename T>
 TypeName typeName() {

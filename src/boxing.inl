@@ -23,7 +23,8 @@ int box(lua_State* ls) {
 	// Set metatable for userdata (required for __gc)
 	lua_newtable(ls);                    // ud, mt
 	lua_pushvalue(ls, -1);               // ud, mt, mt
-	lua_pushcfunction(ls, collectBoxed); // ud, mt, mt, collectBoxed
+	lua_pushinteger(ls, sizeof(T));      // ud, mt, mt, size
+	lua_pushcclosure(ls, collectBoxed, 1); // ud, mt, mt, collectBoxed
 	lua_setfield(ls, -2, "__gc");        // ud, mt, mt
 	lua_setmetatable(ls, -3);            // ud, mt
 

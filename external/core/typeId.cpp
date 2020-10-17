@@ -1,8 +1,8 @@
 #include "typeId.h"
 #include <cassert>
+#include <map>
 #include <unordered_map>
 #include <vector>
-#include <map>
 
 namespace Typhoon {
 
@@ -13,7 +13,7 @@ struct TypeNameStorage {
 };
 
 std::unordered_map<const void*, TypeNameStorage> idToName;
-std::vector< std::pair<TypeNameStorage, TypeId> > nameToId;
+std::vector<std::pair<TypeNameStorage, TypeId>>  nameToId;
 
 } // namespace
 
@@ -36,8 +36,12 @@ TypeId typeNameToId(const char* typeName) {
 
 void registerTypeName(TypeId id, const char* typeName) {
 	TypeNameStorage s;
-    assert(strlen(typeName) < std::size(s.string));
+	assert(strlen(typeName) < std::size(s.string));
+#ifdef _MSC_VER
+	strncpy_s(s.string, typeName, std::size(s.string));
+#else
 	strlcpy(s.string, typeName, std::size(s.string));
+#endif
 	auto r = idToName.insert({ id.impl, s });
 	assert(r.second);
 	nameToId.push_back({ s, id });

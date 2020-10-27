@@ -1,6 +1,6 @@
 #pragma once
 
-#include <src/typeWrapper.h>
+#include <include/typeWrapper.h>
 #include <core/typedVoidPtr.h>
 
 namespace Typhoon::LuaBind {

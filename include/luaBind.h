@@ -2,14 +2,14 @@
 
 #include "config.h"
 
-#include <src/autoBlock.h>
-#include <src/object.h>
-#include <src/registration.h>
-#include <src/table.h>
-#include <src/tableIterator.h>
-#include <src/typeSafefy.h>
-#include <src/value.h>
-#include <src/uniqueRef.h>
+#include "autoBlock.h"
+#include "object.h"
+#include "registration.h"
+#include "table.h"
+#include "tableIterator.h"
+#include "typeSafefy.h"
+#include "value.h"
+#include "uniqueRef.h"
 
 #include <functional>
 

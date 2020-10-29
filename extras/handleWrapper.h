@@ -1,4 +1,4 @@
-#include <src/typeWrapper.h>
+#include <LuaBind/include/typeWrapper.h>
 #include <core/handle.h>
 
 namespace Typhoon {

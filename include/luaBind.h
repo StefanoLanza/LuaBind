@@ -4,17 +4,15 @@
 
 #include "autoBlock.h"
 #include "object.h"
+#include "objectRegistration.h"
 #include "registration.h"
 #include "table.h"
 #include "tableIterator.h"
 #include "typeSafefy.h"
-#include "value.h"
 #include "uniqueRef.h"
+#include "value.h"
 
 #include <functional>
-
-struct lua_State;
-typedef int (*lua_CFunction)(lua_State* L);
 
 namespace Typhoon::LuaBind {
 

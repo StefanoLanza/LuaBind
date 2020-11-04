@@ -15,33 +15,36 @@ namespace detail {
 template <class T>
 T* allocTemporary();
 
+template <typename...>
+struct always_false { static constexpr bool value = false; };
+
 }
 
 // typename = void is used for specializations based on std::enable_if. See the enum specialization
 template <class T, typename = void>
 class Wrapper {
 public:
-	static int Match(lua_State* ls, int idx) {
-		//static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+	static int Match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
+		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
 		return 0;
 	}
-	static int PushAsKey(lua_State* ls, T) {
-		//static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+	static int PushAsKey([[maybe_unused]] lua_State* ls, T) {
+		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
 		return 0;
 	}
-	static int Push(lua_State* ls, T) {
-		//static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+	static int Push([[maybe_unused]] lua_State* ls, T) {
+		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
 		return 0;
 	}
-	static T Get(lua_State* ls, int idx) {
-		//static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+	static T Get([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
+		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
 		return {};
 	}
 	static constexpr bool isLightweight() {
 		return false; // default
 	}
 	static constexpr int getStackSize() {
-		//static_assert(false, "Not implemented. Specialize Wrapper for this type.");
+		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
 		return 0;
 	}
 };

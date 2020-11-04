@@ -1,4 +1,4 @@
-// This example shows how to access interact with objects defined in Lua
+// This example shows how to register C++ objects and access them in Lua
 
 #include <include/luaBind.h>
 #include <include/version.h>

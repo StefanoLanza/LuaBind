@@ -2,6 +2,8 @@
 
 #include <include/luaBind.h>
 #include <include/version.h>
+
+#include <core/allocator.h>
 #include <iostream>
 #include <string>
 
@@ -60,7 +62,8 @@ const char* updateScript = R"(
 
 int __cdecl main(int /*argc*/, char* /*argv*/[]) {
 	std::cout << "LuaBind version: " << LuaBind::getVersionString() << std::endl;
-	lua_State* const       ls = LuaBind::createState(8192);
+	Typhoon::HeapAllocator heapAllocator;
+	lua_State* const ls = LuaBind::createState(heapAllocator);
 	bind(ls);
 	runExample(ls);
 	LuaBind::closeState(ls);

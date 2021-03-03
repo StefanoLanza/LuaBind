@@ -8,7 +8,7 @@
 
 namespace Typhoon::LuaBind::detail {
 
-extern std::unique_ptr<LinearAllocator> temporaryAllocator;
+extern LinearAllocator* temporaryAllocator;
 
 void* allocTemporary(size_t size, size_t alignment) {
 	void* ptr = temporaryAllocator->alloc(size, alignment);

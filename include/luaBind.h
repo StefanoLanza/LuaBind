@@ -14,6 +14,10 @@
 
 #include <functional>
 
+namespace Typhoon {
+	class Allocator;
+}
+
 namespace Typhoon::LuaBind {
 
 // Memory statistics
@@ -25,16 +29,16 @@ struct MemoryStats {
 };
 
 class Result;
-using Logger = std::function<void(const char*)>;
+using Logger = void (*)(const char*, void* ud);
 
-lua_State*         createState(size_t temporaryCapacity);
+lua_State*         createState(Allocator& allocator);
 void               closeState(lua_State* ls);
 lua_State*         getLuaState();
 Result             doCommand(lua_State*, const char* command);
 Result             doBuffer(lua_State*, const char* buffer, size_t size, const char* name);
 void               newFrame();
 void               registerLoader(lua_State* ls, lua_CFunction loader, void* userData);
-void               registerLogger(lua_State* ls, Logger&& logger);
+void               registerLogger(lua_State* ls, Logger logger, void* ud);
 const char*        getPath(lua_State* ls);
 void               setPath(lua_State* ls, const char* path);
 const char*        getErrorMessage(lua_State* ls, int error);

@@ -30,79 +30,142 @@ void* HeapAllocator::realloc(void* ptr, size_t bytes, [[maybe_unused]] size_t al
 #endif
 }
 
-LinearAllocator::LinearAllocator(char* buffer, size_t bufferSize, Allocator* backup)
+BufferAllocator::BufferAllocator(void* buffer, size_t bufferSize)
     : buffer(buffer)
     , offset(buffer)
     , bufferSize(bufferSize)
-    , freeSize(bufferSize)
-    , backup(backup)
-    , parent(nullptr) {
+    , freeSize(bufferSize) {
 }
 
-LinearAllocator::LinearAllocator(Allocator& allocator, size_t bufferSize, Allocator* backup)
-    : LinearAllocator(static_cast<char*>(allocator.alloc(bufferSize, 1)), bufferSize, backup) {
-	parent = &allocator;
-}
-
-LinearAllocator::~LinearAllocator() {
-	if (parent) {
-		parent->free(buffer, bufferSize);
-	}
-}
-
-void* LinearAllocator::alloc(size_t size, size_t alignment) {
+void* BufferAllocator::alloc(size_t size, size_t alignment) {
 	void* result = std::align(alignment, size, offset, freeSize);
 	if (result) {
 		offset = advancePointer(result, size);
 		freeSize = reinterpret_cast<uintptr_t>(buffer) + bufferSize - reinterpret_cast<uintptr_t>(offset);
 	}
-	else if (backup) {
-		result = backup->alloc(size, alignment);
-	}
-	assert(result);
 	return result;
 }
 
-void LinearAllocator::free(void* ptr, size_t size) {
-	if (ptr >= buffer && ptr < buffer + bufferSize) {
-		if (static_cast<char*>(ptr) + size == offset) {
-			offset = advancePointer(offset, -static_cast<ptrdiff_t>(size));
-			freeSize += size;
-		}
-	}
-	else if (backup) {
-		backup->free(ptr, size);
-	}
-	else {
-		assert(false); // Not allocated by this allocator or its backup
-	}
-}
-
-void* LinearAllocator::realloc(void* ptr, size_t bytes, size_t alignment) {
-	// TODO possibly reuse last allocation
-	free(ptr, bytes);
-	return alloc(bytes, alignment);
-}
-
-void LinearAllocator::rewind() {
+void BufferAllocator::rewind() {
 	offset = buffer;
 	freeSize = bufferSize;
 }
 
-void LinearAllocator::rewind(void* ptr) {
+void BufferAllocator::rewind(void* ptr) {
 	if (ptr) {
-		offset = ptr;
-		freeSize = reinterpret_cast<uintptr_t>(buffer) + bufferSize - reinterpret_cast<uintptr_t>(ptr);
-		assert(freeSize <= bufferSize);
+		if (ptr >= buffer && ptr < static_cast<const char*>(buffer) + bufferSize) {
+			offset = ptr;
+			freeSize = reinterpret_cast<uintptr_t>(buffer) + bufferSize - reinterpret_cast<uintptr_t>(ptr);
+			assert(freeSize <= bufferSize);
+		}
 	}
 }
 
-void* LinearAllocator::getBuffer() const {
-	return buffer;
+PagedAllocator::PagedAllocator(Allocator& parentAllocator, size_t pageSize, size_t maxPages)
+    : allocator(&parentAllocator)
+    , pageSize(pageSize)
+    , maxPages(maxPages ? maxPages : std::numeric_limits<size_t>::max())
+    , rootPage(nullptr)
+    , currPage(nullptr)
+    , freeSize(0)
+    , pageCount(0) {
+	assert(pageSize > sizeof(Page));
 }
 
-size_t LinearAllocator::getPointerOffset(const void* ptr) const {
-	return reinterpret_cast<intptr_t>(ptr) - reinterpret_cast<intptr_t>(buffer);
+PagedAllocator::~PagedAllocator() {
+	for (Page* page = rootPage; page; ) {
+		Page* next = page->next; // Fetch before freeing page
+		allocator->free(page->buffer, page->size);
+		page = next;
+	}
+}
+
+void* PagedAllocator::alloc(size_t size, size_t alignment) {
+	if (size > pageSize - sizeof(Page)) {
+		return nullptr;
+	}
+	if (! rootPage) {
+		rootPage = allocPage();
+		if (! rootPage) {
+			return nullptr;
+		}
+		currPage = rootPage;
+	}
+
+	for (Page* page = currPage; page != nullptr; page = page->next) {
+		if (void* result = allocFromPage(*page, size, alignment); result) {
+			currPage = page;
+			return result;
+		}
+	}
+
+	Page* newPage = allocPage();
+	if (newPage) {
+		newPage->prev = currPage;
+		currPage->next = newPage;
+		currPage = newPage;
+		if (void* result = allocFromPage(*newPage, size, alignment); result) {
+			return result;
+		}
+	}
+	return nullptr;
+}
+
+void PagedAllocator::rewind() {
+	for (Page* page = currPage; page; page = page->prev) {
+		page->offset = page->buffer;
+	}
+	if (rootPage) {
+		freeSize = rootPage->size;
+	}
+	currPage = rootPage;
+}
+
+void PagedAllocator::rewind(void* ptr) {
+	if (ptr) {
+		for (Page* page = currPage; page != nullptr; page = page->prev) {
+			if (ptr >= page->buffer && ptr < static_cast<const char*>(page->buffer) + page->size) {
+				page->offset = ptr;
+				freeSize = reinterpret_cast<uintptr_t>(page->buffer) + page->size - reinterpret_cast<uintptr_t>(ptr);
+				assert(freeSize <= page->size);
+				currPage = page;
+				break;
+			}
+		}
+	}
+}
+
+inline void* PagedAllocator::getOffset() const {
+	return currPage ? currPage->offset : nullptr;
+}
+
+PagedAllocator::Page* PagedAllocator::allocPage() {
+	if (pageCount >= maxPages) {
+		return nullptr;
+	}
+	void* buffer = allocator->alloc(pageSize, Allocator::defaultAlignment);
+	if (buffer) {
+		Page newPage;
+		newPage.next = nullptr;
+		newPage.prev = nullptr;
+		newPage.buffer = buffer;
+		newPage.offset = static_cast<char*>(buffer) + sizeof(Page);
+		newPage.size = pageSize - sizeof(Page);
+		freeSize = pageSize;
+		std::memcpy(buffer, &newPage, sizeof newPage);
+		++pageCount;
+		return static_cast<Page*>(buffer);
+	}
+	return nullptr;
+}
+
+void* PagedAllocator::allocFromPage(Page& page, size_t size, size_t alignment) {
+	void* result = std::align(alignment, size, page.offset, freeSize);
+	if (result) {
+		page.offset = advancePointer(result, size);
+		freeSize = reinterpret_cast<uintptr_t>(page.buffer) + page.size - reinterpret_cast<uintptr_t>(page.offset);
+	}
+	return result;
 }
 
 } // namespace Typhoon

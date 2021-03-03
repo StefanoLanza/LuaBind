@@ -1,4 +1,5 @@
 #include "testClass.h"
+#include <core/allocator.h>
 #include <core/typedVoidPtr.h>
 #include <extras/voidPtrWrapper.h>
 #include <include/luaBind.h>
@@ -55,7 +56,8 @@ class LuaBind::Wrapper<Vec3> : public LuaBind::Lightweight<Vec3> {};
 void bindTestClasses(lua_State* ls);
 
 int __cdecl main(int argc, char* argv[]) {
-	lua_State* const ls = LuaBind::createState(8192);
+	Typhoon::HeapAllocator heapAllocator;
+	lua_State* const ls = LuaBind::createState(heapAllocator);
 	g_ls = ls;
 	bindTestClasses(ls);
 	const int result = Catch::Session().run(argc, argv);

@@ -14,7 +14,7 @@ using Destructor = void (*)(void* ptr);
 
 class ScopedAllocator {
 public:
-	ScopedAllocator(Allocator& allocator);
+	ScopedAllocator(LinearAllocator& allocator);
 	~ScopedAllocator();
 
 	template <class T, class... ArgTypes>
@@ -35,8 +35,8 @@ private:
 
 private:
 	struct Finalizer;
-	Allocator& allocator;
-	Finalizer* finalizerHead;
+	LinearAllocator& allocator;
+	Finalizer*       finalizerHead;
 };
 
 } // namespace Typhoon

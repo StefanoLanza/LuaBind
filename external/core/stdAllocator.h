@@ -33,7 +33,7 @@ public:
 	stdAllocator& operator=(const stdAllocator&) = delete;
 
 	pointer allocate(size_t size) {
-		return reinterpret_cast<pointer>(allocator.alloc(size * sizeof(T), alignof(T)));
+		return static_cast<pointer>(allocator.alloc(size * sizeof(T), alignof(T)));
 	}
 
 	void deallocate(pointer p, size_t count) {

@@ -11,31 +11,38 @@ namespace Typhoon::LuaBind {
 
 namespace {
 
-lua_State*  g_ls = nullptr;
-MemoryStats memoryStats {};
+struct Context {
+	lua_State* ls;
+	Allocator* allocator;
+    Logger *logger;
+	MemoryStats memoryStats;
+};
+Context context {};
 
 void* allocFunction(void* ud, void* ptr, size_t osize, size_t nsize) {
-	MemoryStats* const stats = reinterpret_cast<MemoryStats*>(ud);
-	stats->allocatedMemory -= osize;
+	Allocator* allocator = static_cast<Context*>(ud)->allocator;
+	MemoryStats& stats = static_cast<Context*>(ud)->memoryStats;
+	stats.allocatedMemory -= osize;
 	void* pret = nullptr;
 	if (nsize == 0) {
-		++stats->freeCount;
-		free(ptr);
+		++stats.freeCount;
+		allocator->free(ptr, osize);
 	}
 	else {
-		++stats->allocationCount;
-		stats->allocatedMemory += nsize;
-		stats->maxAllocatedSize = std::max(stats->maxAllocatedSize, nsize);
-		pret = realloc(ptr, nsize);
+		++stats.allocationCount;
+		stats.allocatedMemory += nsize;
+		stats.maxAllocatedSize = std::max(stats.maxAllocatedSize, nsize);
+		pret = allocator->realloc(ptr, nsize, Allocator::defaultAlignment);
 	}
 	return pret;
 }
 
 int logFunction(lua_State* ls) {
-	Logger* logger = static_cast<Logger*>(lua_touserdata(ls, lua_upvalueindex(1)));
+	Logger logger = static_cast<Logger>(lua_touserdata(ls, lua_upvalueindex(1)));
+	void* ud = lua_touserdata(ls, lua_upvalueindex(2));
 	if (logger) {
 		if (lua_isstring(ls, 1)) {
-			(*logger)(lua_tostring(ls, 1));
+			(*logger)(lua_tostring(ls, 1), ud);
 		}
 	}
 	return 0;
@@ -46,20 +53,24 @@ int panicFunction(lua_State* ls) {
 	return 0;
 }
 
-HeapAllocator heapAllocator;
-Logger        g_logger;
+void defaultLogger([[maybe_unused]] const char* str, [[maybe_unused]] void* ud) {
+
+}
+
 
 } // namespace
 
 namespace detail {
 
-Allocator*                       boxedAllocator = nullptr;
-std::unique_ptr<LinearAllocator> temporaryAllocator;
+Allocator*       boxedAllocator = nullptr;
+LinearAllocator* temporaryAllocator = nullptr;
 
 } // namespace detail
 
-lua_State* createState(size_t temporaryCapacity) {
-	lua_State* ls = lua_newstate(allocFunction, &memoryStats);
+lua_State* createState(Allocator& allocator) {
+	context.allocator = &allocator;
+	lua_State* ls = lua_newstate(allocFunction, &context);
+	context.ls = ls;
 	luaL_openlibs(ls);
 
 	// Set our handling function for when Lua panics
@@ -69,24 +80,25 @@ lua_State* createState(size_t temporaryCapacity) {
 	Table     g = globals(ls);
 	g.setFunction("RegisterLuaClass", detail::registerLuaClass);
 	g.setFunction("GetClassMetatable", detail::getClassMetatable);
+	registerLogger(ls, defaultLogger, nullptr);
 
-	detail::boxedAllocator = &heapAllocator;
-	detail::temporaryAllocator = std::make_unique<LinearAllocator>(heapAllocator, temporaryCapacity, nullptr);
-	g_ls = ls;
+	detail::boxedAllocator = &allocator;
+	detail::temporaryAllocator = new (allocator.alloc<PagedAllocator>()) PagedAllocator(allocator, PagedAllocator::defaultPageSize);
 	return ls;
 }
 
 void closeState(lua_State* ls) {
-	// Clean up lua
-	lua_gc(ls, LUA_GCCOLLECT, 0); // collect garbage
+	lua_gc(ls, LUA_GCCOLLECT, 0);
 	lua_close(ls);
-	detail::temporaryAllocator.reset();
+	detail::temporaryAllocator->~LinearAllocator();
+	context.allocator->free(detail::temporaryAllocator, sizeof(PagedAllocator));
+	detail::temporaryAllocator = nullptr;
 	detail::boxedAllocator = nullptr;
-	g_ls = nullptr;
+	context = {};
 }
 
 lua_State* getLuaState() {
-	return g_ls;
+	return context.ls;
 }
 
 void newFrame() {
@@ -110,11 +122,11 @@ void registerLoader(lua_State* ls, lua_CFunction loader, void* userData) {
 	lua_pop(ls, 1); // pop table
 }
 
-void registerLogger(lua_State* ls, Logger&& logger) {
-	g_logger = std::move(logger);
+void registerLogger(lua_State* ls, Logger logger, void* ud) {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
-	lua_pushlightuserdata(ls, &g_logger);
-	lua_pushcclosure(ls, logFunction, 1);
+	lua_pushlightuserdata(ls, &logger);
+	lua_pushlightuserdata(ls, ud);
+	lua_pushcclosure(ls, logFunction, 2);
 	lua_setfield(ls, -2, "log");
 	lua_pop(ls, 1); // table
 }
@@ -176,7 +188,7 @@ int getMemoryInUse(lua_State* ls) {
 }
 
 const MemoryStats& getMemoryStats() {
-	return memoryStats;
+	return context.memoryStats;
 }
 
 Result doCommand(lua_State* ls, const char* command) {

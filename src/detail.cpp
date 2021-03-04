@@ -8,10 +8,10 @@
 
 namespace Typhoon::LuaBind::detail {
 
-extern LinearAllocator* temporaryAllocator;
+LinearAllocator* getTemporaryAllocator(lua_State* ls);
 
-void* allocTemporary(size_t size, size_t alignment) {
-	void* ptr = temporaryAllocator->alloc(size, alignment);
+void* allocTemporary(lua_State* ls, size_t size, size_t alignment) {
+	void* ptr = getTemporaryAllocator(ls)->alloc(size, alignment);
 	assert(ptr != nullptr);
 	return ptr;
 }

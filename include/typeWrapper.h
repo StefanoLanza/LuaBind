@@ -13,7 +13,7 @@ namespace Typhoon::LuaBind {
 namespace detail {
 
 template <class T>
-T* allocTemporary();
+T* allocTemporary(lua_State* ls);
 
 template <typename...>
 struct always_false { static constexpr bool value = false; };
@@ -491,7 +491,7 @@ struct Lightweight {
         return lua_isuserdata(ls, idx);
 	}
 	static int Push(lua_State* ls, const T& value) {
-		T* ud = new (detail::allocTemporary<T>()) T { value };
+		T* ud = new (detail::allocTemporary<T>(ls)) T { value };
 #if TY_LUABIND_TYPE_SAFE
 		detail::registerPointerType(ud);
 #endif

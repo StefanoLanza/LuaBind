@@ -9,15 +9,16 @@
 
 namespace Typhoon::LuaBind {
 
-namespace {
-
 struct Context {
 	lua_State* ls;
 	Allocator* allocator;
-    Logger *logger;
+	LinearAllocator* tempAllocator;
 	MemoryStats memoryStats;
 };
-Context context {};
+
+namespace {
+
+const char* contextKey = "__context";
 
 void* allocFunction(void* ud, void* ptr, size_t osize, size_t nsize) {
 	Allocator* allocator = static_cast<Context*>(ud)->allocator;
@@ -37,40 +38,40 @@ void* allocFunction(void* ud, void* ptr, size_t osize, size_t nsize) {
 	return pret;
 }
 
-int logFunction(lua_State* ls) {
-	Logger logger = static_cast<Logger>(lua_touserdata(ls, lua_upvalueindex(1)));
-	void* ud = lua_touserdata(ls, lua_upvalueindex(2));
-	if (logger) {
-		if (lua_isstring(ls, 1)) {
-			(*logger)(lua_tostring(ls, 1), ud);
-		}
-	}
-	return 0;
-}
-
 int panicFunction(lua_State* ls) {
 	const char* err = lua_tostring(ls, -1);
 	return 0;
 }
 
-void defaultLogger([[maybe_unused]] const char* str, [[maybe_unused]] void* ud) {
-
+Context* getContext(lua_State* ls) {
+	return static_cast<Context*>(registry(ls)[contextKey]);
 }
-
 
 } // namespace
 
+lua_State* gls = nullptr; // FIXME
 namespace detail {
 
 Allocator*       boxedAllocator = nullptr;
-LinearAllocator* temporaryAllocator = nullptr;
+
+LinearAllocator* getTemporaryAllocator(lua_State* ls) {
+	return getContext(ls)->tempAllocator;
+}
 
 } // namespace detail
 
 lua_State* createState(Allocator& allocator) {
-	context.allocator = &allocator;
-	lua_State* ls = lua_newstate(allocFunction, &context);
-	context.ls = ls;
+	Context* context = allocator.construct<Context>();
+	if (! context) {
+		return nullptr;
+	}
+	context->allocator = &allocator;
+	lua_State* ls = lua_newstate(allocFunction, context);
+	if (! ls) {
+		return nullptr;
+	}
+	gls = ls; //FIXME
+	context->ls = ls;
 	luaL_openlibs(ls);
 
 	// Set our handling function for when Lua panics
@@ -80,29 +81,28 @@ lua_State* createState(Allocator& allocator) {
 	Table     g = globals(ls);
 	g.setFunction("RegisterLuaClass", detail::registerLuaClass);
 	g.setFunction("GetClassMetatable", detail::getClassMetatable);
-	registerLogger(ls, defaultLogger, nullptr);
 
 	detail::boxedAllocator = &allocator;
-	detail::temporaryAllocator = new (allocator.alloc<PagedAllocator>()) PagedAllocator(allocator, PagedAllocator::defaultPageSize);
+	context->tempAllocator = allocator.construct<PagedAllocator>(std::ref(allocator), PagedAllocator::defaultPageSize);
+	registry(ls).set(contextKey, context);
 	return ls;
 }
 
 void closeState(lua_State* ls) {
+	Context* context = getContext(ls);
 	lua_gc(ls, LUA_GCCOLLECT, 0);
 	lua_close(ls);
-	detail::temporaryAllocator->~LinearAllocator();
-	context.allocator->free(detail::temporaryAllocator, sizeof(PagedAllocator));
-	detail::temporaryAllocator = nullptr;
+	context->allocator->destroy(context->tempAllocator);
+	context->allocator->destroy(context);
 	detail::boxedAllocator = nullptr;
-	context = {};
 }
 
-lua_State* getLuaState() {
-	return context.ls;
+lua_State* getLuaState() { // FIXME deprecated
+	return gls;
 }
 
-void newFrame() {
-	detail::temporaryAllocator->rewind();
+void newFrame(lua_State* ls) {
+	getContext(ls)->tempAllocator->rewind();
 }
 
 void registerLoader(lua_State* ls, lua_CFunction loader, void* userData) {
@@ -120,15 +120,6 @@ void registerLoader(lua_State* ls, lua_CFunction loader, void* userData) {
 	lua_pushcclosure(ls, loader, 1);
 	lua_rawset(ls, -3);
 	lua_pop(ls, 1); // pop table
-}
-
-void registerLogger(lua_State* ls, Logger logger, void* ud) {
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
-	lua_pushlightuserdata(ls, &logger);
-	lua_pushlightuserdata(ls, ud);
-	lua_pushcclosure(ls, logFunction, 2);
-	lua_setfield(ls, -2, "log");
-	lua_pop(ls, 1); // table
 }
 
 const char* getPath(lua_State* ls) {
@@ -187,8 +178,8 @@ int getMemoryInUse(lua_State* ls) {
 	return lua_gc(ls, LUA_GCCOUNT, 0);
 }
 
-const MemoryStats& getMemoryStats() {
-	return context.memoryStats;
+const MemoryStats& getMemoryStats(const Context* context) {
+	return context->memoryStats;
 }
 
 Result doCommand(lua_State* ls, const char* command) {
@@ -215,12 +206,16 @@ Result doBuffer(lua_State* ls, const char* buffer, size_t size, const char* name
 	}
 }
 
-void* saveTemporaryPool() {
-	return detail::temporaryAllocator->getOffset();
+Scope::Scope(lua_State* ls)
+	: ls(ls)
+	, tempAllocator(getContext(ls)->tempAllocator)
+	, offs(tempAllocator->getOffset())
+{ 
 }
 
-void restoreTemporaryPool(void* offset) {
-	detail::temporaryAllocator->rewind(offset);
-}
+Scope::~Scope() { 
+	tempAllocator->rewind(offs); }
+
+
 
 } // namespace Typhoon::LuaBind

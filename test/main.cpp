@@ -27,15 +27,6 @@ void globalFunction2(std::string str) {
 	std::cout << "Global function2" << str << std::endl;
 }
 
-// Lightweight math objects
-struct Vec3 {
-	double x, y, z;
-};
-
-struct Quat {
-	double x, y, z, w;
-};
-
 // Custom new
 Vec3 newVec3(float x, float y, float z) {
 	return Vec3 {x, y, z };
@@ -466,6 +457,9 @@ void bindTestClasses(lua_State* ls) {
 	LUA_BEGIN_CLASS(Vec3);
 	LUA_NEW_OPERATOR(newVec3);
 	LUA_ADD_FUNCTION(add);
+	LUA_ADD_FUNCTION(cross);
+	LUA_ADD_OPERATOR(add, +);
+	//FIXME LUA_ADD_FREE_OPERATOR(sub, -);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Quat);

@@ -10,14 +10,18 @@ namespace Typhoon {
  */
 class Allocator {
 public:
+	static constexpr size_t defaultAlignment = alignof(void*);
+
 	virtual ~Allocator() = default;
 
 	virtual void* alloc(size_t size, size_t alignment) = 0;
 	virtual void  free(void* ptr, size_t size) = 0;
 	virtual void* realloc(void* ptr, size_t bytes, size_t alignment) = 0;
 
+	// Helpers
 	template <class T>
 	T* alloc() {
+		static_assert(std::is_pod_v<T>);
 		return static_cast<T*>(alloc(sizeof(T), alignof(T)));
 	}
 
@@ -27,7 +31,19 @@ public:
 		return static_cast<T*>(alloc(sizeof(T) * count, alignof(T)));
 	}
 
-	static constexpr size_t defaultAlignment = alignof(void*);
+	template <class T, class... ArgTypes>
+	T* construct(ArgTypes... args) {
+		void* ptr = alloc(sizeof(T), alignof(T));
+		return ptr ? new (ptr) T(std::forward<ArgTypes>(args)...) : nullptr;
+	}
+
+	template <class T>
+	void destroy(T* obj) {
+		if (obj) {
+			obj->~T();
+			free(obj, sizeof *obj);
+		}
+	}
 };
 
 /**
@@ -43,11 +59,12 @@ public:
 /**
  * @brief Linear allocator
  */
-class LinearAllocator {
+class LinearAllocator : public Allocator {
 public:
-	virtual ~LinearAllocator() = default;
 
-	virtual void* alloc(size_t size, size_t alignment) = 0;
+	void* alloc(size_t size, size_t alignment) = 0;
+	void  free(void* ptr, size_t size) override;
+	void* realloc(void* ptr, size_t bytes, size_t alignment) override;
 	virtual void  rewind() = 0;
 	virtual void  rewind(void* ptr) = 0;
 	virtual void* getOffset() const = 0;
@@ -87,7 +104,7 @@ inline void* BufferAllocator::getBuffer() const {
 
 class PagedAllocator : public LinearAllocator {
 public:
-	PagedAllocator(Allocator& parentAllocator, size_t pageSize, size_t maxPages = 0);
+	PagedAllocator(Allocator& parentAllocator, size_t pageSize = defaultPageSize, size_t maxPages = 0);
 	~PagedAllocator();
 
 	void* alloc(size_t size, size_t alignment) override;

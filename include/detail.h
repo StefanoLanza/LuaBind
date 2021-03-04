@@ -7,12 +7,12 @@
 
 namespace Typhoon::LuaBind::detail {
 
-void* allocTemporary(size_t size, size_t alignment);
+void* allocTemporary(lua_State* ls, size_t size, size_t alignment);
 
 // Helper
 template <class T>
-inline T* allocTemporary() {
-	return static_cast<T*>(allocTemporary(sizeof(T), alignof(T)));
+inline T* allocTemporary(lua_State* ls) {
+	return static_cast<T*>(allocTemporary(ls, sizeof(T), alignof(T)));
 }
 
 // Delete an object after collection

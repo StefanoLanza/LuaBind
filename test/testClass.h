@@ -101,3 +101,33 @@ inline void AddEnergy(Human* human, float value) {
 // Test overloading
 inline void AddEnergy(int* /*notHuman*/, float /*value*/) {
 }
+
+// Lightweight math objects
+struct Vec2 {
+	float x, y;
+};
+
+struct Vec3 {
+	double x, y, z;
+	inline Vec3 operator + (Vec3 b) const {
+		return { x + b.x, y + b.y, z + b.z };
+	}
+};
+
+struct Quat {
+	double x, y, z, w;
+};
+
+
+// Overloading
+inline Vec3 cross([[maybe_unused]]Vec3 a, [[maybe_unused]] Vec3 b) {
+	return {};
+}
+
+inline Vec2 operator - (Vec2 a, Vec2 b) {
+	return { a.x + b.x, a.y - b.y };
+}
+
+inline Vec3 operator - (Vec3 a, Vec3 b)  {
+	return { a.x - b.x, a.y - b.y, a.z - b.z };
+}

@@ -84,7 +84,7 @@ void runExample(lua_State* ls) {
 	for (int i = 0; i < 10; ++i) {
 
 		// Reset the memory buffer of temporary objects like Vec3
-		LuaBind::newFrame();
+		LuaBind::newFrame(ls);
 
 		// Simulate a frame
 		if (Result res = doCommand(ls, updateScript); ! res) {

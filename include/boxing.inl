@@ -7,7 +7,7 @@ namespace Typhoon::LuaBind::detail {
 
 template <class T>
 int box(lua_State* ls) {
-	void* mem = allocateBoxed(sizeof(T), std::alignment_of_v<T>);
+	void* mem = allocateBoxed(ls, sizeof(T), alignof(T));
 	T*    boxed = new (mem) T;
 
 	// Optionally initialize the boxed object

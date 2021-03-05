@@ -17,7 +17,7 @@ public:
 
 	static int Push(lua_State* ls, const std::vector<T>& v) {
 		// Create new table
-		Table table = newtable(ls);
+		Table table = newTable(ls);
 
 		// Push container values into table
 		int idx = 1;

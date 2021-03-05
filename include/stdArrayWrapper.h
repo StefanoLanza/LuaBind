@@ -21,7 +21,7 @@ public:
 
 	static int Push(lua_State* ls, const ArrayType& v) {
 		// Create new table
-		Table table = newtable(ls);
+		Table table = newTable(ls);
 
 		// Push container values into table
 		int index = 1;

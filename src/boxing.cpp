@@ -4,17 +4,17 @@
 
 namespace Typhoon::LuaBind::detail {
 
-extern Allocator* boxedAllocator;
+extern Allocator* getAllocator(lua_State* ls);
 
-void* allocateBoxed(size_t size, size_t alignment) {
-	return boxedAllocator->alloc(size, alignment);
+void* allocateBoxed(lua_State* ls, size_t size, size_t alignment) {
+	return getAllocator(ls)->alloc(size, alignment);
 }
 
 int collectBoxed(lua_State* ls) {
 	const size_t size = static_cast<size_t>(lua_tonumber(ls, lua_upvalueindex(1)));
 	// Extract pointer from user data
 	void** const ptrptr = static_cast<void**>(lua_touserdata(ls, 1));
-	boxedAllocator->free(*ptrptr, size);
+	getAllocator(ls)->free(*ptrptr, size);
 	return 0;
 }
 

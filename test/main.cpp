@@ -68,7 +68,7 @@ TEST_CASE("Table") {
 	using namespace LuaBind;
 	lua_State*      ls = g_ls;
 	const AutoBlock autoblock(ls);
-	Table           table = newtable(ls);
+	Table           table = newTable(ls);
 
 	SECTION("indices") {
 		CHECK(lua_gettop(ls) == 0);
@@ -197,8 +197,8 @@ TEST_CASE("Properties") {
 	using namespace LuaBind;
 	lua_State* ls = g_ls;
 	AutoBlock  autoblock(ls);
-	if (globals(ls)["ptest"]) {
-		Table ptest = (Table)globals(ls)["ptest"];
+	if (getGlobals(ls)["ptest"]) {
+		Table ptest = (Table)getGlobals(ls)["ptest"];
 		REQUIRE(ptest);
 
 		Table properties = (Table)ptest["p"];
@@ -236,16 +236,17 @@ TEST_CASE("GC")
 TEST_CASE("Class") {
 	using namespace LuaBind;
 	lua_State* ls = g_ls;
-
+	Table globals = getGlobals(ls);
+	Table registry = getRegistry(ls);
 	SECTION("base class") {
 		// Registration as user data
 		SECTION("binding C++ object as full user data") {
 			auto            bart = std::make_unique<GameObject>();
 			const Reference ref(registerObjectAsUserData(ls, bart.get()));
 			REQUIRE(ref.isValid());
-			CHECK(registry(ls)[bart.get()].isNil() == false);
-			globals(ls).set("bart", bart.get());
-			CHECK(globals(ls)["bart"].getType() == LUA_TUSERDATA);
+			CHECK(registry[bart.get()].isNil() == false);
+			globals.set("bart", bart.get());
+			CHECK(globals["bart"].getType() == LUA_TUSERDATA);
 #if TY_LUABIND_TYPE_SAFE
 			{
 				AutoBlock autoblock(ls);
@@ -256,12 +257,12 @@ TEST_CASE("Class") {
 			CHECK(doCommand(ls, "bart:SetA(10)"));
 			CHECK(bart->GetA() == 10);
 			CHECK(doCommand(ls, "bart:SetName('Bart')"));
-			CHECK(bart->GetName() == "Bart");
+			CHECK(bart->getName() == "Bart");
 			if (ref) {
 				unregisterObject(ls, ref);
 			}
-			CHECK(registry(ls)[bart.get()].isNil());
-			globals(ls).set("bart", nil);
+			CHECK(getRegistry(ls)[bart.get()].isNil());
+			globals.set("bart", nil);
 			CHECK(lua_gettop(ls) == 0);
 		}
 
@@ -270,9 +271,9 @@ TEST_CASE("Class") {
 			auto            fred = std::make_unique<GameObject>();
 			const Reference ref(registerObjectAsTable(ls, fred.get()));
 			REQUIRE(ref.isValid());
-			CHECK(registry(ls)[fred.get()].isNil() == false);
-			globals(ls).set("fred", fred.get());
-			CHECK(globals(ls)["fred"].getType() == LUA_TTABLE);
+			CHECK(registry[fred.get()].isNil() == false);
+			globals.set("fred", fred.get());
+			CHECK(globals["fred"].getType() == LUA_TTABLE);
 #if TY_LUABIND_TYPE_SAFE
 			{
 				AutoBlock autoblock(ls);
@@ -283,10 +284,10 @@ TEST_CASE("Class") {
 			CHECK(doCommand(ls, "fred:SetA(20)"));
 			CHECK(fred->GetA() == 20);
 			CHECK(doCommand(ls, "fred:SetName('Fred')"));
-			CHECK(fred->GetName() == "Fred");
+			CHECK(fred->getName() == "Fred");
 			unregisterObject(ls, ref);
-			CHECK(registry(ls)[fred.get()].isNil() == true);
-			globals(ls).set("fred", nil);
+			CHECK(registry[fred.get()].isNil() == true);
+			globals.set("fred", nil);
 			CHECK(lua_gettop(ls) == 0);
 		}
 
@@ -294,16 +295,16 @@ TEST_CASE("Class") {
 			auto            barney = std::make_unique<GameObject>();
 			const Reference ref = registerObjectAsLightUserData(ls, barney.get());
 			REQUIRE(ref.isValid());
-			globals(ls).set("barney", barney.get());
-			CHECK(globals(ls)["barney"].getType() == LUA_TLIGHTUSERDATA);
+			globals.set("barney", barney.get());
+			CHECK(globals["barney"].getType() == LUA_TLIGHTUSERDATA);
 
 			CHECK(doCommand(ls, "GameObject.SetA(barney, 20)"));
 			CHECK(barney->GetA() == 20);
 			CHECK(doCommand(ls, "GameObject.SetName(barney, 'Barney')"));
-			CHECK(barney->GetName() == "Barney");
+			CHECK(barney->getName() == "Barney");
 
 			unregisterObject(ls, ref);
-			globals(ls).set("barney", nil);
+			globals.set("barney", nil);
 			CHECK(lua_gettop(ls) == 0);
 		}
 
@@ -322,10 +323,10 @@ TEST_CASE("Class") {
 		auto            biped = std::make_unique<Biped>();
 		const Reference ref = registerObjectAsUserData(ls, biped.get());
 		REQUIRE(ref.isValid());
-		globals(ls).set("subobj", ref);
-		const Biped* tmp2 = (const Biped*)globals(ls)["subobj"];
+		getGlobals(ls).set("subobj", ref);
+		const Biped* tmp2 = (const Biped*)getGlobals(ls)["subobj"];
 		REQUIRE(tmp2);
-		CHECK(globals(ls)["subobj"].getType() == LUA_TUSERDATA);
+		CHECK(getGlobals(ls)["subobj"].getType() == LUA_TUSERDATA);
 
 #if TY_LUABIND_TYPE_SAFE
 		{
@@ -341,10 +342,10 @@ TEST_CASE("Class") {
 		doCommand(ls, "subobj:SetC(30)");
 		CHECK(biped->GetC() == 30.f);
 		doCommand(ls, "subobj:SetName('Homer')");
-		CHECK(biped->GetNameRef() == "Homer");
+		CHECK(biped->getNameRef() == "Homer");
 
 		unregisterObject(ls, ref);
-		globals(ls).set("subobj", nil);
+		globals.set("subobj", nil);
 		CHECK(lua_gettop(ls) == 0);
 	}
 
@@ -353,15 +354,16 @@ TEST_CASE("Class") {
 		human.energy = 10;
 		const Reference ref = registerObjectAsUserData(ls, &human);
 		REQUIRE(ref.isValid());
-		globals(ls).set("human", ref);
 
-		CHECK_FALSE(globals(ls)["human"].isNil());
+		globals.set("human", ref);
+
+		CHECK_FALSE(globals["human"].isNil());
 
 		CHECK(doCommand(ls, "human:SetName('Rocky')"));
-		CHECK(human.GetName() == "Rocky");
+		CHECK(human.getName() == "Rocky");
 
 		doCommand(ls, "energy = human:GetEnergy()");
-		const float energy = (float)globals(ls)["energy"];
+		const float energy = (float)globals["energy"];
 		CHECK(energy == human.energy);
 
 		doCommand(ls, "energy = human:SetEnergy(20)");
@@ -386,21 +388,21 @@ TEST_CASE("Class") {
 		CHECK(doCommand(ls, "vec0 = Vec3.new(0., 1., 2.)"));
 		CHECK(doCommand(ls, "vec1 = Vec3.new(3., 4., 5.)"));
 		CHECK(doCommand(ls, "vec2 = Vec3.add(vec0, vec1)"));
-		const Vec3* vptr = static_cast<const Vec3*>(globals(ls)["vec0"]);
+		const Vec3* vptr = static_cast<const Vec3*>(getGlobals(ls)["vec0"]);
 		REQUIRE(vptr);
 		if (vptr) {
 			CHECK(vptr->x == 0.);
 			CHECK(vptr->y == 1.);
 			CHECK(vptr->z == 2.);
 		}
-		const Vec3* v1ptr = static_cast<const Vec3*>(globals(ls)["vec1"]);
+		const Vec3* v1ptr = static_cast<const Vec3*>(getGlobals(ls)["vec1"]);
 		REQUIRE(v1ptr);
 		if (v1ptr) {
 			CHECK(v1ptr->x == 3.);
 			CHECK(v1ptr->y == 4.);
 			CHECK(v1ptr->z == 5.);
 		}
-		const Vec3* v2ptr = static_cast<const Vec3*>(globals(ls)["vec2"]);
+		const Vec3* v2ptr = static_cast<const Vec3*>(getGlobals(ls)["vec2"]);
 		REQUIRE(v2ptr);
 		if (v2ptr) {
 			CHECK(v2ptr->x == 3.);
@@ -409,12 +411,53 @@ TEST_CASE("Class") {
 		}
 #if TY_LUABIND_TYPE_SAFE
 		// Type safefy
-		// const Quat* q = static_cast<const Quat*>(globals(ls)["vec0"]);
+		// const Quat* q = static_cast<const Quat*>(getGlobals(ls)["vec0"]);
 		// CHECK(q == nullptr);
 		// CHECK(! doCommand(ls, "Quat.setIdentity(vec0)"));
 #endif
 	}
 }
+
+TEST_CASE("UniqueRef") {
+	using namespace LuaBind;
+	lua_State* ls = g_ls;
+	Table registry = getRegistry(ls);
+	auto obj = std::make_unique<GameObject>();
+	const Reference ref = registerObjectAsUserData(ls, obj.get());
+	CHECK(registry[ref].getType() == LUA_TUSERDATA);
+
+	SECTION("destruction") {
+		{
+			UniqueRef uref = makeUniqueRef(ls, ref);
+			REQUIRE(uref.get());
+			REQUIRE(static_cast<bool>(uref));
+		}
+		CHECK(registry[ref].getType() != LUA_TUSERDATA);
+	}
+	SECTION("release") {
+		UniqueRef uref = makeUniqueRef(ls, ref);
+		uref.release();
+		REQUIRE(! uref.get());
+		REQUIRE(static_cast<bool>(uref) == false);
+		CHECK(registry[ref].getType() == LUA_TUSERDATA);
+	}
+	SECTION("reset") {
+		UniqueRef uref = makeUniqueRef(ls, ref);
+		uref.reset();
+		REQUIRE(! uref.get());
+		REQUIRE(static_cast<bool>(uref) == false);
+		CHECK(registry[ref].getType() != LUA_TUSERDATA);
+	}
+	SECTION("move") {
+		UniqueRef uref = makeUniqueRef(ls, ref);
+		REQUIRE(uref.get());
+		UniqueRef uref2 = std::move(uref);
+		REQUIRE(! uref.get());
+		REQUIRE(uref2.get());
+		CHECK(registry[ref].getType() == LUA_TUSERDATA);
+	}
+}
+
 
 void bindTestClasses(lua_State* ls) {
 	using namespace LuaBind;
@@ -429,15 +472,15 @@ void bindTestClasses(lua_State* ls) {
 	LUA_BEGIN_CLASS(GameObject);
 	LUA_SET_DEFAULT_NEW_OPERATOR();
 	LUA_ADD_METHOD(SetName);
-	LUA_ADD_METHOD(GetNameRef);
-	LUA_ADD_METHOD(GetName);
+	LUA_ADD_METHOD(getNameRef);
+	LUA_ADD_METHOD(getName);
 	LUA_ADD_METHOD(SetA);
 	LUA_ADD_METHOD(SetB);
 	LUA_ADD_METHOD(GetA);
 	LUA_ADD_METHOD(GetB);
 	LUA_ADD_METHOD(getState);
 	LUA_ADD_METHOD(setState);
-	LUA_ADD_OVERLOADED_METHOD(Overloaded, void, float);
+	LUA_ADD_OVERLOADED_METHOD(overloaded, void, float);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Biped, GameObject);
@@ -459,7 +502,7 @@ void bindTestClasses(lua_State* ls) {
 	LUA_ADD_FUNCTION(add);
 	LUA_ADD_FUNCTION(cross);
 	LUA_ADD_OPERATOR(add, +);
-	//FIXME LUA_ADD_FREE_OPERATOR(sub, -);
+	LUA_ADD_FREE_OPERATOR(sub, -);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Quat);

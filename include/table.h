@@ -56,6 +56,7 @@ public:
 	Value operator[](unsigned int key) const;
 	Value operator[](double key) const;
 	Value operator[](void* key) const;
+	Value operator[](Reference reference) const;
 
 	TableIterator begin() const;
 	TableIterator end() const;
@@ -66,13 +67,13 @@ private:
 };
 
 //! Return the global environment table
-Table globals(lua_State* ls);
+Table getGlobals(lua_State* ls);
 
 //! Return the registry table
-Table registry(lua_State* ls);
+Table getRegistry(lua_State* ls);
 
 //! Create and return a new table
-Table newtable(lua_State* ls);
+Table newTable(lua_State* ls);
 
 } // namespace Typhoon::LuaBind
 

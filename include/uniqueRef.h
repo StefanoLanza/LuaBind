@@ -7,41 +7,44 @@ namespace Typhoon::LuaBind {
 
 void unregisterObject(lua_State* ls, Reference ref);
 
-struct RefDeleter {
+struct RefAndState {
+	lua_State* ls;
+	Reference  ref;
+};
+
+struct ReferenceDeleter {
 	struct pointer {
-		Reference r;
-		pointer(std::nullptr_t = nullptr) :
-			r {}
-		{
+		pointer(RefAndState r) : rs(r) {
 		}
-		pointer(Reference r)
-		    : r(r) {
-		}
+		pointer(std::nullptr_t) { rs.ls = nullptr; }
 		operator bool() const {
-			return r.isValid();
+			return rs.ref.isValid();
 		}
-		operator Reference() const {
-			return r;
-		}
-		Reference ref() const {
-			return r;
+		operator RefAndState() const {
+			return rs;
 		}
 		friend bool operator==(pointer x, pointer y) {
-			return x.r == y.r;
+			return (x.rs.ls == y.rs.ls) && (x.rs.ref == y.rs.ref);
 		}
 		friend bool operator!=(pointer x, pointer y) {
 			return ! (x == y);
 		}
+		RefAndState rs;
 	};
-	void operator()(Reference r) const {
-		//unregisterObject(r.ls, r.ref);
+	void operator()(RefAndState r) const {
+		if (r.ls) {
+			unregisterObject(r.ls, r.ref);
+		}
 	}
 };
 
 /**
  * @brief RAII wrapper for a unique Lua reference
 */
-using UniqueRef = std::unique_ptr<Reference, RefDeleter>;
+using UniqueRef = std::unique_ptr<RefAndState, ReferenceDeleter>;
 
+inline UniqueRef makeUniqueRef(lua_State* ls, Reference ref) {
+	return UniqueRef(RefAndState{ls, ref});
+}
 
 } // namespace Typhoon::LuaBind

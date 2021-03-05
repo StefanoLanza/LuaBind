@@ -42,14 +42,14 @@ public:
 	void setState(GameObjectState s) {
 		state = s;
 	}
-	void Overloaded(float) {
+	void overloaded(float) {
 	}
-	void Overloaded(int) {
+	void overloaded(int) {
 	}
-	std::string GetName() const {
+	std::string getName() const {
 		return name;
 	}
-	const std::string& GetNameRef() const {
+	const std::string& getNameRef() const {
 		return name;
 	}
 

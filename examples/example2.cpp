@@ -53,7 +53,7 @@ void runExample(lua_State* ls) {
 		return;
 	}
 
-	Table test = (Table)globals(ls)["testObject"];
+	Table test = static_cast<Table>(getGlobals(ls)["testObject"]);
 	if (! test) {
 		return;
 	}

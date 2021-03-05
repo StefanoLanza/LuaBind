@@ -38,21 +38,17 @@ void* allocFunction(void* ud, void* ptr, size_t osize, size_t nsize) {
 	return pret;
 }
 
-int panicFunction(lua_State* ls) {
-	const char* err = lua_tostring(ls, -1);
-	return 0;
-}
-
 Context* getContext(lua_State* ls) {
-	return static_cast<Context*>(registry(ls)[contextKey]);
+	return static_cast<Context*>(getRegistry(ls)[contextKey]);
 }
 
 } // namespace
 
-lua_State* gls = nullptr; // FIXME
 namespace detail {
 
-Allocator*       boxedAllocator = nullptr;
+Allocator* getAllocator(lua_State* ls) {
+	return getContext(ls)->allocator;
+}
 
 LinearAllocator* getTemporaryAllocator(lua_State* ls) {
 	return getContext(ls)->tempAllocator;
@@ -70,21 +66,16 @@ lua_State* createState(Allocator& allocator) {
 	if (! ls) {
 		return nullptr;
 	}
-	gls = ls; //FIXME
 	context->ls = ls;
 	luaL_openlibs(ls);
 
-	// Set our handling function for when Lua panics
-	lua_atpanic(ls, &panicFunction);
-
 	AutoBlock autoBlock(ls);
-	Table     g = globals(ls);
-	g.setFunction("RegisterLuaClass", detail::registerLuaClass);
-	g.setFunction("GetClassMetatable", detail::getClassMetatable);
+	Table     globals = getGlobals(ls);
+	globals.setFunction("RegisterLuaClass", detail::registerLuaClass);
+	globals.setFunction("GetClassMetatable", detail::getClassMetatable);
 
-	detail::boxedAllocator = &allocator;
 	context->tempAllocator = allocator.construct<PagedAllocator>(std::ref(allocator), PagedAllocator::defaultPageSize);
-	registry(ls).set(contextKey, context);
+	getRegistry(ls).set(contextKey, context);
 	return ls;
 }
 
@@ -94,11 +85,6 @@ void closeState(lua_State* ls) {
 	lua_close(ls);
 	context->allocator->destroy(context->tempAllocator);
 	context->allocator->destroy(context);
-	detail::boxedAllocator = nullptr;
-}
-
-lua_State* getLuaState() { // FIXME deprecated
-	return gls;
 }
 
 void newFrame(lua_State* ls) {

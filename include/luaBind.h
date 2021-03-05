@@ -32,7 +32,6 @@ class Result;
 
 lua_State*         createState(Allocator& allocator);
 void               closeState(lua_State* ls);
-lua_State*         getLuaState();
 Result             doCommand(lua_State*, const char* command);
 Result             doBuffer(lua_State*, const char* buffer, size_t size, const char* name);
 void               newFrame(lua_State* ls);
@@ -55,7 +54,7 @@ private:
 
 template <class T, class... ArgTypes>
 inline T* newTemporary(lua_State* ls, ArgTypes... args) {
-	if (void* mem = detail::allocTemporary(ls, sizeof(T), std::alignment_of_v<T>); mem) {
+	if (void* mem = detail::allocTemporary(ls, sizeof(T), alignof(T)); mem) {
 		// Construct
 		return new (mem) T { std::forward<ArgTypes>(args)... };
 	}
@@ -64,8 +63,8 @@ inline T* newTemporary(lua_State* ls, ArgTypes... args) {
 
 template <class T>
 inline Reference makeRef(lua_State* ls, const T& obj) {
-       push(ls, obj);
-       return Reference { luaL_ref(ls, LUA_REGISTRYINDEX) };
+	push(ls, obj);
+	return Reference { luaL_ref(ls, LUA_REGISTRYINDEX) };
 }
 
 } // namespace Typhoon::LuaBind

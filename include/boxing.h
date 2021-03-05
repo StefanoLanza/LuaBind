@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stddef.h>
+#include <cstddef>
 
 struct lua_State;
 
@@ -20,7 +20,7 @@ int retrieve(lua_State* ls);
 template <class T>
 void pushBoxingFunctions(lua_State* ls, int tableStackIndex);
 
-void* allocateBoxed(size_t size, size_t alignment);
+void* allocateBoxed(lua_State* ls, size_t size, size_t alignment);
 
 // For GC
 int collectBoxed(lua_State* ls);

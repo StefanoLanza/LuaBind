@@ -59,23 +59,23 @@ inline void registerFunction(lua_State* ls, retType (*functionPtr)(argType...), 
 template <typename T>
 struct Overload {
 	template <typename retType, typename... argType>
-	static auto GetFunc(retType(func)(T self, argType...)) {
+	static auto resolve(retType(func)(T self, argType...)) {
 		return func;
 	}
 	template <typename retType, typename... argType>
-	static auto GetFunc(retType(func)(T* self, argType...)) {
+	static auto resolve(retType(func)(T* self, argType...)) {
 		return func;
 	}
 	template <typename retType, typename... argType>
-	static auto GetFunc(retType(func)(const T* self, argType...)) {
+	static auto resolve(retType(func)(const T* self, argType...)) {
 		return func;
 	}
 	template <typename retType, typename... argType>
-	static auto GetFunc(retType(func)(T& self, argType...)) {
+	static auto resolve(retType(func)(T& self, argType...)) {
 		return func;
 	}
 	template <typename retType, typename... argType>
-	static auto GetFunc(retType(func)(const T& self, argType...)) {
+	static auto resolve(retType(func)(const T& self, argType...)) {
 		return func;
 	}
 };

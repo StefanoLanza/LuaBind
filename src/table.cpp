@@ -140,6 +140,10 @@ Value Table::operator[](void* key) const {
 	return value;
 }
 
+Value Table::operator[](Reference reference) const {
+	return (*this)[reference.getValue()];
+}
+
 TableIterator Table::begin() const {
 	return TableIterator(ls, ref, 0);
 }
@@ -148,15 +152,15 @@ TableIterator Table::end() const {
 	return TableIterator(ls, ref, getCount());
 }
 
-Table globals(lua_State* ls) {
+Table getGlobals(lua_State* ls) {
 	return Table { ls, Reference { LUA_RIDX_GLOBALS } };
 }
 
-Table registry(lua_State* ls) {
+Table getRegistry(lua_State* ls) {
 	return Table { ls, StackIndex { LUA_REGISTRYINDEX } };
 }
 
-Table newtable(lua_State* ls) {
+Table newTable(lua_State* ls) {
 	lua_newtable(ls);
 	Table table { ls, topStackIndex };
 	lua_pop(ls, 1); // table

@@ -1,5 +1,6 @@
 #include "class.h"
 #include "autoBlock.h"
+#include "context.h"
 #include "detail.h"
 #include "table.h"
 #include <cassert>
@@ -85,7 +86,9 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 		lua_pushvalue(ls, baseMetaTable);
 		lua_rawset(ls, mt);
 
-		baseClassMap.emplace(classID, baseClassID);
+#if TY_LUABIND_TYPE_SAFE
+		registerBaseClass(ls, classID, baseClassID);
+#endif
 	}
 
 	// Register className as global so that Lua scripts can access it

@@ -66,7 +66,7 @@ int newObject(lua_State* ls) {
 	}
 
 #if TY_LUABIND_TYPE_SAFE
-	registerPointerType(ptr);
+	registerPointer(ls, ptr);
 #endif
 	return 1;
 }

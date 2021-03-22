@@ -3,21 +3,18 @@
 #if TY_LUABIND_TYPE_SAFE
 
 #include "autoBlock.h"
+#include "context.h"
 #include <unordered_map>
 
 namespace Typhoon::LuaBind::detail {
 
-	std::unordered_map<TypeId, TypeId> baseClassMap;//FIXME in a context, allocator
-
 namespace {
 
-std::unordered_map<const void*, TypeId> pointerMap;//FIXME in a context, allocator
-
-bool compatibleTypes(TypeId first, TypeId second) {
+bool compatibleTypes(const Context& context, TypeId first, TypeId second) {
 	while (first != second) {
 		// Query base class
-		auto it = baseClassMap.find(first);
-		if (it == baseClassMap.end()) {
+		auto it = context.baseClassMap.find(first);
+		if (it == context.baseClassMap.end()) {
 			return false;
 		}
 		first = it->second;
@@ -27,22 +24,31 @@ bool compatibleTypes(TypeId first, TypeId second) {
 
 } // namespace
 
-bool tryCheckPointerType(const void* ptr, TypeId typeId) {
-	auto it = pointerMap.find(ptr);
-	return (it == pointerMap.end()) || compatibleTypes(it->second, typeId);
+void registerBaseClass(lua_State* ls, TypeId super, TypeId base) {
+	Context* context = getContext(ls);
+	context->baseClassMap.emplace(super, base);
 }
 
-bool checkPointerType(const void* ptr, TypeId typeId) {
-	auto it = pointerMap.find(ptr);
-	return (it != pointerMap.end()) && compatibleTypes(it->second, typeId);
+bool tryCheckPointerType(lua_State* ls, const void* ptr, TypeId typeId) {
+	Context* context = getContext(ls);
+	auto it = context->pointerMap.find(ptr);
+	return (it == context->pointerMap.end()) || compatibleTypes(*context, it->second, typeId);
 }
 
-void registerPointerWithType(const void* ptr, TypeId typeId) {
-	pointerMap.insert_or_assign(ptr, typeId);
+bool checkPointerType(lua_State* ls, const void* ptr, TypeId typeId) {
+	Context* context = getContext(ls);
+	auto it = context->pointerMap.find(ptr);
+	return (it != context->pointerMap.end()) && compatibleTypes(*context, it->second, typeId);
 }
 
-void unregisterPointer(const void* ptr) {
-	pointerMap.erase(ptr);
+void registerPointer(lua_State* ls, const void* ptr, TypeId typeId) {
+	Context* context = getContext(ls);
+	context->pointerMap.insert_or_assign(ptr, typeId);
+}
+
+void unregisterPointer(lua_State* ls, const void* ptr) {
+	Context* context = getContext(ls);
+	context->pointerMap.erase(ptr);
 }
 
 } // namespace Typhoon::LuaBind::detail

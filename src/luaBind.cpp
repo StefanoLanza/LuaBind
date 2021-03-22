@@ -1,5 +1,6 @@
 #include "luaBind.h"
 #include "autoBlock.h"
+#include "context.h"
 #include "debug.h"
 #include "detail.h"
 #include "result.h"
@@ -8,13 +9,6 @@
 #include <core/allocator.h>
 
 namespace Typhoon::LuaBind {
-
-struct Context {
-	lua_State* ls;
-	Allocator* allocator;
-	LinearAllocator* tempAllocator;
-	MemoryStats memoryStats;
-};
 
 namespace {
 
@@ -38,13 +32,15 @@ void* allocFunction(void* ud, void* ptr, size_t osize, size_t nsize) {
 	return pret;
 }
 
-Context* getContext(lua_State* ls) {
-	return static_cast<Context*>(getRegistry(ls)[contextKey]);
-}
-
 } // namespace
 
 namespace detail {
+
+Context* getContext(lua_State* ls) {
+	// FIXME workaround to bypass safety check in Value::cast. With it, getContext(ls) enters an infinite recursion 
+	void* context = static_cast<void*>(getRegistry(ls)[contextKey]);
+	return static_cast<Context*>(context);
+}
 
 Allocator* getAllocator(lua_State* ls) {
 	return getContext(ls)->allocator;
@@ -57,7 +53,7 @@ LinearAllocator* getTemporaryAllocator(lua_State* ls) {
 } // namespace detail
 
 lua_State* createState(Allocator& allocator) {
-	Context* context = allocator.construct<Context>();
+	auto context = allocator.construct<Context>();
 	if (! context) {
 		return nullptr;
 	}
@@ -80,7 +76,7 @@ lua_State* createState(Allocator& allocator) {
 }
 
 void closeState(lua_State* ls) {
-	Context* context = getContext(ls);
+	Context* context = detail::getContext(ls);
 	lua_gc(ls, LUA_GCCOLLECT, 0);
 	lua_close(ls);
 	context->allocator->destroy(context->tempAllocator);
@@ -88,7 +84,7 @@ void closeState(lua_State* ls) {
 }
 
 void newFrame(lua_State* ls) {
-	getContext(ls)->tempAllocator->rewind();
+	detail::getContext(ls)->tempAllocator->rewind();
 }
 
 void registerLoader(lua_State* ls, lua_CFunction loader, void* userData) {
@@ -194,7 +190,7 @@ Result doBuffer(lua_State* ls, const char* buffer, size_t size, const char* name
 
 Scope::Scope(lua_State* ls)
 	: ls(ls)
-	, tempAllocator(getContext(ls)->tempAllocator)
+	, tempAllocator(detail::getContext(ls)->tempAllocator)
 	, offs(tempAllocator->getOffset())
 { 
 }

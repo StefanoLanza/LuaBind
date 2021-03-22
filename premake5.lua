@@ -25,7 +25,7 @@ characterset "MBCS"
 flags   { "MultiProcessorCompile", }
 startproject "UnitTest"
 exceptionhandling "Off"
-defines { "_HAS_EXCEPTIONS=0", "TY_LUABIND_TYPE_SAFE=1", }
+defines { "_HAS_EXCEPTIONS=0", "TY_LUABIND_TYPE_SAFE=0", }
 cppdialect "c++17"
 rtti "Off"
 

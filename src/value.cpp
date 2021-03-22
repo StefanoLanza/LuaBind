@@ -1,4 +1,5 @@
 #include "value.h"
+#include "context.h"
 #include "stackUtils.h"
 #include "table.h"
 #include "typeSafefy.h"
@@ -132,7 +133,7 @@ bool Value::cast(void*& userData, [[maybe_unused]] TypeId typeId) const {
 	if (userData) {
 		res = true;
 #if TY_LUABIND_TYPE_SAFE
-		if (! detail::tryCheckPointerType(userData, typeId)) {
+		if (! detail::tryCheckPointerType(ls, userData, typeId)) {
 			userData = nullptr;
 			res = false;
 		}

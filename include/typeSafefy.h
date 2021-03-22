@@ -11,21 +11,22 @@ struct lua_State;
 
 namespace Typhoon::LuaBind::detail {
 
-bool tryCheckPointerType(const void* ptr, TypeId typeId);
-bool checkPointerType(const void* ptr, TypeId typeInfo);
-void registerPointerWithType(const void* ptr, TypeId typeInfo);
-void unregisterPointer(const void* ptr);
+void registerBaseClass(lua_State* ls,  TypeId super, TypeId base);
+bool tryCheckPointerType(lua_State* ls, const void* ptr, TypeId typeId);
+bool checkPointerType(lua_State* ls, const void* ptr, TypeId typeInfo);
+void registerPointer(lua_State* ls, const void* ptr, TypeId typeInfo);
+void unregisterPointer(lua_State* ls, const void* ptr);
 
 // Helpers
 template <class T>
-inline void registerPointerType(const T* ptr) {
-	registerPointerWithType(static_cast<const void*>(ptr), getTypeId(ptr));
+inline void registerPointer(lua_State* ls, const T* ptr) {
+	registerPointer(ls, static_cast<const void*>(ptr), getTypeId(ptr));
 }
 
 
 template <class T>
-inline bool checkPointerType(const void* ptr) {
-	return checkPointerType(ptr, getTypeId<T>());
+inline bool checkPointerType(lua_State* ls, const void* ptr) {
+	return checkPointerType(ls, ptr, getTypeId<T>());
 }
 
 } // namespace Typhoon::LuaBind::detail

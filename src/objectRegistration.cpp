@@ -38,7 +38,7 @@ Reference registerObjectAsTable(lua_State* ls, void* objectPtr, TypeId typeId) {
 	lua_rawset(ls, LUA_REGISTRYINDEX);
 
 #if TY_LUABIND_TYPE_SAFE
-	detail::registerPointerWithType(objectPtr, typeId);
+	detail::registerPointer(ls, objectPtr, typeId);
 #endif
 
 	// Create reference to table and save it in the registry
@@ -74,7 +74,7 @@ Reference registerObjectAsUserData(lua_State* ls, void* objectPtr, TypeId typeId
 
 	// TODO in the userdata instead?
 #if TY_LUABIND_TYPE_SAFE
-	detail::registerPointerWithType(objectPtr, typeId);
+	detail::registerPointer(ls, objectPtr, typeId);
 #endif
 
 	// Create reference to user data
@@ -88,7 +88,7 @@ Reference registerObjectAsLightUserData(lua_State* ls, void* objectPtr, [[maybe_
 	// Create reference to user data
 	lua_pushlightuserdata(ls, objectPtr);
 #if TY_LUABIND_TYPE_SAFE
-	detail::registerPointerWithType(objectPtr, typeId);
+	detail::registerPointer(ls, objectPtr, typeId);
 #endif
 	return Reference { luaL_ref(ls, LUA_REGISTRYINDEX) };
 }
@@ -168,7 +168,7 @@ void unregisterObject(lua_State* ls, Reference ref) {
 		lua_pushnil(ls);
 		lua_rawset(ls, LUA_REGISTRYINDEX);
 #if TY_LUABIND_TYPE_SAFE
-		detail::unregisterPointer(objectPtr);
+		detail::unregisterPointer(ls, objectPtr);
 #endif
 	}
 
@@ -199,7 +199,7 @@ void unregisterObject(lua_State* ls, void* objectPtr) {
 	lua_rawset(ls, LUA_REGISTRYINDEX);
 
 #if TY_LUABIND_TYPE_SAFE
-	detail::unregisterPointer(objectPtr);
+	detail::unregisterPointer(ls, objectPtr);
 #endif
 }
 

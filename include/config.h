@@ -1,6 +1,6 @@
 #pragma once
 
-// Not yet fully supported
+// Set to 1 to check pointer types at runtime
 #ifndef TY_LUABIND_TYPE_SAFE
 #define TY_LUABIND_TYPE_SAFE 0
 #endif

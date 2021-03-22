@@ -117,7 +117,7 @@ bool Value::cast(Table& table) const {
 	return res;
 }
 
-bool Value::cast(void*& userData, TypeId typeId) const {
+bool Value::cast(void*& userData, [[maybe_unused]] TypeId typeId) const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	bool res = false;
 	userData = nullptr;
@@ -131,13 +131,11 @@ bool Value::cast(void*& userData, TypeId typeId) const {
 	lua_pop(ls, 1);
 	if (userData) {
 		res = true;
-#if LUA_TYPE_SAFE
-		if (! detail::checkPointerType(userData, typeId)) {
+#if TY_LUABIND_TYPE_SAFE
+		if (! detail::tryCheckPointerType(userData, typeId)) {
 			userData = nullptr;
 			res = false;
 		}
-#else
-	(void)typeId;
 #endif
 	}
 	return res;

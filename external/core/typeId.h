@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <type_traits>
 
 namespace Typhoon {
@@ -67,3 +68,12 @@ TypeName typeName(const T* dummy) {
 }
 
 } // namespace Typhoon
+
+namespace std {
+	template <>
+	struct hash<Typhoon::TypeId> {
+		std::size_t operator()(const Typhoon::TypeId& typeId) const {
+			return std::hash<const void*>()(typeId.impl);
+		}
+	};
+}

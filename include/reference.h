@@ -20,7 +20,7 @@ public:
 	bool isValid() const {
 		return (value != LUA_NOREF);
 	}
-	void Release() {
+	void release() {
 		value = LUA_NOREF;
 	}
 	explicit operator bool() const {

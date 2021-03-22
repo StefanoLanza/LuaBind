@@ -32,7 +32,7 @@ public:
 		// Get self
 		const obj_type* self = Wrapper<const obj_type*>::Get(ls, 1);
 		if (! self) {
-			luaL_argerror(ls, 1, "nil self");
+			return luaL_argerror(ls, 1, "nil self");
 		}
 
 		// Get pointer to member var
@@ -51,7 +51,7 @@ public:
 		// Get self
 		obj_type* self = Wrapper<obj_type*>::Get(ls, 1);
 		if (! self) {
-			luaL_argerror(ls, 1, "nil self");
+			return luaL_argerror(ls, 1, "nil self");
 		}
 
 		// Get pointer to member var
@@ -95,7 +95,7 @@ template <typename T>
 inline int checkArg(lua_State* ls, int stackIndex) {
 	if (! Wrapper<T>::Match(ls, stackIndex)) {
 		// Note: check that you're not passing by const reference a primitive object because they are handled by pointer
-		luaL_argerror(ls, stackIndex, lua_typename(ls, lua_type(ls, stackIndex)));
+		return luaL_argerror(ls, stackIndex, lua_typename(ls, lua_type(ls, stackIndex)));
 	}
 	return 1;
 }

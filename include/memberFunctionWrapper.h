@@ -18,8 +18,7 @@ int memberFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, 
 	// Get self
 	objType* const self = get<objType*>(ls, 1);
 	if (! self) {
-		luaL_argerror(ls, 1, "nil self");
-		return 0;
+		return luaL_argerror(ls, 1, "nil self");
 	}
 
 	// Get stack size of all arguments

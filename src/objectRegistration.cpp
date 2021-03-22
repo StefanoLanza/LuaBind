@@ -14,8 +14,6 @@ Reference registerObjectAsTable(lua_State* ls, void* objectPtr, TypeId typeId) {
 
 	const TypeName classID = typeIdToName(typeId);
 
-	// TODO store type_info inside the table ?
-
 	// Lookup class metatable in registry
 	luaL_getmetatable(ls, classID);
 	if (! lua_istable(ls, -1)) {
@@ -39,9 +37,8 @@ Reference registerObjectAsTable(lua_State* ls, void* objectPtr, TypeId typeId) {
 	lua_pushvalue(ls, tableStackIndex);
 	lua_rawset(ls, LUA_REGISTRYINDEX);
 
-	// TODO in table instead?
-#if LUA_TYPE_SAFE
-	detail::registerPointerType(objectPtr, typeId);
+#if TY_LUABIND_TYPE_SAFE
+	detail::registerPointerWithType(objectPtr, typeId);
 #endif
 
 	// Create reference to table and save it in the registry
@@ -54,16 +51,15 @@ Reference registerObjectAsUserData(lua_State* ls, void* objectPtr, TypeId typeId
 
 	AutoBlock autoBlock(ls);
 
-	const TypeName classID = typeIdToName(typeId);
+	const TypeName typeName = typeIdToName(typeId);
 
-	// TODO store type_info inside the userData ?
 	void* const userData = lua_newuserdata(ls, sizeof objectPtr);
 	// Copy C++ pointer to Lua userdata
 	std::memcpy(userData, &objectPtr, sizeof objectPtr);
 	const int userDataIndex = lua_gettop(ls);
 
 	// Lookup class metatable in registry
-	luaL_getmetatable(ls, classID);
+	luaL_getmetatable(ls, typeName);
 	if (! lua_istable(ls, -1)) {
 		return Reference {}; // class not registered
 	}
@@ -77,8 +73,8 @@ Reference registerObjectAsUserData(lua_State* ls, void* objectPtr, TypeId typeId
 	lua_rawset(ls, LUA_REGISTRYINDEX);
 
 	// TODO in the userdata instead?
-#if LUA_TYPE_SAFE
-	detail::registerPointerType(objectPtr, typeId);
+#if TY_LUABIND_TYPE_SAFE
+	detail::registerPointerWithType(objectPtr, typeId);
 #endif
 
 	// Create reference to user data
@@ -86,16 +82,13 @@ Reference registerObjectAsUserData(lua_State* ls, void* objectPtr, TypeId typeId
 	return Reference { luaL_ref(ls, LUA_REGISTRYINDEX) };
 }
 
-Reference registerObjectAsLightUserData(lua_State* ls, void* objectPtr, TypeId typeId) {
+Reference registerObjectAsLightUserData(lua_State* ls, void* objectPtr, [[maybe_unused]] TypeId typeId) {
 	assert(objectPtr);
 	AutoBlock autoBlock(ls);
 	// Create reference to user data
 	lua_pushlightuserdata(ls, objectPtr);
-	// TODO in the userdata instead?
-#if LUA_TYPE_SAFE
-	detail::registerPointerType(objectPtr, typeId);
-#else
-	(void)typeId;
+#if TY_LUABIND_TYPE_SAFE
+	detail::registerPointerWithType(objectPtr, typeId);
 #endif
 	return Reference { luaL_ref(ls, LUA_REGISTRYINDEX) };
 }
@@ -134,6 +127,10 @@ Reference registerTable(lua_State* ls, const char* className) {
 	return Reference { ref };
 }
 
+void unregisterTable(lua_State* ls, Reference ref) {
+	luaL_unref(ls, LUA_REGISTRYINDEX, ref.getValue());
+}
+
 void unregisterObject(lua_State* ls, Reference ref) {
 	assert(ref.isValid());
 	AutoBlock autoBlock(ls);
@@ -170,7 +167,9 @@ void unregisterObject(lua_State* ls, Reference ref) {
 		lua_pushlightuserdata(ls, objectPtr);
 		lua_pushnil(ls);
 		lua_rawset(ls, LUA_REGISTRYINDEX);
-		// TODO remove from typeSafety table
+#if TY_LUABIND_TYPE_SAFE
+		detail::unregisterPointer(objectPtr);
+#endif
 	}
 
 	// Delete reference
@@ -198,7 +197,10 @@ void unregisterObject(lua_State* ls, void* objectPtr) {
 	lua_pushlightuserdata(ls, objectPtr);
 	lua_pushnil(ls);
 	lua_rawset(ls, LUA_REGISTRYINDEX);
-	// TODO remove from typeSafety table
+
+#if TY_LUABIND_TYPE_SAFE
+	detail::unregisterPointer(objectPtr);
+#endif
 }
 
 } // namespace Typhoon::LuaBind

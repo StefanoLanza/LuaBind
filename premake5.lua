@@ -9,6 +9,13 @@ local x64 = "platforms:x86_64"
 local debug =  "configurations:Debug*"
 local release =  "configurations:Release*"
 
+-- Address sanitizer
+local asan = false
+if (not (_ACTION == "vs2019")) then
+	print ("Address Sanitizer not supported")
+	asan = false
+end
+
 workspace ("Typhoon-LuaBind")
 configurations { "Debug", "Release" }
 platforms { "x86", "x86_64" }
@@ -18,7 +25,7 @@ characterset "MBCS"
 flags   { "MultiProcessorCompile", }
 startproject "UnitTest"
 exceptionhandling "Off"
-defines { "_HAS_EXCEPTIONS=0" }
+defines { "_HAS_EXCEPTIONS=0", "TY_LUABIND_TYPE_SAFE=1", }
 cppdialect "c++17"
 rtti "Off"
 
@@ -40,6 +47,9 @@ filter { x86 }
 	  
 filter { x64 }
 	architecture "x86_64"
+	
+filter { vs }
+	defines { "_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1", "_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1",  }
 
 filter { vs, x86, }
 	defines { "WIN32", "_WIN32", }
@@ -48,10 +58,20 @@ filter { vs, x64, }
 	defines { "WIN64", "_WIN64", }
 
 filter { vs, debug, }
-	defines { "_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1", "_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1",  }
+	defines { }
+	-- Address sanitizer for VS 2019
+	if asan then 
+		buildoptions
+		{
+			"/fsanitize=address",
+		}
+		-- Turn off incompatible options
+		flags { "NoIncrementalLink", "NoRuntimeChecks", }
+		editAndContinue "Off"
+	end
 
 filter { vs, release, }
-	defines { "_ITERATOR_DEBUG_LEVEL=0", "_SECURE_SCL=0", "_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1", "_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1",  }
+	defines { "_ITERATOR_DEBUG_LEVEL=0", "_SECURE_SCL=0", }
 
 filter { debug }
 	defines { "_DEBUG", "DEBUG", }

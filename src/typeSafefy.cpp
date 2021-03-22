@@ -7,45 +7,42 @@
 
 namespace Typhoon::LuaBind::detail {
 
+	std::unordered_map<TypeId, TypeId> baseClassMap;//FIXME in a context, allocator
+
 namespace {
 
-std::unordered_map<const void*, TypeId> pointerMap;
+std::unordered_map<const void*, TypeId> pointerMap;//FIXME in a context, allocator
 
 bool compatibleTypes(TypeId first, TypeId second) {
-	// TODO compare base classes of first
-	return first == second;
+	while (first != second) {
+		// Query base class
+		auto it = baseClassMap.find(first);
+		if (it == baseClassMap.end()) {
+			return false;
+		}
+		first = it->second;
+	}
+	return true;
 }
+
 } // namespace
+
+bool tryCheckPointerType(const void* ptr, TypeId typeId) {
+	auto it = pointerMap.find(ptr);
+	return (it == pointerMap.end()) || compatibleTypes(it->second, typeId);
+}
 
 bool checkPointerType(const void* ptr, TypeId typeId) {
 	auto it = pointerMap.find(ptr);
-	return true; // FIXME (it != pointerMap.end()) && compatibleTypes(*it->second, typeId);
+	return (it != pointerMap.end()) && compatibleTypes(it->second, typeId);
 }
 
-void registerPointerType(const void* ptr, TypeId typeId) {
+void registerPointerWithType(const void* ptr, TypeId typeId) {
 	pointerMap.insert_or_assign(ptr, typeId);
 }
 
-void unregisterPointerType(const void* ptr) {
+void unregisterPointer(const void* ptr) {
 	pointerMap.erase(ptr);
-}
-
-bool checkType(lua_State* ls, int index, const char* className) {
-	assert(index >= 1);
-	AutoBlock autoBlock(ls);
-	lua_getfield(ls, LUA_REGISTRYINDEX, className);
-	lua_getmetatable(ls, index);
-	// Stack:
-	// -2: table containing the class methods
-	// -1: userdata's meta table
-	while (lua_istable(ls, -1)) {
-		if (lua_rawequal(ls, -1, -2)) {
-			return true;
-		}
-		lua_getfield(ls, -1, "_base");
-		lua_replace(ls, -2);
-	}
-	return false;
 }
 
 } // namespace Typhoon::LuaBind::detail

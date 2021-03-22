@@ -352,8 +352,8 @@ public:
 
 #if TY_LUABIND_TYPE_SAFE
 		if (ptr && ! detail::checkPointerType(ptr, getTypeId(ptr))) {
-			luaL_argerror(ls, idx, "invalid pointer type");
 			ptr = nullptr;
+			luaL_argerror(ls, idx, "invalid pointer type");
 		}
 #endif
 		return ptr;
@@ -491,17 +491,22 @@ struct Lightweight {
         return lua_isuserdata(ls, idx);
 	}
 	static int Push(lua_State* ls, const T& value) {
-		T* ud = new (detail::allocTemporary<T>(ls)) T { value };
-#if TY_LUABIND_TYPE_SAFE
-		detail::registerPointerType(ud);
-#endif
-		lua_pushlightuserdata(ls, ud);
-		return 1;
+		void* const mem = detail::allocTemporary<T>(ls);
+		if (mem) {
+			T* ud = new (mem) T { value };
+	#if TY_LUABIND_TYPE_SAFE
+			detail::registerPointerType(ud);
+	#endif
+			lua_pushlightuserdata(ls, ud);
+			return 1;
+		}
+		return 0;
 	}
 	static T Get(lua_State* ls, int idx) {
-		void* const userData = lua_touserdata(ls, idx);
+		void* userData = lua_touserdata(ls, idx);
 #if TY_LUABIND_TYPE_SAFE
 		if (! detail::checkPointerType<T>(userData)) {
+			userData = nullptr;
 			luaL_argerror(ls, idx, "Invalid pointer type"); // TODO better message
 		}
 #endif

@@ -239,7 +239,6 @@ TEST_CASE("Class") {
 	Table globals = getGlobals(ls);
 	Table registry = getRegistry(ls);
 	SECTION("base class") {
-		// Registration as user data
 		SECTION("binding C++ object as full user data") {
 			auto            bart = std::make_unique<GameObject>();
 			const Reference ref(registerObjectAsUserData(ls, bart.get()));
@@ -247,13 +246,6 @@ TEST_CASE("Class") {
 			CHECK(registry[bart.get()].isNil() == false);
 			globals.set("bart", bart.get());
 			CHECK(globals["bart"].getType() == LUA_TUSERDATA);
-#if TY_LUABIND_TYPE_SAFE
-			{
-				AutoBlock autoblock(ls);
-				push(ls, ref);
-				CHECK(detail::checkType<GameObject>(ls, lua_gettop(ls)));
-			}
-#endif
 			CHECK(doCommand(ls, "bart:SetA(10)"));
 			CHECK(bart->GetA() == 10);
 			CHECK(doCommand(ls, "bart:SetName('Bart')"));
@@ -267,20 +259,12 @@ TEST_CASE("Class") {
 		}
 
 		SECTION("binding C++ object as table") {
-			// Registration as table
 			auto            fred = std::make_unique<GameObject>();
 			const Reference ref(registerObjectAsTable(ls, fred.get()));
 			REQUIRE(ref.isValid());
 			CHECK(registry[fred.get()].isNil() == false);
 			globals.set("fred", fred.get());
 			CHECK(globals["fred"].getType() == LUA_TTABLE);
-#if TY_LUABIND_TYPE_SAFE
-			{
-				AutoBlock autoblock(ls);
-				push(ls, ref);
-				CHECK(detail::checkType<GameObject>(ls, lua_gettop(ls)));
-			}
-#endif
 			CHECK(doCommand(ls, "fred:SetA(20)"));
 			CHECK(fred->GetA() == 20);
 			CHECK(doCommand(ls, "fred:SetName('Fred')"));
@@ -324,19 +308,9 @@ TEST_CASE("Class") {
 		const Reference ref = registerObjectAsUserData(ls, biped.get());
 		REQUIRE(ref.isValid());
 		getGlobals(ls).set("subobj", ref);
-		const Biped* tmp2 = (const Biped*)getGlobals(ls)["subobj"];
+		const Biped* tmp2 = static_cast<const Biped*>(globals["subobj"]);
 		REQUIRE(tmp2);
 		CHECK(getGlobals(ls)["subobj"].getType() == LUA_TUSERDATA);
-
-#if TY_LUABIND_TYPE_SAFE
-		{
-			AutoBlock autoblock(ls);
-			push(ls, ref);
-			CHECK(detail::checkType<GameObject>(ls, lua_gettop(ls)));
-			CHECK(detail::checkType<Biped>(ls, lua_gettop(ls)));
-		}
-#endif
-
 		doCommand(ls, "subobj:SetA(20)");
 		CHECK(biped->GetA() == 20);
 		doCommand(ls, "subobj:SetC(30)");
@@ -372,37 +346,26 @@ TEST_CASE("Class") {
 		// C API
 		doCommand(ls, "Human.AddEnergy(human, 10.)");
 	}
-#if 0
-	{
-		Object luaobj(ls, ref);
-	bool res = luaobj.CallMethod("GetA", 1);
-	CHECK(res);
-	}
-{
-	Object luaobj(ls, ref);
-	bool res = luaobj.CallMethod("GetA", 1);
-	CHECK(res);
-}
-#endif
+
 	SECTION("temporaries") {
 		CHECK(doCommand(ls, "vec0 = Vec3.new(0., 1., 2.)"));
 		CHECK(doCommand(ls, "vec1 = Vec3.new(3., 4., 5.)"));
 		CHECK(doCommand(ls, "vec2 = Vec3.add(vec0, vec1)"));
-		const Vec3* vptr = static_cast<const Vec3*>(getGlobals(ls)["vec0"]);
+		const Vec3* vptr = static_cast<const Vec3*>(globals["vec0"]);
 		REQUIRE(vptr);
 		if (vptr) {
 			CHECK(vptr->x == 0.);
 			CHECK(vptr->y == 1.);
 			CHECK(vptr->z == 2.);
 		}
-		const Vec3* v1ptr = static_cast<const Vec3*>(getGlobals(ls)["vec1"]);
+		const Vec3* v1ptr = static_cast<const Vec3*>(globals["vec1"]);
 		REQUIRE(v1ptr);
 		if (v1ptr) {
 			CHECK(v1ptr->x == 3.);
 			CHECK(v1ptr->y == 4.);
 			CHECK(v1ptr->z == 5.);
 		}
-		const Vec3* v2ptr = static_cast<const Vec3*>(getGlobals(ls)["vec2"]);
+		const Vec3* v2ptr = static_cast<const Vec3*>(globals["vec2"]);
 		REQUIRE(v2ptr);
 		if (v2ptr) {
 			CHECK(v2ptr->x == 3.);
@@ -410,10 +373,11 @@ TEST_CASE("Class") {
 			CHECK(v2ptr->z == 7.);
 		}
 #if TY_LUABIND_TYPE_SAFE
-		// Type safefy
-		// const Quat* q = static_cast<const Quat*>(getGlobals(ls)["vec0"]);
-		// CHECK(q == nullptr);
-		// CHECK(! doCommand(ls, "Quat.setIdentity(vec0)"));
+		const Vec3* v = static_cast<const Vec3*>(globals["vec0"]);
+		CHECK(v);
+		CHECK(! doCommand(ls, "Quat.setIdentity(vec0)"));
+		const Quat* q = static_cast<const Quat*>(globals["vec0"]);
+		CHECK(q == nullptr);
 #endif
 	}
 }

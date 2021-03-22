@@ -3,10 +3,11 @@
 #include "detail.h"
 #include "table.h"
 #include <cassert>
-
-struct undef;
+#include <unordered_map>
 
 namespace Typhoon::LuaBind::detail {
+
+extern std::unordered_map<TypeId, TypeId> baseClassMap;//FIXME in a context, allocator
 
 namespace {
 
@@ -83,12 +84,9 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 		lua_pushliteral(ls, "__index");
 		lua_pushvalue(ls, baseMetaTable);
 		lua_rawset(ls, mt);
-	}
 
-	// Idea: associate the destructor here. In the destructor, we'd need to tell pointers created by Lua from those created and registered
-	// natively, and destroy only the Lua ones. This would simplify the logic of newObject<T>
-//	lua_pushcfunction(ls, destructor);
-//	lua_setfield(ls, metatableIndex, "__gc");
+		baseClassMap.emplace(classID, baseClassID);
+	}
 
 	// Register className as global so that Lua scripts can access it
 	registerClassInGlobals(ls, className, metatableIndex);
@@ -117,14 +115,14 @@ void registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure, c
 int registerLuaClass(lua_State* ls) {
 	const int nargs = lua_gettop(ls);
 	if (nargs != 2) {
-		luaL_argerror(ls, 1, "wrong number of arguments");
+		return luaL_argerror(ls, 1, "wrong number of arguments");
 	}
 	// Arg: className, meta table
 	if (! lua_isstring(ls, 1)) {
-		luaL_argerror(ls, 1, "bad argument");
+		return luaL_argerror(ls, 1, "bad argument");
 	}
 	if (! lua_istable(ls, 2)) {
-		luaL_argerror(ls, 2, "bad argument");
+		return luaL_argerror(ls, 2, "bad argument");
 	}
 
 	// Register meta table in registry.
@@ -139,7 +137,7 @@ int registerLuaClass(lua_State* ls) {
 
 int getClassMetatable(lua_State* ls) {
 	if (! lua_isstring(ls, 1)) {
-		luaL_argerror(ls, 1, "bad argument");
+		return luaL_argerror(ls, 1, "bad argument");
 	}
 	const char* className = lua_tostring(ls, 1);
 	lua_pushstring(ls, className);

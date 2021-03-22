@@ -65,9 +65,8 @@ int newObject(lua_State* ls) {
 		lua_setmetatable(ls, -2);        // ud       ud.mt = mt
 	}
 
-#if LUA_TYPE_SAFE
-	// TODO in the userdata instead?
-	registerPointerType(ptr, getTypeId<T>());
+#if TY_LUABIND_TYPE_SAFE
+	registerPointerType(ptr);
 #endif
 	return 1;
 }

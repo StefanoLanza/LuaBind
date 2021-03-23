@@ -197,8 +197,9 @@ TEST_CASE("Properties") {
 	using namespace LuaBind;
 	lua_State* ls = g_ls;
 	AutoBlock  autoblock(ls);
-	if (getGlobals(ls)["ptest"]) {
-		Table ptest = (Table)getGlobals(ls)["ptest"];
+	Table globals = getGlobals(ls);
+	if (globals["ptest"]) {
+		Table ptest = (Table)globals["ptest"];
 		REQUIRE(ptest);
 
 		Table properties = (Table)ptest["p"];
@@ -215,23 +216,6 @@ TEST_CASE("VoidPtr") {
 	const Typhoon::VoidPtr voidPtr = Typhoon::MakeVoidPtr(&biped);
 	push(ls, voidPtr);
 }
-
-#if 0
-TEST_CASE("GC")
-{
-	AutoBlock autoblock(ls);
-
-	std::shared_ptr<int> obj(new int);
-	Push(ls, obj);
-
-	// Collect garbage
-	lua_gc(ls, LUA_GCCOLLECT, 0);
-	while (! lua_gc(ls, LUA_GCSTEP, 2000))
-	{
-	}
-	CHECK(obj.use_count() == 1);
-}
-#endif
 
 TEST_CASE("Class") {
 	using namespace LuaBind;
@@ -253,7 +237,7 @@ TEST_CASE("Class") {
 			if (ref) {
 				unregisterObject(ls, ref);
 			}
-			CHECK(getRegistry(ls)[bart.get()].isNil());
+			CHECK(registry[bart.get()].isNil());
 			globals.set("bart", nil);
 			CHECK(lua_gettop(ls) == 0);
 		}
@@ -307,10 +291,10 @@ TEST_CASE("Class") {
 		auto            biped = std::make_unique<Biped>();
 		const Reference ref = registerObjectAsUserData(ls, biped.get());
 		REQUIRE(ref.isValid());
-		getGlobals(ls).set("subobj", ref);
+		globals.set("subobj", ref);
 		const Biped* tmp2 = static_cast<const Biped*>(globals["subobj"]);
 		REQUIRE(tmp2);
-		CHECK(getGlobals(ls)["subobj"].getType() == LUA_TUSERDATA);
+		CHECK(globals["subobj"].getType() == LUA_TUSERDATA);
 		doCommand(ls, "subobj:SetA(20)");
 		CHECK(biped->GetA() == 20);
 		doCommand(ls, "subobj:SetC(30)");

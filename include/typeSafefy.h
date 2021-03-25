@@ -13,8 +13,8 @@ namespace Typhoon::LuaBind::detail {
 
 void registerBaseClass(lua_State* ls,  TypeId super, TypeId base);
 bool tryCheckPointerType(lua_State* ls, const void* ptr, TypeId typeId);
-bool checkPointerType(lua_State* ls, const void* ptr, TypeId typeInfo);
-void registerPointer(lua_State* ls, const void* ptr, TypeId typeInfo);
+bool checkPointerType(lua_State* ls, const void* ptr, TypeId typeId);
+void registerPointer(lua_State* ls, const void* ptr, TypeId typeId);
 void unregisterPointer(lua_State* ls, const void* ptr);
 
 // Helpers

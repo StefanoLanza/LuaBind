@@ -20,6 +20,22 @@ struct always_false { static constexpr bool value = false; };
 
 }
 
+template <class T, class... ArgTypes>
+inline T* newTemporary(lua_State* ls, ArgTypes... args);
+
+namespace {
+
+template <class T>
+T castInteger(lua_State* ls, int idx) {
+	lua_Integer i = lua_tointeger(ls, idx);
+	if (i < static_cast<lua_Integer>(std::numeric_limits<T>::min()) && i > static_cast<lua_Integer>(std::numeric_limits<T>::max())) {
+		luaL_error(ls, "Invalid cast from %d", i);
+	}
+	return static_cast<T>(i);
+}
+
+}
+
 // typename = void is used for specializations based on std::enable_if. See the enum specialization
 template <class T, typename = void>
 class Wrapper {
@@ -46,6 +62,10 @@ public:
 	static constexpr int getStackSize() {
 		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
 		return 0;
+	}
+	// Traits
+	static constexpr bool passConstRefAsValue() {
+		return false;
 	}
 };
 
@@ -76,8 +96,8 @@ public:
 		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
 		return 1;
 	}
-	static unsigned char Get(lua_State* ls, int idx) {
-		return static_cast<char>(lua_tointeger(ls, idx));
+	static char Get(lua_State* ls, int idx) {
+		return castInteger<char>(ls, idx);
 	}
 	static constexpr int stackSize = 1;
 };
@@ -96,7 +116,7 @@ public:
 		return 1;
 	}
 	static unsigned char Get(lua_State* ls, int idx) {
-		return static_cast<unsigned char>(lua_tointeger(ls, idx));
+		return castInteger<unsigned char>(ls, idx);
 	}
 	static constexpr int stackSize = 1;
 };
@@ -116,7 +136,7 @@ public:
 		return 1;
 	}
 	static int Get(lua_State* ls, int idx) {
-		return static_cast<int>(lua_tointeger(ls, idx));
+		return castInteger<int>(ls, idx);
 	}
 	static constexpr int stackSize = 1;
 };
@@ -135,7 +155,7 @@ public:
 		return 1;
 	}
 	static unsigned int Get(lua_State* ls, int idx) {
-		return static_cast<unsigned int>(lua_tointeger(ls, idx));
+		return castInteger<unsigned int>(ls, idx);
 	}
 	static constexpr int stackSize = 1;
 };
@@ -154,7 +174,7 @@ public:
 		return 1;
 	}
 	static long Get(lua_State* ls, int idx) {
-		return static_cast<long>(lua_tointeger(ls, idx));
+		return castInteger<long>(ls, idx);
 	}
 	static constexpr int stackSize = 1;
 };
@@ -173,7 +193,7 @@ public:
 		return 1;
 	}
 	static unsigned long Get(lua_State* ls, int idx) {
-		return static_cast<unsigned long>(lua_tointeger(ls, idx));
+		return castInteger<unsigned long>(ls, idx);
 	}
 	static constexpr int stackSize = 1;
 };
@@ -192,7 +212,7 @@ public:
 		return 1;
 	}
 	static long long Get(lua_State* ls, int idx) {
-		return static_cast<long long>(lua_tointeger(ls, idx));
+		return castInteger<long long>(ls, idx);
 	}
 	static constexpr int stackSize = 1;
 };
@@ -211,7 +231,7 @@ public:
 		return 1;
 	}
 	static unsigned long long Get(lua_State* ls, int idx) {
-		return static_cast<unsigned long long>(lua_tointeger(ls, idx));
+		return castInteger<unsigned long long>(ls, idx);
 	}
 	static constexpr int stackSize = 1;
 };
@@ -318,6 +338,10 @@ public:
 				// Return it as light user data
 				lua_pop(ls, 1);
 				lua_pushlightuserdata(ls, ud);
+
+#if TY_LUABIND_TYPE_SAFE
+				detail::registerPointer(ls, ptr);
+#endif
 			}
 			else {
 				// The ptr has been registered. Return it
@@ -375,6 +399,9 @@ public:
 		assert(ptr);
 		return *ptr;
 	}
+	static int Push(lua_State* ls, T& ref) {
+		return Wrapper<T*>::Push(ls, &ref);
+	}
 };
 
 //! Const reference wrapper
@@ -387,7 +414,14 @@ public:
 	}
 	static const T& Get(lua_State* ls, int idx) {
 		// Fetch pointer and convert to const reference
-		return *Wrapper<const T*>::Get(ls, idx);
+		if constexpr (Wrapper<T>::passConstRefAsValue()) {
+			T* ptr = newTemporary<T>(ls);
+			*ptr = Wrapper<T>::Get(ls, idx);
+			return *ptr;
+		}
+		else {
+			return *Wrapper<const T*>::Get(ls, idx);
+		}
 	}
 	static int Push(lua_State* ls, const T& ref) {
 		// Push a copy
@@ -481,12 +515,14 @@ public:
 		return std::string { cstr };
 	}
 	static constexpr int stackSize = 1;
+	static constexpr bool passConstRefAsValue() { return false; }//FIXME true
 };
 
 // Helper to push and pop temporary objects as light user data
 template <class T>
 struct Lightweight {
 	static constexpr int stackSize = 1;
+	static constexpr bool passConstRefAsValue() { return false; }
 	static int           Match(lua_State* ls, int idx) {
         return lua_isuserdata(ls, idx);
 	}

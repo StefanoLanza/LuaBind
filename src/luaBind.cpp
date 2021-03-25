@@ -37,9 +37,11 @@ void* allocFunction(void* ud, void* ptr, size_t osize, size_t nsize) {
 namespace detail {
 
 Context* getContext(lua_State* ls) {
-	// FIXME workaround to bypass safety check in Value::cast. With it, getContext(ls) enters an infinite recursion 
-	void* context = static_cast<void*>(getRegistry(ls)[contextKey]);
-	return static_cast<Context*>(context);
+	lua_pushvalue(ls, LUA_REGISTRYINDEX);
+	lua_getfield(ls, -1, contextKey);
+	Context* context = static_cast<Context*>(lua_touserdata(ls, -1));
+	lua_pop(ls, 2);
+	return context;
 }
 
 Allocator* getAllocator(lua_State* ls) {
@@ -71,7 +73,13 @@ lua_State* createState(Allocator& allocator) {
 	globals.setFunction("GetClassMetatable", detail::getClassMetatable);
 
 	context->tempAllocator = allocator.construct<PagedAllocator>(std::ref(allocator), PagedAllocator::defaultPageSize);
-	getRegistry(ls).set(contextKey, context);
+
+	// Associate context with ls
+	lua_pushvalue(ls, LUA_REGISTRYINDEX);
+	lua_pushlightuserdata(ls, context);
+	lua_setfield(ls, -2, contextKey);
+	lua_pop(ls, 1);
+
 	return ls;
 }
 

@@ -43,15 +43,13 @@ Table& Table::operator=(Table&& table) noexcept {
 
 void Table::setFunction(const char* name, lua_CFunction f) {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	lua_pushstring(ls, name);
 	lua_pushcfunction(ls, f);
-	lua_settable(ls, -3);
+	lua_setfield(ls, -2, name);
 	lua_pop(ls, 1);
 	// clean stack verified
 }
 
 bool Table::getFunction(const char* functionName) {
-	assert(ls);
 	assert(functionName);
 
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);

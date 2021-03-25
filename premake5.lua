@@ -1,3 +1,19 @@
+-- Options
+newoption {
+	trigger     = "with-tests",
+	description = "Build the unit test application",
+}
+
+newoption {
+	trigger     = "with-examples",
+	description = "Build the examples",
+}
+
+newoption {
+	trigger     = "with-asan",
+	description = "Enable address sanitizer",
+}
+
 -- Global settings
 local workspacePath = path.join("build/", _ACTION)  -- e.g. build/vs2019
 
@@ -10,7 +26,7 @@ local debug =  "configurations:Debug*"
 local release =  "configurations:Release*"
 
 -- Address sanitizer
-local asan = false
+local asan = _OPTIONS["with-asan"]
 if (not (_ACTION == "vs2019")) then
 	print ("Address Sanitizer not supported")
 	asan = false
@@ -35,8 +51,11 @@ filter { vs }
 		"/permissive-",
 	}
 	system "Windows"
-	defines { "_ENABLE_EXTENDED_ALIGNED_STORAGE", }
-	-- systemversion "10.0.17134.0"
+	defines { 
+		"_ENABLE_EXTENDED_ALIGNED_STORAGE", 
+		"_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1", 
+		"_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1", 
+	}
 
 filter { xcode }
 	system "macosx"
@@ -49,7 +68,6 @@ filter { x64 }
 	architecture "x86_64"
 	
 filter { vs }
-	defines { "_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1", "_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1",  }
 
 filter { vs, x86, }
 	defines { "WIN32", "_WIN32", }
@@ -107,32 +125,36 @@ project("LuaBind")
 	sysincludedirs { "./", "external", "include", }
 	links({"Core", "Lua"})
 
-project("Example1")
-	kind "ConsoleApp"
-	files "examples/example1.cpp"
-	sysincludedirs { "./", "external", "include", }
-	links({"LuaBind", })
+if _OPTIONS["with-examples"] then
+	project("Example1")
+		kind "ConsoleApp"
+		files "examples/example1.cpp"
+		sysincludedirs { "./", "external", "include", }
+		links({"LuaBind", })
 
-project("Example2")
-	kind "ConsoleApp"
-	files "examples/example2.cpp"
-	sysincludedirs { "./", "external", "include", }
-	links({"LuaBind", })
+	project("Example2")
+		kind "ConsoleApp"
+		files "examples/example2.cpp"
+		sysincludedirs { "./", "external", "include", }
+		links({"LuaBind", })
 
-project("Example3")
-	kind "ConsoleApp"
-	files "examples/example3.cpp"
-	sysincludedirs { "./", "external", "include", }
-	links({"LuaBind", })
+	project("Example3")
+		kind "ConsoleApp"
+		files "examples/example3.cpp"
+		sysincludedirs { "./", "external", "include", }
+		links({"LuaBind", })
 
-project("Example4")
-	kind "ConsoleApp"
-	files "examples/example4.cpp"
-	sysincludedirs { "./", "external", "include", }
-	links({"LuaBind", })
+	project("Example4")
+		kind "ConsoleApp"
+		files "examples/example4.cpp"
+		sysincludedirs { "./", "external", "include", }
+		links({"LuaBind", })
+end
 
-project("UnitTest")
-	kind "ConsoleApp"
-	links({"LuaBind", })
-	files "test/*.*"
-	sysincludedirs { "./", "external", "include", }
+if _OPTIONS["with-tests"] then
+	project("UnitTest")
+		kind "ConsoleApp"
+		links({"LuaBind", })
+		files "test/*.*"
+		sysincludedirs { "./", "external", "include", }
+end

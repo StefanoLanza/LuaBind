@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../include/typeWrapper.h"
+#include <LuaBind/include/typeWrapper.h>
 #include <core/typedVoidPtr.h>
 
 namespace Typhoon::LuaBind {
@@ -21,16 +21,18 @@ public:
 
 		const TypeName typeName = typeIdToName(voidPtr.typeId);
 		if (! typeName) {
-			// luaL_error(ls, "class not registered");
-			return 0;
+			return luaL_error(ls, "class not registered");
 		}
 
-		// FIXME Allocate from temporary pool ?
 		// Copy C++ pointer to Lua userdata
 		void* const ptr = voidPtr.ptr;
 		void* const userData = lua_newuserdata(ls, sizeof ptr);
 		std::memcpy(userData, &ptr, sizeof ptr);
 		const int userDataIndex = lua_gettop(ls);
+
+#if TY_LUABIND_TYPE_SAFE
+		detail::registerPointer(ls, voidPtr.ptr, voidPtr.typeId);
+#endif
 
 		// Lookup class metatable in registry
 		luaL_getmetatable(ls, typeName);

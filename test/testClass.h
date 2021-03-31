@@ -109,7 +109,7 @@ struct Vec2 {
 
 struct Vec3 {
 	double x, y, z;
-	inline Vec3 operator + (Vec3 b) const {
+	inline Vec3 operator + (const Vec3& b) const {
 		return { x + b.x, y + b.y, z + b.z };
 	}
 };
@@ -118,9 +118,11 @@ struct Quat {
 	double x, y, z, w;
 };
 
+inline Vec2 cross([[maybe_unused]]const Vec2& a, [[maybe_unused]] const Vec2& b) {
+	return {};
+}
 
-// Overloading
-inline Vec3 cross([[maybe_unused]]Vec3 a, [[maybe_unused]] Vec3 b) {
+inline Vec3 cross([[maybe_unused]]const Vec3& a, [[maybe_unused]] const Vec3& b) {
 	return {};
 }
 
@@ -130,4 +132,20 @@ inline Vec2 operator - (Vec2 a, Vec2 b) {
 
 inline Vec3 operator - (Vec3 a, Vec3 b)  {
 	return { a.x - b.x, a.y - b.y, a.z - b.z };
+}
+
+inline Vec2 newVec2(float x, float y) {
+	return Vec2 {x, y };
+}
+
+inline Vec3 newVec3(float x, float y, float z) {
+	return Vec3 {x, y, z };
+}
+
+inline Vec3 add(const Vec3& v0, const Vec3& v1) {
+	return { v0.x + v1.x, v0.y + v1.y, v0.z + v1.z };
+}
+
+inline void setIdentity(Quat& q) {
+	q = { 0., 0., 0., 1. };
 }

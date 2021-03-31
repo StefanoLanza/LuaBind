@@ -17,36 +17,36 @@ bool toDouble(lua_State* ls, int numArg, double& d);
 
 // Helpers
 template <class T>
-inline int match(lua_State* ls, const T& /*object*/, int stackIndex) {
-	return Wrapper<T>::Match(ls, stackIndex);
+inline int match(lua_State* ls, int stackIndex) {
+	return Wrapper<T>::match(ls, stackIndex);
 }
 
 template <class T>
 inline int push(lua_State* ls, const T& object) {
-	return Wrapper<T>::Push(ls, object);
+	return Wrapper<T>::push(ls, object);
 }
 
 template <class T>
 inline int push(lua_State* ls, T* object) {
-	return Wrapper<T*>::Push(ls, object);
+	return Wrapper<T*>::push(ls, object);
 }
 
 template <class T>
 inline int pushAsKey(lua_State* ls, const T& object) {
-	return Wrapper<T>::PushAsKey(ls, object);
+	return Wrapper<T>::pushAsKey(ls, object);
 }
 
 inline int pushAsKey(lua_State* ls, const char* str) {
-	return Wrapper<const char*>::PushAsKey(ls, str);
+	return Wrapper<const char*>::pushAsKey(ls, str);
 }
 
 inline int push(lua_State* ls, const char* str) {
-	return Wrapper<const char*>::Push(ls, str);
+	return Wrapper<const char*>::push(ls, str);
 }
 
 template <class T>
-inline T get(lua_State* ls, int idx) {
-	return Wrapper<T>::Get(ls, idx);
+inline auto pop(lua_State* ls, int idx) -> decltype( Wrapper<T>::pop(ls, idx) ) {
+	return Wrapper<T>::pop(ls, idx);
 }
 
 template <class T>

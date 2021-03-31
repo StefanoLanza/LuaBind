@@ -10,18 +10,18 @@ template <>
 class Wrapper<Table> {
 public:
 	static constexpr int stackSize = 1;
-	static int           Match(lua_State* ls, int idx) {
+	static int           match(lua_State* ls, int idx) {
         return lua_istable(ls, idx);
 	}
-	static int PushAsKey(lua_State* ls, const Table& table) {
+	static int pushAsKey(lua_State* ls, const Table& table) {
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, table.getReference().getValue());
 		return 1;
 	}
-	static int Push(lua_State* ls, const Table& table) {
+	static int push(lua_State* ls, const Table& table) {
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, table.getReference().getValue());
 		return 1;
 	}
-	static Table Get(lua_State* ls, int idx) {
+	static Table pop(lua_State* ls, int idx) {
 		return Table { ls, StackIndex { idx } };
 	}
 };

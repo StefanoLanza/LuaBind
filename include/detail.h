@@ -1,7 +1,7 @@
 #pragma once
 
 #include "reference.h"
-#include "typeWrapper.h"
+#include "stackUtils.h"
 #include <cassert>
 #include <cstdint>
 
@@ -30,7 +30,7 @@ public:
 		const size_t offset = static_cast<size_t>(lua_tonumber(ls, lua_upvalueindex(1)));
 
 		// Get self
-		const obj_type* self = Wrapper<const obj_type*>::Get(ls, 1);
+		const obj_type* self = pop<const obj_type*>(ls, 1);
 		if (! self) {
 			return luaL_argerror(ls, 1, "nil self");
 		}
@@ -49,7 +49,7 @@ public:
 		const size_t offset = static_cast<size_t>(lua_tonumber(ls, lua_upvalueindex(1)));
 
 		// Get self
-		obj_type* self = Wrapper<obj_type*>::Get(ls, 1);
+		obj_type* self = pop<obj_type*>(ls, 1);
 		if (! self) {
 			return luaL_argerror(ls, 1, "nil self");
 		}
@@ -58,7 +58,7 @@ public:
 		ret_type* memberVar = reinterpret_cast<ret_type*>(reinterpret_cast<uintptr_t>(self) + offset);
 
 		// Get value
-		*memberVar = Wrapper<ret_type>::Get(ls, 2);
+		*memberVar = pop<ret_type>(ls, 2);
 
 		return 0;
 	}
@@ -93,7 +93,7 @@ void pushObjectAsFullUserData(lua_State* ls, void* objectPtr, const char* classN
 
 template <typename T>
 inline int checkArg(lua_State* ls, int stackIndex) {
-	if (! Wrapper<T>::Match(ls, stackIndex)) {
+	if (! match<T>(ls, stackIndex)) {
 		// Note: check that you're not passing by const reference a primitive object because they are handled by pointer
 		return luaL_argerror(ls, stackIndex, lua_typename(ls, lua_type(ls, stackIndex)));
 	}

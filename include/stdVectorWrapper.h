@@ -11,11 +11,11 @@ namespace Typhoon::LuaBind {
 template <class T>
 class Wrapper<std::vector<T>> {
 public:
-	static int Match(lua_State* ls, int idx) {
+	static int match(lua_State* ls, int idx) {
 		return lua_istable(ls, idx);
 	}
 
-	static int Push(lua_State* ls, const std::vector<T>& v) {
+	static int push(lua_State* ls, const std::vector<T>& v) {
 		// Create new table
 		Table table = newTable(ls);
 
@@ -31,7 +31,7 @@ public:
 	};
 
 	//\note the container is not cleared
-	static std::vector<T> Get(lua_State* ls, int idx) {
+	static std::vector<T> pop(lua_State* ls, int idx) {
 		// Open table from stack
 		Table table { ls, StackIndex { idx } };
 		if (! table.isValid()) {

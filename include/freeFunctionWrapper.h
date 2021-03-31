@@ -34,11 +34,11 @@ int freeFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, ar
 
 	// Call C++ function, popping all arguments from the stack
 	if constexpr (std::is_void_v<retType>) {
-		func(Wrapper<argTypes>::Get(ls, argStackIndex[argIndices])...);
+		func(pop<argTypes>(ls, argStackIndex[argIndices])...);
 		return 0;
 	}
 	else {
-		return push(ls, func(get<argTypes>(ls, argStackIndex[argIndices])...));
+		return push(ls, func(pop<argTypes>(ls, argStackIndex[argIndices])...));
 	}
 }
 

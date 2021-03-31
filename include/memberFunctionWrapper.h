@@ -16,7 +16,7 @@ int memberFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, 
 	const func_ptr func = serializePOD<func_ptr>(ud, 0);
 
 	// Get self
-	objType* const self = get<objType*>(ls, 1);
+	objType* const self = pop<objType*>(ls, 1);
 	if (! self) {
 		return luaL_argerror(ls, 1, "nil self");
 	}
@@ -36,11 +36,11 @@ int memberFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, 
 	checkArgs<argType...>(ls, argStackIndex, indx);
 
 	if constexpr (std::is_void_v<retType>) {
-		(self->*func)(get<argType>(ls, argStackIndex[argIndices])...);
+		(self->*func)(pop<argType>(ls, argStackIndex[argIndices])...);
 		return 0;
 	}
 	else {
-		return push(ls, (self->*func)(get<argType>(ls, argStackIndex[argIndices])...));
+		return push(ls, (self->*func)(pop<argType>(ls, argStackIndex[argIndices])...));
 	}
 }
 

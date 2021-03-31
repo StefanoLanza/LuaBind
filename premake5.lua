@@ -121,7 +121,7 @@ project("Core")
 
 project("LuaBind")
 	kind "StaticLib"
-	files { "src/**.cpp", "src/**.h", "src/**.inl", "include/**.h", }
+	files { "src/**.cpp", "src/**.h", "src/**.inl", "include/**.h", "include/**.inl", }
 	sysincludedirs { "./", "external", "include", }
 	links({"Core", "Lua"})
 

@@ -23,268 +23,158 @@ struct always_false { static constexpr bool value = false; };
 template <class T, class... ArgTypes>
 inline T* newTemporary(lua_State* ls, ArgTypes... args);
 
-namespace {
+// Traits
+template <class T>
+struct constRefAsValue_t : public std::true_type {
+};
 
 template <class T>
-T castInteger(lua_State* ls, int idx) {
-	lua_Integer i = lua_tointeger(ls, idx);
-	if (i < static_cast<lua_Integer>(std::numeric_limits<T>::min()) && i > static_cast<lua_Integer>(std::numeric_limits<T>::max())) {
-		luaL_error(ls, "Invalid cast from %d", i);
-	}
-	return static_cast<T>(i);
-}
+struct lightweight_t : public std::false_type {
+};
 
-}
+template <class T>
+inline constexpr bool constRefAsValue_v = constRefAsValue_t<T>::value;
+
+template <class T>
+inline constexpr bool lightweight_v = lightweight_t<T>::value;
+
+
 
 // typename = void is used for specializations based on std::enable_if. See the enum specialization
 template <class T, typename = void>
 class Wrapper {
 public:
-	static int Match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
+	static int match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
 		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
 		return 0;
 	}
-	static int PushAsKey([[maybe_unused]] lua_State* ls, T) {
+	static int pushAsKey([[maybe_unused]] lua_State* ls, T) {
 		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
 		return 0;
 	}
-	static int Push([[maybe_unused]] lua_State* ls, T) {
+	static int push([[maybe_unused]] lua_State* ls, T) {
 		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
 		return 0;
 	}
-	static T Get([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
+	static T pop([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
 		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
 		return {};
-	}
-	static constexpr bool isLightweight() {
-		return false; // default
 	}
 	static constexpr int getStackSize() {
 		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
 		return 0;
-	}
-	// Traits
-	static constexpr bool passConstRefAsValue() {
-		return false;
 	}
 };
 
 template <>
 class Wrapper<Nil> {
 public:
-	static int Match(lua_State* ls, int idx) {
+	static int match(lua_State* ls, int idx) {
 		return lua_isnil(ls, idx);
 	}
-	static int Push(lua_State* ls, Nil) {
+	static int push(lua_State* ls, Nil) {
 		lua_pushnil(ls);
 		return 1;
 	}
-	// Cannot get nil
-	static constexpr int stackSize = 1;
-};
-
-template <>
-class Wrapper<char> {
-public:
-	static int Match(lua_State* ls, int idx) {
-		return lua_isnumber(ls, idx);
-	}
-	static int PushAsKey(lua_State* ls, char arg) {
-		return Push(ls, arg);
-	}
-	static int Push(lua_State* ls, char arg) {
-		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
-		return 1;
-	}
-	static char Get(lua_State* ls, int idx) {
-		return castInteger<char>(ls, idx);
+	static Nil pop( [[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
+		return Nil {};
 	}
 	static constexpr int stackSize = 1;
 };
 
-template <>
-class Wrapper<unsigned char> {
+template <class I>
+class IntegerWrapper {
 public:
-	static int Match(lua_State* ls, int idx) {
-		return lua_isnumber(ls, idx);
+	static int match(lua_State* ls, int idx) {
+		return lua_isinteger(ls, idx);
 	}
-	static int PushAsKey(lua_State* ls, unsigned char arg) {
-		return Push(ls, arg);
+	static int pushAsKey(lua_State* ls, I arg) {
+		return push(ls,arg);
 	}
-	static int Push(lua_State* ls, unsigned char arg) {
+	static int push(lua_State* ls, I arg) {
 		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
 		return 1;
 	}
-	static unsigned char Get(lua_State* ls, int idx) {
-		return castInteger<unsigned char>(ls, idx);
+	static I pop(lua_State* ls, int idx) {
+		lua_Integer i = lua_tointeger(ls, idx);
+		if (i < static_cast<lua_Integer>(std::numeric_limits<I>::min()) && i > static_cast<lua_Integer>(std::numeric_limits<I>::max())) {
+			luaL_error(ls, "Invalid cast from %d", i);
+		}
+		return static_cast<I>(i);
 	}
 	static constexpr int stackSize = 1;
 };
 
-template <>
-class Wrapper<int> {
+template <class F>
+class FloatWrapper {
 public:
-	static int Match(lua_State* ls, int idx) {
+	static int match(lua_State* ls, int idx) {
 		return lua_isnumber(ls, idx);
 	}
-	static int PushAsKey(lua_State* ls, int arg) {
-		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
-		return 1;
+	static int pushAsKey(lua_State* ls, F arg) {
+		return push(ls,arg);
 	}
-	static int Push(lua_State* ls, int arg) {
-		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
-		return 1;
-	}
-	static int Get(lua_State* ls, int idx) {
-		return castInteger<int>(ls, idx);
-	}
-	static constexpr int stackSize = 1;
-};
-
-template <>
-class Wrapper<unsigned int> {
-public:
-	static int Match(lua_State* ls, int idx) {
-		return lua_isnumber(ls, idx);
-	}
-	static int PushAsKey(lua_State* ls, unsigned int arg) {
-		return Push(ls, arg);
-	}
-	static int Push(lua_State* ls, unsigned int arg) {
-		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
-		return 1;
-	}
-	static unsigned int Get(lua_State* ls, int idx) {
-		return castInteger<unsigned int>(ls, idx);
-	}
-	static constexpr int stackSize = 1;
-};
-
-template <>
-class Wrapper<long> {
-public:
-	static int Match(lua_State* ls, int idx) {
-		return lua_isnumber(ls, idx);
-	}
-	static int PushAsKey(lua_State* ls, long arg) {
-		return Push(ls, arg);
-	}
-	static int Push(lua_State* ls, long arg) {
-		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
-		return 1;
-	}
-	static long Get(lua_State* ls, int idx) {
-		return castInteger<long>(ls, idx);
-	}
-	static constexpr int stackSize = 1;
-};
-
-template <>
-class Wrapper<unsigned long> {
-public:
-	static int Match(lua_State* ls, int idx) {
-		return lua_isnumber(ls, idx);
-	}
-	static int PushAsKey(lua_State* ls, unsigned long arg) {
-		return Push(ls, arg);
-	}
-	static int Push(lua_State* ls, unsigned long arg) {
-		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
-		return 1;
-	}
-	static unsigned long Get(lua_State* ls, int idx) {
-		return castInteger<unsigned long>(ls, idx);
-	}
-	static constexpr int stackSize = 1;
-};
-
-template <>
-class Wrapper<long long> {
-public:
-	static int Match(lua_State* ls, int idx) {
-		return lua_isnumber(ls, idx);
-	}
-	static int PushAsKey(lua_State* ls, long long arg) {
-		return Push(ls, arg);
-	}
-	static int Push(lua_State* ls, long long arg) {
-		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
-		return 1;
-	}
-	static long long Get(lua_State* ls, int idx) {
-		return castInteger<long long>(ls, idx);
-	}
-	static constexpr int stackSize = 1;
-};
-
-template <>
-class Wrapper<unsigned long long> {
-public:
-	static int Match(lua_State* ls, int idx) {
-		return lua_isnumber(ls, idx);
-	}
-	static int PushAsKey(lua_State* ls, unsigned long long arg) {
-		return Push(ls, arg);
-	}
-	static int Push(lua_State* ls, unsigned long long arg) {
-		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
-		return 1;
-	}
-	static unsigned long long Get(lua_State* ls, int idx) {
-		return castInteger<unsigned long long>(ls, idx);
-	}
-	static constexpr int stackSize = 1;
-};
-
-template <>
-class Wrapper<double> {
-public:
-	static int Match(lua_State* ls, int idx) {
-		return lua_isnumber(ls, idx);
-	}
-	static int PushAsKey(lua_State* ls, double arg) {
-		return Push(ls, arg);
-	}
-	static int Push(lua_State* ls, double arg) {
+	static int push(lua_State* ls, F arg) {
 		lua_pushnumber(ls, static_cast<lua_Number>(arg));
 		return 1;
 	}
-	static double Get(lua_State* ls, int idx) {
-		return static_cast<double>(lua_tonumber(ls, idx));
+	static F pop(lua_State* ls, int idx) {
+		return static_cast<F>(lua_tonumber(ls, idx));
 	}
 	static constexpr int stackSize = 1;
 };
 
 template <>
-class Wrapper<float> {
-public:
-	static constexpr int stackSize = 1;
-	static int           Match(lua_State* ls, int idx) {
-        return lua_isnumber(ls, idx);
-	}
-	static int PushAsKey(lua_State* ls, float arg) {
-		return Push(ls, arg);
-	}
-	static int Push(lua_State* ls, float arg) {
-		lua_pushnumber(ls, static_cast<lua_Number>(arg));
-		return 1;
-	}
-	static float Get(lua_State* ls, int idx) {
-		return static_cast<float>(lua_tonumber(ls, idx));
-	}
+class Wrapper<char> : public IntegerWrapper<char> {
+};
+
+template <>
+class Wrapper<unsigned char> : public IntegerWrapper<unsigned char> {
+};
+
+template <>
+class Wrapper<int> : public IntegerWrapper<int>{
+};
+
+template <>
+class Wrapper<unsigned int> : public IntegerWrapper<unsigned int> {
+};
+
+template <>
+class Wrapper<long> : public IntegerWrapper<long> {
+};
+
+template <>
+class Wrapper<unsigned long> : public IntegerWrapper<unsigned long> {
+};
+
+template <>
+class Wrapper<long long> : public IntegerWrapper<long long> {
+};
+
+template <>
+class Wrapper<unsigned long long> : public IntegerWrapper<unsigned long long> {
+};
+
+template <>
+class Wrapper<double> : public FloatWrapper<double> {
+};
+
+template <>
+class Wrapper<float> : public FloatWrapper<float> {
 };
 
 template <>
 class Wrapper<bool> {
 public:
-	static int Match(lua_State* ls, int idx) {
+	static int match(lua_State* ls, int idx) {
 		return lua_isboolean(ls, idx);
 	}
-	static int Push(lua_State* ls, bool arg) {
+	static int push(lua_State* ls, bool arg) {
 		lua_pushboolean(ls, arg ? 1 : 0);
 		return 1;
 	}
-	static bool Get(lua_State* ls, int idx) {
+	static bool pop(lua_State* ls, int idx) {
 		return lua_toboolean(ls, idx) ? true : false;
 	}
 	static constexpr int stackSize = 1;
@@ -293,18 +183,18 @@ public:
 template <>
 class Wrapper<const char*> {
 public:
-	static int Match(lua_State* ls, int idx) {
+	static int match(lua_State* ls, int idx) {
 		return lua_type(ls, idx) == LUA_TSTRING;
 	}
-	static int PushAsKey(lua_State* ls, const char* arg) {
+	static int pushAsKey(lua_State* ls, const char* arg) {
 		lua_pushstring(ls, arg);
 		return 1;
 	}
-	static int Push(lua_State* ls, const char* arg) {
+	static int push(lua_State* ls, const char* arg) {
 		lua_pushstring(ls, arg);
 		return 1;
 	}
-	static const char* Get(lua_State* ls, int idx) {
+	static const char* pop(lua_State* ls, int idx) {
 		return lua_tostring(ls, idx);
 	}
 	static constexpr int stackSize = 1;
@@ -314,17 +204,17 @@ public:
 template <class T>
 class Wrapper<T*> {
 public:
-	static int Match(lua_State* ls, int idx) {
+	static int match(lua_State* ls, int idx) {
 		const int luaType = lua_type(ls, idx);
 		return (luaType == LUA_TLIGHTUSERDATA || luaType == LUA_TUSERDATA || luaType == LUA_TTABLE);
 	}
 
-	static int PushAsKey(lua_State* ls, T* ptr) {
+	static int pushAsKey(lua_State* ls, T* ptr) {
 		lua_pushlightuserdata(ls, ptr);
 		return 1;
 	}
 
-	static int Push(lua_State* ls, T* ptr) {
+	static int push(lua_State* ls, T* ptr) {
 		if (ptr) {
 			// Remove const from pointer type
 			using non_const_ptr = std::remove_const_t<T>*;
@@ -353,7 +243,7 @@ public:
 		return 1;
 	}
 
-	static T* Get(lua_State* ls, int idx) {
+	static T* pop(lua_State* ls, int idx) {
 		T*        ptr = nullptr;
 		const int luaType = lua_type(ls, idx);
 		if (luaType == LUA_TLIGHTUSERDATA) {
@@ -391,16 +281,16 @@ template <class T>
 class Wrapper<T&> {
 public:
 	static constexpr int stackSize = 1;
-	static int           Match(lua_State* ls, int idx) {
-        return Wrapper<T*>::Match(ls, idx);
+	static int           match(lua_State* ls, int idx) {
+        return Wrapper<T*>::match(ls, idx);
 	}
-	static T& Get(lua_State* ls, int idx) {
-		T* ptr = Wrapper<T*>::Get(ls, idx);
+	static T& pop(lua_State* ls, int idx) {
+		T* ptr = Wrapper<T*>::pop(ls, idx);
 		assert(ptr);
 		return *ptr;
 	}
-	static int Push(lua_State* ls, T& ref) {
-		return Wrapper<T*>::Push(ls, &ref);
+	static int push(lua_State* ls, T& ref) {
+		return Wrapper<T*>::push(ls,&ref);
 	}
 };
 
@@ -408,24 +298,37 @@ public:
 template <class T>
 class Wrapper<const T&> {
 public:
+	static constexpr bool constRefAsValue = constRefAsValue_v<T>;
+	using PopType = std::conditional_t<constRefAsValue, T, const T&>;
+
 	static constexpr int stackSize = 1;
-	static int           Match(lua_State* ls, int idx) {
-        return Wrapper<const T*>::Match(ls, idx);
-	}
-	static const T& Get(lua_State* ls, int idx) {
-		// Fetch pointer and convert to const reference
-		if constexpr (Wrapper<T>::passConstRefAsValue()) {
-			T* ptr = newTemporary<T>(ls);
-			*ptr = Wrapper<T>::Get(ls, idx);
-			return *ptr;
+	static int           match(lua_State* ls, int idx) {
+		if constexpr (constRefAsValue) {
+			return Wrapper<T>::match(ls, idx);
 		}
 		else {
-			return *Wrapper<const T*>::Get(ls, idx);
+			return Wrapper<const T*>::match(ls, idx);
 		}
 	}
-	static int Push(lua_State* ls, const T& ref) {
-		// Push a copy
-		return Wrapper<T>::Push(ls, ref);
+	static PopType pop(lua_State* ls, int idx) {
+		if constexpr (constRefAsValue) {
+			// Pop and return value
+			return Wrapper<T>::pop(ls, idx);
+		}
+		else {
+			// Pop pointer and convert to const reference
+			return *Wrapper<const T*>::pop(ls, idx);
+		}
+	}
+	static int push(lua_State* ls, const T& ref) {
+		if constexpr (constRefAsValue) {
+			// Push a copy
+			return Wrapper<T>::push(ls,ref);
+		}
+		else {
+			// Convert to pointer and push
+			return Wrapper<const T*>::push(ls,&ref);
+		}
 	}
 };
 
@@ -433,17 +336,17 @@ public:
 template <typename T>
 class Wrapper<T, typename std::enable_if_t<std::is_enum_v<T>>> {
 public:
-	static int Match(lua_State* ls, int idx) {
+	static int match(lua_State* ls, int idx) {
 		return lua_isnumber(ls, idx);
 	}
-	static int PushAsKey(lua_State* ls, T arg) {
-		return Push(ls, arg);
+	static int pushAsKey(lua_State* ls, T arg) {
+		return push(ls,arg);
 	}
-	static int Push(lua_State* ls, T arg) {
+	static int push(lua_State* ls, T arg) {
 		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
 		return 1;
 	}
-	static T Get(lua_State* ls, int idx) {
+	static T pop(lua_State* ls, int idx) {
 		return static_cast<T>(lua_tointeger(ls, idx));
 	}
 	static constexpr int stackSize = 1;
@@ -453,18 +356,18 @@ public:
 template <>
 class Wrapper<StackIndex> {
 public:
-	static int Match(lua_State* /*ls*/, int /*idx*/) {
+	static int match(lua_State* /*ls*/, int /*idx*/) {
 		return true;
 	}
-	static int PushAsKey(lua_State* ls, StackIndex stackIndex) {
-		return Push(ls, stackIndex);
+	static int pushAsKey(lua_State* ls, StackIndex stackIndex) {
+		return push(ls,stackIndex);
 	}
-	static int Push(lua_State* ls, StackIndex stackIndex) {
+	static int push(lua_State* ls, StackIndex stackIndex) {
 		assert(stackIndex.isValid());
 		lua_pushvalue(ls, stackIndex.getIndex());
 		return 1;
 	}
-	static StackIndex Get(lua_State* /*ls*/, int idx) {
+	static StackIndex pop(lua_State* /*ls*/, int idx) {
 		return StackIndex { idx };
 	}
 	static constexpr int stackSize = 1;
@@ -474,13 +377,13 @@ public:
 template <>
 class Wrapper<Reference> {
 public:
-	static int Match(lua_State* /*ls*/, int /*idx*/) {
+	static int match(lua_State* /*ls*/, int /*idx*/) {
 		return true;
 	}
-	static int PushAsKey(lua_State* ls, Reference ref) {
-		return Push(ls, ref);
+	static int pushAsKey(lua_State* ls, Reference ref) {
+		return push(ls,ref);
 	}
-	static int Push(lua_State* ls, Reference ref) {
+	static int push(lua_State* ls, Reference ref) {
 		if (ref.isValid()) {
 			lua_rawgeti(ls, LUA_REGISTRYINDEX, ref.getValue());
 		}
@@ -489,7 +392,7 @@ public:
 		}
 		return 1;
 	}
-	static Reference Get(lua_State* ls, int idx) {
+	static Reference pop(lua_State* ls, int idx) {
 		// Return a reference to the element on the stack
 		lua_pushvalue(ls, idx);
 		return Reference { luaL_ref(ls, LUA_REGISTRYINDEX) };
@@ -500,33 +403,31 @@ public:
 template <>
 class Wrapper<std::string> {
 public:
-	static int Match(lua_State* ls, int idx) {
+	static int match(lua_State* ls, int idx) {
 		return lua_type(ls, idx) == LUA_TSTRING;
 	}
-	static int PushAsKey(lua_State* ls, const std::string& arg) {
-		return Push(ls, arg);
+	static int pushAsKey(lua_State* ls, const std::string& arg) {
+		return push(ls,arg);
 	}
-	static int Push(lua_State* ls, const std::string& arg) {
+	static int push(lua_State* ls, const std::string& arg) {
 		lua_pushstring(ls, arg.c_str());
 		return 1;
 	}
-	static std::string Get(lua_State* ls, int idx) {
+	static std::string pop(lua_State* ls, int idx) {
 		const char* cstr = lua_tostring(ls, idx);
 		return std::string { cstr };
 	}
 	static constexpr int stackSize = 1;
-	static constexpr bool passConstRefAsValue() { return false; }//FIXME true
 };
 
 // Helper to push and pop temporary objects as light user data
 template <class T>
 struct Lightweight {
 	static constexpr int stackSize = 1;
-	static constexpr bool passConstRefAsValue() { return false; }
-	static int           Match(lua_State* ls, int idx) {
+	static int           match(lua_State* ls, int idx) {
         return lua_isuserdata(ls, idx);
 	}
-	static int Push(lua_State* ls, const T& value) {
+	static int push(lua_State* ls, const T& value) {
 		void* const mem = detail::allocTemporary<T>(ls);
 		if (mem) {
 			T* ud = new (mem) T { value };
@@ -538,19 +439,21 @@ struct Lightweight {
 		}
 		return 0;
 	}
-	static T Get(lua_State* ls, int idx) {
+	static T pop(lua_State* ls, int idx) {
 		void* userData = lua_touserdata(ls, idx);
+		assert(userData);
 #if TY_LUABIND_TYPE_SAFE
 		if (! detail::checkPointerType<T>(ls, userData)) {
-			userData = nullptr;
 			luaL_argerror(ls, idx, "Invalid pointer type"); // TODO better message
+			return T {};
 		}
 #endif
 		return *static_cast<const T*>(userData);
 	}
-	static constexpr bool isLightweight() {
-		return true;
-	}
+};
+
+template <class T>
+struct lightweight_t<Lightweight<T>> : std::true_type {
 };
 
 } // namespace Typhoon::LuaBind

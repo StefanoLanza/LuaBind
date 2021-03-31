@@ -1,6 +1,6 @@
 #pragma once
 
-#include <LuaBind/include/typeWrapper.h>
+#include "../include/typeWrapper.h"
 #include <core/typedVoidPtr.h>
 
 namespace Typhoon::LuaBind {
@@ -8,11 +8,11 @@ namespace Typhoon::LuaBind {
 template <>
 class Wrapper<VoidPtr> {
 public:
-	static int Match(lua_State* ls, int idx) {
-		return Wrapper<void*>::Match(ls, idx);
+	static int match(lua_State* ls, int idx) {
+		return Wrapper<void*>:match(ls, idx);
 	}
 	static int PushAsKey(lua_State* ls, VoidPtr voidPtr) {
-		return Wrapper<void*>::PushAsKey(ls, voidPtr.ptr);
+		return wrapper<void*>::pushAsKey(ls, voidPtr.ptr);
 	}
 	static int Push(lua_State* ls, VoidPtr voidPtr) {
 		if (voidPtr.ptr == nullptr) {

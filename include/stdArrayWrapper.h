@@ -15,11 +15,11 @@ class Wrapper<std::array<T, Size>> {
 public:
 	static constexpr int stackSize = 1;
 
-	static int Match(lua_State* ls, int idx) {
+	static int match(lua_State* ls, int idx) {
 		return lua_istable(ls, idx);
 	}
 
-	static int Push(lua_State* ls, const ArrayType& v) {
+	static int push(lua_State* ls, const ArrayType& v) {
 		// Create new table
 		Table table = newTable(ls);
 
@@ -34,7 +34,7 @@ public:
 	};
 
 	//\note the container is not cleared
-	static ArrayType Get(lua_State* ls, int idx) {
+	static ArrayType pop(lua_State* ls, int idx) {
 		ArrayType array;
 
 		// Open table from stack

@@ -30,7 +30,7 @@ Result Object::callMethodRet(const char* func, RetType& ret, ArgTypes&&... args)
 	const int    nres = getStackSize<RetType>();
 	const Result res = callMethodImpl(narg, nres);
 	if (res) {
-		ret = get<RetType>(ls, resStackIndex);
+		ret = pop<RetType>(ls, resStackIndex);
 	}
 	return res;
 }

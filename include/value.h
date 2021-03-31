@@ -79,18 +79,18 @@ template <>
 class Wrapper<Value> {
 public:
 	static constexpr int stackSize = 1;
-	static int           Match(lua_State* /*ls*/, int /*idx*/) {
+	static int           match(lua_State* /*ls*/, int /*idx*/) {
         return true;
 	}
-	static int PushAsKey(lua_State* ls, const Value& value) {
+	static int pushAsKey(lua_State* ls, const Value& value) {
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, value.getReference().getValue());
 		return 1;
 	}
-	static int Push(lua_State* ls, const Value& value) {
+	static int push(lua_State* ls, const Value& value) {
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, value.getReference().getValue());
 		return 1;
 	}
-	static Value Get(lua_State* ls, int idx) {
+	static Value pop(lua_State* ls, int idx) {
 		return Value { ls, StackIndex { idx } };
 	}
 };

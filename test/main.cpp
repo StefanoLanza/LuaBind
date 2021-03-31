@@ -20,25 +20,16 @@
 
 lua_State* g_ls = nullptr;
 
-void globalFunction() {
-	std::cout << "Global function" << std::endl;
+void foo() {
+	std::cout << "foo" << std::endl;
 }
-void globalFunction2(std::string str) {
-	std::cout << "Global function2" << str << std::endl;
-}
-
-// Custom new
-Vec3 newVec3(float x, float y, float z) {
-	return Vec3 {x, y, z };
+void foo2(const std::string& str) {
+	std::cout << "foo2(" << str << ")" << std::endl;
 }
 
-Vec3 add(const Vec3& v0, const Vec3& v1) {
-	return { v0.x + v1.x, v0.y + v1.y, v0.z + v1.z };
-}
-
-void setIdentity(Quat& q) {
-	q = { 0., 0., 0., 1. };
-}
+// Treat Vec2 as a temporary, lightweight object in Lua
+template <>
+class LuaBind::Wrapper<Vec2> : public LuaBind::Lightweight<Vec2> {};
 
 // Treat Vec3 as a temporary, lightweight object in Lua
 template <>
@@ -60,8 +51,8 @@ TEST_CASE("Globals") {
 	using namespace LuaBind;
 	lua_State*      ls = g_ls;
 	const AutoBlock autoblock(ls);
-	CHECK(doCommand(ls, "Globals.globalFunction()"));
-	CHECK(doCommand(ls, "Globals.globalFunction2('ciao')"));
+	CHECK(doCommand(ls, "Globals.foo()"));
+	CHECK(doCommand(ls, "Globals.foo2('hello world')"));
 }
 
 TEST_CASE("Table") {
@@ -168,7 +159,7 @@ TEST_CASE("std") {
 		const pair_type pair { "value", 10 };
 		push(ls, pair);
 
-		const pair_type tmp = get<pair_type>(ls, idx + 1);
+		const pair_type tmp = pop<pair_type>(ls, idx + 1);
 		CHECK(pair == tmp);
 	}
 
@@ -178,7 +169,7 @@ TEST_CASE("std") {
 
 		const vec_type vec1 { "stefano", "claudio", "cristiana", "manlio", "nicoletta" };
 		push(ls, vec1);
-		const vec_type vec2 = get<vec_type>(ls, idx + 1);
+		const vec_type vec2 = pop<vec_type>(ls, idx + 1);
 		CHECK(vec1 == vec2);
 	}
 
@@ -188,7 +179,7 @@ TEST_CASE("std") {
 		const int       idx = lua_gettop(ls);
 		CHECK(push(ls, stringArray) == 1);
 
-		const arrayType testArray = get<arrayType>(ls, idx + 1);
+		const arrayType testArray = pop<arrayType>(ls, idx + 1);
 		CHECK(stringArray == testArray);
 	}
 }
@@ -413,8 +404,8 @@ void bindTestClasses(lua_State* ls) {
 	LUA_BEGIN_BINDING(ls);
 
 	LUA_BEGIN_NAMESPACE(Globals);
-	LUA_ADD_FREE_FUNCTION(globalFunction);
-	LUA_ADD_FREE_FUNCTION(globalFunction2);
+	LUA_ADD_FREE_FUNCTION(foo);
+	LUA_ADD_FREE_FUNCTION(foo2);
 	LUA_END_NAMESPACE();
 
 	LUA_BEGIN_CLASS(GameObject);
@@ -443,6 +434,12 @@ void bindTestClasses(lua_State* ls) {
 	// C API
 	LUA_ADD_FUNCTION(AddEnergy);
 	LUA_ADD_FUNCTION(GetEnergy);
+	LUA_END_CLASS();
+
+	LUA_BEGIN_CLASS(Vec2);
+	LUA_NEW_OPERATOR(newVec2);
+	LUA_ADD_FUNCTION(cross);
+	LUA_ADD_FREE_OPERATOR(sub, -);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Vec3);

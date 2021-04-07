@@ -16,12 +16,10 @@ public:
 		const int idx2 = idx + Wrapper<T1>::stackSize;
 		return Wrapper<T1>::Match(ls, idx) && Wrapper<T2>::Match(ls, idx2);
 	}
-	static int push(lua_State* ls, const pairType& pair) {
-		int n = 0;
-		n += Wrapper<T1>::push(ls, pair.first);
-		n += Wrapper<T2>::push(ls, pair.second);
-		return n;
-	};
+	static void push(lua_State* ls, const pairType& pair) {
+		Wrapper<T1>::push(ls, pair.first);
+		Wrapper<T2>::push(ls, pair.second);
+	}
 	static pairType pop(lua_State* ls, int idx) {
 		const int idx2 = idx + Wrapper<T1>::stackSize;
 		return { Wrapper<T1>::pop(ls, idx), Wrapper<T2>::pop(ls, idx2) };

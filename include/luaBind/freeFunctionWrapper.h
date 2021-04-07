@@ -37,7 +37,8 @@ int freeFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, ar
 		return 0;
 	}
 	else {
-		return push(ls, func(pop<argTypes>(ls, argStackIndex[argIndices])...));
+		push(ls, func(pop<argTypes>(ls, argStackIndex[argIndices])...));
+		return Wrapper<retType>::stackSize;
 	}
 }
 

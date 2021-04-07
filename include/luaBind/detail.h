@@ -38,7 +38,8 @@ public:
 		// Get pointer to member var
 		const ret_type* memberVar = reinterpret_cast<const ret_type*>(reinterpret_cast<uintptr_t>(self) + offset);
 
-		return push(ls, *memberVar);
+		push(ls, *memberVar);
+		return Wrapper<ret_type>::stackSize;
 	}
 };
 

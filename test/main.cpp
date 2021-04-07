@@ -203,10 +203,8 @@ TEST_CASE("std") {
 	SECTION("std::pair") {
 		const int idx = lua_gettop(ls);
 		using pair_type = std::pair<std::string, int>;
-
 		const pair_type pair { "value", 10 };
 		push(ls, pair);
-
 		const pair_type tmp = pop<pair_type>(ls, idx + 1);
 		CHECK(pair == tmp);
 	}
@@ -214,7 +212,6 @@ TEST_CASE("std") {
 	SECTION("std::vector") {
 		const int idx = lua_gettop(ls);
 		using vec_type = std::vector<std::string>;
-
 		const vec_type vec1 { "stefano", "claudio", "cristiana", "manlio", "nicoletta" };
 		push(ls, vec1);
 		const vec_type vec2 = pop<vec_type>(ls, idx + 1);
@@ -225,8 +222,7 @@ TEST_CASE("std") {
 		using arrayType = std::array<std::string, 5>;
 		const arrayType stringArray = { "stefano", "claudio", "cristiana", "nico", "manlio" };
 		const int       idx = lua_gettop(ls);
-		CHECK(push(ls, stringArray) == 1);
-
+		push(ls, stringArray);
 		const arrayType testArray = pop<arrayType>(ls, idx + 1);
 		CHECK(stringArray == testArray);
 	}

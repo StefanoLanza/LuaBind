@@ -17,7 +17,7 @@ public:
 		return lua_istable(ls, idx);
 	}
 
-	static int push(lua_State* ls, const std::vector<T>& v) {
+	static void push(lua_State* ls, const std::vector<T>& v) {
 		Table table = newTable(ls);
 
 		// Push container values into table
@@ -28,7 +28,6 @@ public:
 
 		// push table on stack
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, table.getReference().getValue());
-		return 1;
 	};
 
 	//\note the container is not cleared

@@ -12,15 +12,12 @@ public:
 		return lua_isnumber(ls, idx) || lua_isnone(ls, idx);
 	}
 
-	static int push(lua_State* ls, Handle handle) {
+	static void push(lua_State* ls, Handle handle) {
 		if (handle.m_value) {
-			// Valid
 			lua_pushnumber(ls, static_cast<lua_Number>(handle.m_value));
-			return 1;
 		}
 		else {
-			// Nil
-			return 0;
+			lua_pushnil(ls);
 		}
 	}
 	

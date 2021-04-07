@@ -16,10 +16,11 @@ Result Object::callMethodRet(const char* func, RetType& ret, ArgTypes&&... args)
 		return Result { false };
 	}
 
+	const int argStackSize[] = { getStackSize<ArgTypes>()..., 0 };
+
 	// Push arguments
-	// Call Push for each function argument
 	// Because of C++ rules, by creating an array, push is called in the correct order for each argument
-	const int argStackSize[] = { push(ls, std::forward<ArgTypes>(args))..., 0 };
+	const int dummy[] = { (push(ls, std::forward<ArgTypes>(args)), 1)..., 1 };
 
 	// Get stack size of all arguments
 	int narg = 0;
@@ -44,10 +45,11 @@ Result Object::callMethod(const char* func, ArgTypes&&... args) const {
 		return Result { false };
 	}
 
+	const int argStackSize[] = { getStackSize<ArgTypes>()..., 0 };
+
 	// Push arguments
-	// Call Push for each function argument
-	// Because of C++ rules, by creating an array, Push is called in the correct order for each argument
-	const int argStackSize[] = { push(ls, std::forward<ArgTypes>(args))..., 0 };
+	// Because of C++ rules, by creating an array, push is called in the correct order for each argument
+	const int dummy[] = { (push(ls, std::forward<ArgTypes>(args)), 1)..., 1 };
 
 	// Get stack size of all arguments
 	int narg = 0;

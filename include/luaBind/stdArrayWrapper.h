@@ -19,7 +19,7 @@ public:
 		return lua_istable(ls, idx);
 	}
 
-	static int push(lua_State* ls, const ArrayType& v) {
+	static void push(lua_State* ls, const ArrayType& v) {
 		// Create new table
 		Table table = newTable(ls);
 
@@ -30,7 +30,7 @@ public:
 		}
 
 		// Push table on stack
-		return Wrapper<Table>::push(ls, table);
+		Wrapper<Table>::push(ls, table);
 	};
 
 	//\note the container is not cleared

@@ -18,13 +18,13 @@ inline int match(lua_State* ls, int stackIndex) {
 }
 
 template <class T>
-inline int push(lua_State* ls, const T& object) {
-	return Wrapper<T>::push(ls, object);
+inline void push(lua_State* ls, const T& object) {
+	Wrapper<T>::push(ls, object);
 }
 
 template <class T>
-inline int pushAsKey(lua_State* ls, const T& object) {
-	return Wrapper<T>::pushAsKey(ls, object);
+inline void pushAsKey(lua_State* ls, const T& object) {
+	Wrapper<T>::pushAsKey(ls, object);
 }
 
 template <class T>

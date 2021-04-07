@@ -54,7 +54,8 @@ int retrieve(lua_State* ls) {
 	// Extract pointer from userdata
 	const T* boxed = serializePOD<T*>(lua_touserdata(ls, 1));
 	// Push boxed object
-	return Lightweight<T>::push(ls, *boxed);
+	Lightweight<T>::push(ls, *boxed);
+	return 1;
 }
 
 template <class T>

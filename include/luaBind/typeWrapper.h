@@ -34,13 +34,11 @@ public:
 		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
 		return 0;
 	}
-	static int pushAsKey([[maybe_unused]] lua_State* ls, T) {
+	static void pushAsKey([[maybe_unused]] lua_State* ls, T) {
 		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
-		return 0;
 	}
-	static int push([[maybe_unused]] lua_State* ls, T) {
+	static void push([[maybe_unused]] lua_State* ls, T) {
 		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
-		return 0;
 	}
 	static T pop([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
 		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
@@ -56,9 +54,8 @@ public:
 	static int match(lua_State* ls, int idx) {
 		return lua_isnil(ls, idx);
 	}
-	static int push(lua_State* ls, Nil) {
+	static void push(lua_State* ls, Nil) {
 		lua_pushnil(ls);
-		return 1;
 	}
 	static Nil pop( [[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
 		return Nil {};
@@ -73,12 +70,11 @@ public:
 	static int match(lua_State* ls, int idx) {
 		return lua_isinteger(ls, idx);
 	}
-	static int pushAsKey(lua_State* ls, I arg) {
-		return push(ls,arg);
+	static void pushAsKey(lua_State* ls, I arg) {
+		push(ls,arg);
 	}
-	static int push(lua_State* ls, I arg) {
+	static void push(lua_State* ls, I arg) {
 		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
-		return 1;
 	}
 	static I pop(lua_State* ls, int idx) {
 		lua_Integer i = lua_tointeger(ls, idx);
@@ -97,12 +93,11 @@ public:
 	static int match(lua_State* ls, int idx) {
 		return lua_isnumber(ls, idx);
 	}
-	static int pushAsKey(lua_State* ls, F arg) {
-		return push(ls,arg);
+	static void pushAsKey(lua_State* ls, F arg) {
+		push(ls,arg);
 	}
-	static int push(lua_State* ls, F arg) {
+	static void push(lua_State* ls, F arg) {
 		lua_pushnumber(ls, static_cast<lua_Number>(arg));
-		return 1;
 	}
 	static F pop(lua_State* ls, int idx) {
 		return static_cast<F>(lua_tonumber(ls, idx));
@@ -157,9 +152,8 @@ public:
 	static int match(lua_State* ls, int idx) {
 		return lua_isboolean(ls, idx);
 	}
-	static int push(lua_State* ls, bool arg) {
+	static void push(lua_State* ls, bool arg) {
 		lua_pushboolean(ls, arg ? 1 : 0);
-		return 1;
 	}
 	static bool pop(lua_State* ls, int idx) {
 		return lua_toboolean(ls, idx) ? true : false;
@@ -174,13 +168,11 @@ public:
 	static int match(lua_State* ls, int idx) {
 		return lua_type(ls, idx) == LUA_TSTRING;
 	}
-	static int pushAsKey(lua_State* ls, const char* arg) {
+	static void pushAsKey(lua_State* ls, const char* arg) {
 		lua_pushstring(ls, arg);
-		return 1;
 	}
-	static int push(lua_State* ls, const char* arg) {
+	static void push(lua_State* ls, const char* arg) {
 		lua_pushstring(ls, arg);
-		return 1;
 	}
 	static const char* pop(lua_State* ls, int idx) {
 		return lua_tostring(ls, idx);
@@ -205,12 +197,11 @@ public:
 		return (luaType == LUA_TLIGHTUSERDATA || luaType == LUA_TUSERDATA || luaType == LUA_TTABLE);
 	}
 
-	static int pushAsKey(lua_State* ls, T* ptr) {
+	static void pushAsKey(lua_State* ls, T* ptr) {
 		lua_pushlightuserdata(ls, const_cast<non_const_ptr>(ptr));
-		return 1;
 	}
 
-	static int push(lua_State* ls, T* ptr) {
+	static void push(lua_State* ls, T* ptr) {
 		if (ptr) {
 			// Remove const from pointer type
 			void* const ud = const_cast<non_const_ptr>(ptr);
@@ -235,7 +226,6 @@ public:
 		else {
 			lua_pushnil(ls);
 		}
-		return 1;
 	}
 
 	static T* pop(lua_State* ls, int idx) {
@@ -278,12 +268,11 @@ public:
 	static int match(lua_State* ls, int idx) {
 		return lua_isnumber(ls, idx);
 	}
-	static int pushAsKey(lua_State* ls, T arg) {
-		return push(ls,arg);
+	static void pushAsKey(lua_State* ls, T arg) {
+		push(ls,arg);
 	}
-	static int push(lua_State* ls, T arg) {
+	static void push(lua_State* ls, T arg) {
 		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
-		return 1;
 	}
 	static T pop(lua_State* ls, int idx) {
 		return static_cast<T>(lua_tointeger(ls, idx));
@@ -299,13 +288,12 @@ public:
 	static int match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
 		return true;
 	}
-	static int pushAsKey(lua_State* ls, StackIndex stackIndex) {
-		return push(ls,stackIndex);
+	static void pushAsKey(lua_State* ls, StackIndex stackIndex) {
+		push(ls,stackIndex);
 	}
-	static int push(lua_State* ls, StackIndex stackIndex) {
+	static void push(lua_State* ls, StackIndex stackIndex) {
 		assert(stackIndex.isValid());
 		lua_pushvalue(ls, stackIndex.getIndex());
-		return 1;
 	}
 	static StackIndex pop([[maybe_unused]] lua_State* ls, int idx) {
 		return StackIndex { idx };
@@ -321,12 +309,11 @@ public:
 	static int match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
 		return true;
 	}
-	static int pushAsKey(lua_State* ls, Reference ref) {
-		return push(ls,ref);
+	static void pushAsKey(lua_State* ls, Reference ref) {
+		push(ls,ref);
 	}
-	static int push(lua_State* ls, Reference ref) {
+	static void push(lua_State* ls, Reference ref) {
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, ref.getValue());
-		return 1;
 	}
 	// pop is forbidden. The user should register references manually
 };
@@ -339,12 +326,11 @@ public:
 	static int match(lua_State* ls, int idx) {
 		return lua_type(ls, idx) == LUA_TSTRING;
 	}
-	static int pushAsKey(lua_State* ls, const std::string& arg) {
-		return push(ls,arg);
+	static void pushAsKey(lua_State* ls, const std::string& arg) {
+		push(ls,arg);
 	}
-	static int push(lua_State* ls, const std::string& arg) {
+	static void push(lua_State* ls, const std::string& arg) {
 		lua_pushstring(ls, arg.c_str());
-		return 1;
 	}
 	static std::string pop(lua_State* ls, int idx) {
 		const char* cstr = lua_tostring(ls, idx);
@@ -357,10 +343,10 @@ template <class T>
 struct Lightweight {
 	static constexpr int stackSize = 1;
 
-	static int           match(lua_State* ls, int idx) {
+	static int match(lua_State* ls, int idx) {
 		return lua_isuserdata(ls, idx);
 	}
-	static int push(lua_State* ls, const T& value) {
+	static void push(lua_State* ls, const T& value) {
 		void* const mem = detail::allocTemporary<T>(ls);
 		if (mem) {
 			T* ud = new (mem) T { value };
@@ -368,9 +354,10 @@ struct Lightweight {
 			detail::registerPointer(ls, ud);
 	#endif
 			lua_pushlightuserdata(ls, ud);
-			return 1;
 		}
-		return 0;
+		else {
+			lua_pushnil(ls);
+		}
 	}
 	static T pop(lua_State* ls, int idx) {
 		void* userData = lua_touserdata(ls, idx);
@@ -414,24 +401,24 @@ public:
 			return *Wrapper<const T*>::pop(ls, idx);
 		}
 	}
-	static int push(lua_State* ls, const T& ref) {
+	static void push(lua_State* ls, const T& ref) {
 		if constexpr (isDefined) {
 			// Push a copy
-			return Wrapper<T>::push(ls,ref);
+			Wrapper<T>::push(ls,ref);
 		}
 		else {
 			// Convert to pointer and push
-			return Wrapper<const T*>::push(ls,&ref);
+			Wrapper<const T*>::push(ls,&ref);
 		}
 	}
-	static int pushAsKey(lua_State* ls, const T& ref) {
+	static void pushAsKey(lua_State* ls, const T& ref) {
 		if constexpr (isDefined) {
 			// Push a copy
-			return Wrapper<T>::pushAsKey(ls,ref);
+			Wrapper<T>::pushAsKey(ls,ref);
 		}
 		else {
 			// Convert to pointer and push
-			return Wrapper<const T*>::pushAsKey(ls,&ref);
+			Wrapper<const T*>::pushAsKey(ls,&ref);
 		}
 	}
 };
@@ -450,8 +437,8 @@ public:
 		assert(ptr);
 		return *ptr;
 	}
-	static int push(lua_State* ls, T& ref) {
-		return Wrapper<T*>::push(ls,&ref);
+	static void push(lua_State* ls, T& ref) {
+		Wrapper<T*>::push(ls,&ref);
 	}
 };
 

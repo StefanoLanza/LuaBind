@@ -14,18 +14,19 @@ public:
 		return Wrapper<void*>::match(ls, idx);
 	}
 
-	static int pushAsKey(lua_State* ls, VoidPtr voidPtr) {
-		return Wrapper<void*>::pushAsKey(ls, voidPtr.ptr);
+	static void pushAsKey(lua_State* ls, VoidPtr voidPtr) {
+		Wrapper<void*>::pushAsKey(ls, voidPtr.ptr);
 	}
 
-	static int push(lua_State* ls, VoidPtr voidPtr) {
+	static void push(lua_State* ls, VoidPtr voidPtr) {
 		if (voidPtr.ptr == nullptr) {
-			return 0;
+			lua_pushnil(ls);
+			return;
 		}
 
 		const TypeName typeName = typeIdToName(voidPtr.typeId);
 		if (! typeName) {
-			return luaL_error(ls, "class not registered");
+			luaL_error(ls, "class not registered");
 		}
 
 		// Copy C++ pointer to Lua userdata
@@ -43,7 +44,6 @@ public:
 		assert(lua_istable(ls, -1));
 		// Set metatable of user data at index idx
 		lua_setmetatable(ls, userDataIndex);
-		return 1;
 	}
 	// pop not supported
 };

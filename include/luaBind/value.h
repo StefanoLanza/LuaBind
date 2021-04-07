@@ -81,12 +81,11 @@ public:
 	static int match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
         return true;
 	}
-	static int pushAsKey(lua_State* ls, const Value& value) {
-		return push(ls, value);
+	static void pushAsKey(lua_State* ls, const Value& value) {
+		push(ls, value);
 	}
-	static int push(lua_State* ls, const Value& value) {
+	static void push(lua_State* ls, const Value& value) {
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, value.getReference().getValue());
-		return 1;
 	}
 	static Value pop(lua_State* ls, int idx) {
 		return Value { ls, StackIndex { idx } };

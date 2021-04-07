@@ -13,12 +13,11 @@ public:
 	static constexpr int stackSize = 1;
 
 	static int match(lua_State* ls, int idx) {
-		const int type = lua_type(ls, idx);
-		return (type == LUA_TLIGHTUSERDATA || type == LUA_TUSERDATA || type == LUA_TTABLE || type == LUA_TNIL);
+		return Wrapper<T*>::match(ls, idx);
 	}
-	static int push(lua_State* ls, const std::shared_ptr<T>& ptr) {
-		return Wrapper<T*>::Push(ls, ptr.get());
-	};
+	static void push(lua_State* ls, const std::shared_ptr<T>& ptr) {
+		Wrapper<T*>::push(ls, ptr.get());
+	}
 #if 0
 	static int pop(lua_State* /*ls*/, int /*idx*/, std::shared_ptr<Type>& /*sharedPtr*/) 
 	{

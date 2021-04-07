@@ -40,7 +40,8 @@ int memberFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, 
 		return 0;
 	}
 	else {
-		return push(ls, (self->*func)(pop<argType>(ls, argStackIndex[argIndices])...));
+		push(ls, (self->*func)(pop<argType>(ls, argStackIndex[argIndices])...));
+		return Wrapper<retType>::stackSize;
 	}
 }
 

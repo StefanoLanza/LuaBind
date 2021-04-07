@@ -14,6 +14,8 @@ const char* script = R"(
 		name = "Penguin",
 		canFly = false,
 		speed = 10.,
+		x = 0.,
+		y = 0.,
 	}
 
 	function testObject:getName()
@@ -30,6 +32,19 @@ const char* script = R"(
 
 	function testObject:setSpeed(newSpeed)
 		self.speed = newSpeed
+	end
+
+	function testObject:setPosition(x, y)
+		self.x = x
+		self.y = y
+	end
+
+	function testObject:getX()
+		return self.x
+	end
+
+	function testObject:getY()
+		return self.y
 	end
 )";
 
@@ -95,6 +110,17 @@ void runExample(lua_State* ls) {
 	r = obj.callMethodRet("canFly", canFly);
 	if (r) {
 		std::cout << "Can fly?: " << canFly << std::endl;
+	}
+	else {
+		std::cout << r.getErrorMessage() << std::endl;
+	}
+
+	r = obj.callMethod("setPosition", 10.f, -20.f);
+	if (r) {
+		float x, y;
+		obj.callMethodRet("getX", x);
+		obj.callMethodRet("getY", y);
+		std::cout << "New position: " << x << " " << y << std::endl;
 	}
 	else {
 		std::cout << r.getErrorMessage() << std::endl;

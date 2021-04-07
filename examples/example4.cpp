@@ -21,8 +21,6 @@ struct Vec3 {
 template <>
 class LuaBind::Wrapper<Vec3> : public LuaBind::Lightweight<Vec3> {};
 
-static_assert(LuaBind::lightweight_v<LuaBind::Lightweight<Vec3>>);
-
 // Custom new
 Vec3 newVec3(float x, float y, float z) {
 	return Vec3 { x, y, z };

@@ -13,7 +13,8 @@ namespace Typhoon::LuaBind::detail {
 template <class T>
 Reference registerCppClass(lua_State* ls, const char* className, TypeId baseClassId) {
 	const Reference ref = registerCppClass(ls, className, Typhoon::getTypeId<T>(), baseClassId);
-	if constexpr (lightweight_t<Wrapper<T>>::value) {
+	if constexpr (std::is_base_of_v<Lightweight<T>, Wrapper<T>>) {
+		// Lightweight types get boxing functions
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, ref.getValue()); // table
 		const int tableStackIndex = lua_gettop(ls);
 		pushBoxingFunctions<T>(ls, tableStackIndex);

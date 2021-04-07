@@ -30,7 +30,7 @@ public:
 		}
 
 		// Push table on stack
-		return Wrapper<Table>::Push(ls, table);
+		return Wrapper<Table>::push(ls, table);
 	};
 
 	//\note the container is not cleared

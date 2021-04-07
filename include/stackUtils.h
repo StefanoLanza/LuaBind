@@ -1,10 +1,6 @@
 #pragma once
 
-#include <lua/src/lua.hpp>
 #include "typeWrapper.h"
-#include <string>
-
-struct lua_State;
 
 namespace Typhoon::LuaBind {
 
@@ -27,21 +23,8 @@ inline int push(lua_State* ls, const T& object) {
 }
 
 template <class T>
-inline int push(lua_State* ls, T* object) {
-	return Wrapper<T*>::push(ls, object);
-}
-
-template <class T>
 inline int pushAsKey(lua_State* ls, const T& object) {
 	return Wrapper<T>::pushAsKey(ls, object);
-}
-
-inline int pushAsKey(lua_State* ls, const char* str) {
-	return Wrapper<const char*>::pushAsKey(ls, str);
-}
-
-inline int push(lua_State* ls, const char* str) {
-	return Wrapper<const char*>::push(ls, str);
 }
 
 template <class T>

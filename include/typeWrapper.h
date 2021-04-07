@@ -29,16 +29,7 @@ struct constRefAsValue_t : public std::true_type {
 };
 
 template <class T>
-struct lightweight_t : public std::false_type {
-};
-
-template <class T>
 inline constexpr bool constRefAsValue_v = constRefAsValue_t<T>::value;
-
-template <class T>
-inline constexpr bool lightweight_v = lightweight_t<T>::value;
-
-
 
 // typename = void is used for specializations based on std::enable_if. See the enum specialization
 template <class T, typename = void>
@@ -200,9 +191,16 @@ public:
 	static constexpr int stackSize = 1;
 };
 
+// C literal string
+template <size_t Size>
+class Wrapper<char [Size]> : public Wrapper<const char*> {
+};
+
 //! Raw pointer wrapper
 template <class T>
 class Wrapper<T*> {
+private:
+	using non_const_ptr = std::remove_const_t<T>*;
 public:
 	static int match(lua_State* ls, int idx) {
 		const int luaType = lua_type(ls, idx);
@@ -210,14 +208,13 @@ public:
 	}
 
 	static int pushAsKey(lua_State* ls, T* ptr) {
-		lua_pushlightuserdata(ls, ptr);
+		lua_pushlightuserdata(ls, const_cast<non_const_ptr>(ptr));
 		return 1;
 	}
 
 	static int push(lua_State* ls, T* ptr) {
 		if (ptr) {
 			// Remove const from pointer type
-			using non_const_ptr = std::remove_const_t<T>*;
 			void* const ud = const_cast<non_const_ptr>(ptr);
 
 			// Get userdata/table associated with the pointer from registry
@@ -274,62 +271,6 @@ public:
 	}
 
 	static constexpr int stackSize = 1;
-};
-
-//! Reference wrapper
-template <class T>
-class Wrapper<T&> {
-public:
-	static constexpr int stackSize = 1;
-	static int           match(lua_State* ls, int idx) {
-        return Wrapper<T*>::match(ls, idx);
-	}
-	static T& pop(lua_State* ls, int idx) {
-		T* ptr = Wrapper<T*>::pop(ls, idx);
-		assert(ptr);
-		return *ptr;
-	}
-	static int push(lua_State* ls, T& ref) {
-		return Wrapper<T*>::push(ls,&ref);
-	}
-};
-
-//! Const reference wrapper
-template <class T>
-class Wrapper<const T&> {
-public:
-	static constexpr bool constRefAsValue = constRefAsValue_v<T>;
-	using PopType = std::conditional_t<constRefAsValue, T, const T&>;
-
-	static constexpr int stackSize = 1;
-	static int           match(lua_State* ls, int idx) {
-		if constexpr (constRefAsValue) {
-			return Wrapper<T>::match(ls, idx);
-		}
-		else {
-			return Wrapper<const T*>::match(ls, idx);
-		}
-	}
-	static PopType pop(lua_State* ls, int idx) {
-		if constexpr (constRefAsValue) {
-			// Pop and return value
-			return Wrapper<T>::pop(ls, idx);
-		}
-		else {
-			// Pop pointer and convert to const reference
-			return *Wrapper<const T*>::pop(ls, idx);
-		}
-	}
-	static int push(lua_State* ls, const T& ref) {
-		if constexpr (constRefAsValue) {
-			// Push a copy
-			return Wrapper<T>::push(ls,ref);
-		}
-		else {
-			// Convert to pointer and push
-			return Wrapper<const T*>::push(ls,&ref);
-		}
-	}
 };
 
 // enum specialization
@@ -452,8 +393,70 @@ struct Lightweight {
 	}
 };
 
+//! Const reference wrapper
 template <class T>
-struct lightweight_t<Lightweight<T>> : std::true_type {
+class Wrapper<const T&> {
+public:
+	static constexpr bool constRefAsValue = constRefAsValue_v<T>;
+	using PopType = std::conditional_t<constRefAsValue, T, const T&>;
+
+	static constexpr int stackSize = 1;
+	static int           match(lua_State* ls, int idx) {
+		if constexpr (constRefAsValue) {
+			return Wrapper<T>::match(ls, idx);
+		}
+		else {
+			return Wrapper<const T*>::match(ls, idx);
+		}
+	}
+	static PopType pop(lua_State* ls, int idx) {
+		if constexpr (constRefAsValue) {
+			// Pop and return value
+			return Wrapper<T>::pop(ls, idx);
+		}
+		else {
+			// Pop pointer and convert to const reference
+			return *Wrapper<const T*>::pop(ls, idx);
+		}
+	}
+	static int push(lua_State* ls, const T& ref) {
+		if constexpr (constRefAsValue) {
+			// Push a copy
+			return Wrapper<T>::push(ls,ref);
+		}
+		else {
+			// Convert to pointer and push
+			return Wrapper<const T*>::push(ls,&ref);
+		}
+	}
+	static int pushAsKey(lua_State* ls, const T& ref) {
+		if constexpr (constRefAsValue) {
+			// Push a copy
+			return Wrapper<T>::pushAsKey(ls,ref);
+		}
+		else {
+			// Convert to pointer and push
+			return Wrapper<const T*>::pushAsKey(ls,&ref);
+		}
+	}
+};
+
+//! Reference wrapper
+template <class T>
+class Wrapper<T&> {
+public:
+	static constexpr int stackSize = 1;
+	static int           match(lua_State* ls, int idx) {
+        return Wrapper<T*>::match(ls, idx);
+	}
+	static T& pop(lua_State* ls, int idx) {
+		T* ptr = Wrapper<T*>::pop(ls, idx);
+		assert(ptr);
+		return *ptr;
+	}
+	static int push(lua_State* ls, T& ref) {
+		return Wrapper<T*>::push(ls,&ref);
+	}
 };
 
 } // namespace Typhoon::LuaBind

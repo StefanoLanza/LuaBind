@@ -9,12 +9,12 @@ template <>
 class Wrapper<VoidPtr> {
 public:
 	static int match(lua_State* ls, int idx) {
-		return Wrapper<void*>:match(ls, idx);
+		return Wrapper<void*>::match(ls, idx);
 	}
-	static int PushAsKey(lua_State* ls, VoidPtr voidPtr) {
-		return wrapper<void*>::pushAsKey(ls, voidPtr.ptr);
+	static int pushAsKey(lua_State* ls, VoidPtr voidPtr) {
+		return Wrapper<void*>::pushAsKey(ls, voidPtr.ptr);
 	}
-	static int Push(lua_State* ls, VoidPtr voidPtr) {
+	static int push(lua_State* ls, VoidPtr voidPtr) {
 		if (voidPtr.ptr == nullptr) {
 			return 0;
 		}
@@ -41,9 +41,9 @@ public:
 		lua_setmetatable(ls, userDataIndex);
 		return 1;
 	}
-	/*	static int Get(lua_State* ls, int idx, VoidPtr& voidPtr)
+	/*	static int pop(lua_State* ls, int idx, VoidPtr& voidPtr)
 	    {
-	        return LUA::Get(ls, idx, &ref);
+	        return LUA::pop(ls, idx, &ref);
 	    }*/
 	static constexpr int stackSize = 1;
 };

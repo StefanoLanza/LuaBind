@@ -47,6 +47,46 @@ int __cdecl main(int argc, char* argv[]) {
 	return result;
 }
 
+TEST_CASE("Builtins") {
+	using namespace LuaBind;
+	lua_State*      ls = g_ls;
+	const AutoBlock autoblock(ls);
+
+	constexpr char c = 127;
+	constexpr unsigned char uc = 255;
+	constexpr int i = -1000;
+	constexpr unsigned int ui = 0xFFFF;
+	constexpr long l = -123456789;
+	constexpr unsigned long ul = 123456789;
+	constexpr float f = 3.141f;
+	constexpr double d = 2.718281828459045235360287471352662497757247093699951;
+	constexpr bool b = true;
+	const char* cstr = "Stefano";
+	const std::string str { "Lanza"};
+	push(ls, c);
+	CHECK(pop<char>(ls, -1) == c);
+	push(ls, uc);
+	CHECK(pop<unsigned char>(ls, -1) == uc);
+	push(ls, i);
+	CHECK(pop<int>(ls, -1) == i);
+	push(ls, ui);
+	CHECK(pop<unsigned int>(ls, -1) == ui);
+	push(ls, l);
+	CHECK(pop<long>(ls, -1) == l);
+	push(ls, ul);
+	CHECK(pop<unsigned long>(ls, -1) == ul);
+	push(ls, f);
+	CHECK(pop<float>(ls, -1) == f);
+	push(ls, d);
+	CHECK(pop<double>(ls, -1) == d);
+	push(ls, b);
+	CHECK(pop<bool>(ls, -1) == b);
+	push(ls, cstr);
+	CHECK(pop<std::string>(ls, -1) == cstr);
+	push(ls, str);
+	CHECK(pop<std::string>(ls, -1) == str);
+}
+
 TEST_CASE("Globals") {
 	using namespace LuaBind;
 	lua_State*      ls = g_ls;
@@ -83,8 +123,7 @@ TEST_CASE("Table") {
 		CHECK(lua_gettop(ls) == 0);
 		CHECK_FALSE(table[key].isNil());
 		CHECK(table[key].getType() == LUA_TNUMBER);
-		const int ret_value = (int)table[key];
-		CHECK(ret_value == value);
+		CHECK(static_cast<int>(table[key]) == value);
 		CHECK(lua_gettop(ls) == 0);
 	}
 
@@ -92,21 +131,22 @@ TEST_CASE("Table") {
 		const unsigned int key = 40;
 		const double       value = 3.f;
 		table.set(key, value);
+		CHECK(lua_gettop(ls) == 0);
 		CHECK_FALSE(table[key].isNil());
 		CHECK(table[key].getType() == LUA_TNUMBER);
-		const double ret_value = (double)table[key];
-		CHECK(ret_value == value);
+		CHECK(static_cast<double>(table[key]) == value);
 		CHECK(lua_gettop(ls) == 0);
 	}
 
 	SECTION("ptr ptr") {
-		const char* key = "voidptr";
+		int dummy;
+		const void* key = &dummy;
 		void* const value = &key;
 		table.set(key, value);
+		CHECK(lua_gettop(ls) == 0);
 		CHECK_FALSE(table[key].isNil());
 		CHECK(table[key].getType() == LUA_TLIGHTUSERDATA);
-		void* res = (void*)table[key];
-		CHECK(res == value);
+		CHECK(static_cast<void*>(table[key]) == value);
 		CHECK(lua_gettop(ls) == 0);
 	}
 
@@ -114,11 +154,10 @@ TEST_CASE("Table") {
 		const char* key = "key";
 		const char* value = "value 0";
 		table.set(key, value);
+		CHECK(lua_gettop(ls) == 0);
 		CHECK_FALSE(table[key].isNil());
 		CHECK(table[key].getType() == LUA_TSTRING);
-		std::string ret_value;
-		CHECK(table[key].cast(ret_value));
-		CHECK(ret_value == value);
+		CHECK(static_cast<std::string>(table[key]) == value);
 		CHECK(lua_gettop(ls) == 0);
 	}
 
@@ -126,11 +165,10 @@ TEST_CASE("Table") {
 		const char key = 'c';
 		const int  value = 10;
 		table.set(key, value);
+		CHECK(lua_gettop(ls) == 0);
 		CHECK_FALSE(table[key].isNil());
 		CHECK(table[key].getType() == LUA_TNUMBER);
-		int ret_value = 0;
-		CHECK(table[key].cast(ret_value));
-		CHECK(ret_value == value);
+		CHECK(static_cast<int>(table[key]) == value);
 		CHECK(lua_gettop(ls) == 0);
 	}
 
@@ -138,11 +176,21 @@ TEST_CASE("Table") {
 		const unsigned char key = 'u';
 		const float         value = 3.14f;
 		table.set(key, value);
+		CHECK(lua_gettop(ls) == 0);
 		CHECK_FALSE(table[key].isNil());
 		CHECK(table[key].getType() == LUA_TNUMBER);
-		float ret_value = 0;
-		CHECK(table[key].cast(ret_value));
-		CHECK(ret_value == value);
+		CHECK(static_cast<float>(table[key]) == value);
+		CHECK(lua_gettop(ls) == 0);
+	}
+
+	SECTION("table string") {
+		const Table key = newTable(ls);
+		const std::string value = "some key";
+		table.set(key, value);
+		CHECK(lua_gettop(ls) == 0);
+		CHECK_FALSE(table[key].isNil());
+		CHECK(table[key].getType() == LUA_TSTRING);
+		CHECK(static_cast<std::string>(table[key]) == value);
 		CHECK(lua_gettop(ls) == 0);
 	}
 }
@@ -362,6 +410,7 @@ TEST_CASE("UniqueRef") {
 	lua_State* ls = g_ls;
 	Table registry = getRegistry(ls);
 	auto obj = std::make_unique<GameObject>();
+	obj->SetName("UniqueRef");
 	const Reference ref = registerObjectAsUserData(ls, obj.get());
 	CHECK(registry[ref].getType() == LUA_TUSERDATA);
 
@@ -399,8 +448,6 @@ TEST_CASE("UniqueRef") {
 
 
 void bindTestClasses(lua_State* ls) {
-	using namespace LuaBind;
-
 	LUA_BEGIN_BINDING(ls);
 
 	LUA_BEGIN_NAMESPACE(Globals);

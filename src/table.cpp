@@ -5,18 +5,21 @@ namespace Typhoon::LuaBind {
 
 Table::Table()
     : ls(nullptr)
-    , ref(LUA_NOREF) {
+    , ref(LUA_NOREF)
+	, isRegistry(false) {
 }
 
 Table::Table(lua_State* ls, StackIndex stackIndex)
-    : ls { ls } {
+    : ls { ls }
+	, isRegistry(stackIndex.getIndex() == LUA_REGISTRYINDEX) {
 	assert(lua_istable(ls, stackIndex.getIndex()));
 	lua_pushvalue(ls, stackIndex.getIndex());
 	ref = luaL_ref(ls, LUA_REGISTRYINDEX);
 }
 
 Table::Table(lua_State* ls, Reference ref_)
-    : ls { ls } {
+    : ls { ls }
+	, isRegistry(false) {
 	// Duplicate reference to avoid double unreferencing
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref_.getValue());
 	assert(lua_istable(ls, -1));
@@ -25,7 +28,8 @@ Table::Table(lua_State* ls, Reference ref_)
 
 Table::Table(Table&& table) noexcept
     : ls { table.ls }
-    , ref { table.ref } {
+    , ref { table.ref }
+	, isRegistry { table.isRegistry } {
 	table.ref = LUA_NOREF;
 }
 
@@ -37,6 +41,7 @@ Table& Table::operator=(Table&& table) noexcept {
 	luaL_unref(ls, LUA_REGISTRYINDEX, ref);
 	ls = table.ls;
 	ref = table.ref;
+	isRegistry = table.isRegistry;
 	table.ref = LUA_NOREF;
 	return *this;
 }
@@ -62,6 +67,10 @@ bool Table::getFunction(const char* functionName) {
 	return true;
 }
 
+bool Table::isValid() const {
+	return (ls != nullptr) && ref != LUA_NOREF;
+}
+
 size_t Table::getLength() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	const size_t len = lua_rawlen(ls, -1);
@@ -84,7 +93,7 @@ int Table::getCount() const {
 	return count;
 }
 
-bool Table::hasElement(int index) const {
+bool Table::hasElement(lua_Integer index) const {
 	assert(isValid());
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	lua_rawgeti(ls, -1, index);
@@ -104,42 +113,19 @@ Value Table::operator[](const char* key) const {
 	return value;
 }
 
-Value Table::operator[](int key) const {
-	assert(isValid());
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	lua_pushinteger(ls, static_cast<lua_Integer>(key));
-	lua_gettable(ls, -2);
-	Value value { ls, topStackIndex };
-	lua_pop(ls, 2); // table, value
-	return value;
-}
-
-Value Table::operator[](unsigned int key) const {
-	return (*this)[static_cast<int>(key)];
-}
-
-Value Table::operator[](double key) const {
-	assert(isValid());
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	lua_pushnumber(ls, static_cast<lua_Number>(key));
-	lua_gettable(ls, -2);
-	Value value { ls, topStackIndex };
-	lua_pop(ls, 2); // table, value
-	return value;
-}
-
-Value Table::operator[](void* key) const {
-	assert(isValid());
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	lua_pushlightuserdata(ls, key);
-	lua_gettable(ls, -2);
-	Value value { ls, topStackIndex };
-	lua_pop(ls, 2); // table, value
-	return value;
-}
-
 Value Table::operator[](Reference reference) const {
-	return (*this)[reference.getValue()];
+	assert(isValid());
+	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
+	if (isRegistry) {
+		lua_pushinteger(ls, reference.getValue());
+	}
+	else {
+		lua_rawgeti(ls, LUA_REGISTRYINDEX, reference.getValue());
+	}
+	lua_gettable(ls, -2);
+	Value value { ls, topStackIndex };
+	lua_pop(ls, 2); // table, value
+	return value;
 }
 
 TableIterator Table::begin() const {

@@ -3,7 +3,6 @@
 #include "debug.h"
 #include "detail.h"
 #include "stackUtils.h"
-#include "typeWrapper.h"
 #include <core/ptrUtil.h>
 #include <lua/src/lua.hpp>
 

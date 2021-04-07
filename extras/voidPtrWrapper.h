@@ -8,12 +8,17 @@ namespace Typhoon::LuaBind {
 template <>
 class Wrapper<VoidPtr> {
 public:
+	static constexpr int stackSize = 1;
+	static constexpr bool constRefAsValue = true;
+
 	static int match(lua_State* ls, int idx) {
 		return Wrapper<void*>::match(ls, idx);
 	}
+
 	static int pushAsKey(lua_State* ls, VoidPtr voidPtr) {
 		return Wrapper<void*>::pushAsKey(ls, voidPtr.ptr);
 	}
+
 	static int push(lua_State* ls, VoidPtr voidPtr) {
 		if (voidPtr.ptr == nullptr) {
 			return 0;
@@ -42,7 +47,6 @@ public:
 		return 1;
 	}
 	// pop not supported
-	static constexpr int stackSize = 1;
 };
 
 } // namespace Typhoon::LuaBind

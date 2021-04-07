@@ -5,8 +5,6 @@
 #include <cassert>
 #include <string>
 
-struct lua_State;
-
 namespace Typhoon::LuaBind {
 
 class Value;

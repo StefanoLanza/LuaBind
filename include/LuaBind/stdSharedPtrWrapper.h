@@ -10,6 +10,8 @@ namespace Typhoon::LuaBind {
 template <class T>
 class Wrapper<std::shared_ptr<T>> {
 public:
+	static constexpr int stackSize = 1;
+
 	static int match(lua_State* ls, int idx) {
 		const int type = lua_type(ls, idx);
 		return (type == LUA_TLIGHTUSERDATA || type == LUA_TUSERDATA || type == LUA_TTABLE || type == LUA_TNIL);
@@ -40,7 +42,6 @@ public:
 		return {};
 	}
 #endif
-	static constexpr int stackSize = 1;
 };
 
 } // namespace Typhoon::LuaBind

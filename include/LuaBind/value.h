@@ -7,8 +7,6 @@
 #include <core/uncopyable.h>
 #include <string>
 
-struct lua_State;
-
 namespace Typhoon::LuaBind {
 
 class Table;
@@ -40,7 +38,7 @@ public:
 
 	template <class T>
 	explicit operator T() const {
-		T v;
+		T v {};
 		cast(v);
 		return v;
 	}
@@ -79,12 +77,12 @@ template <>
 class Wrapper<Value> {
 public:
 	static constexpr int stackSize = 1;
-	static int           match(lua_State* /*ls*/, int /*idx*/) {
+
+	static int match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
         return true;
 	}
 	static int pushAsKey(lua_State* ls, const Value& value) {
-		lua_rawgeti(ls, LUA_REGISTRYINDEX, value.getReference().getValue());
-		return 1;
+		return push(ls, value);
 	}
 	static int push(lua_State* ls, const Value& value) {
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, value.getReference().getValue());

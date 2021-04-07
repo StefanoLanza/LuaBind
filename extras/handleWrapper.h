@@ -1,4 +1,4 @@
-#include <LuaBind/include/typeWrapper.h>
+#include <LuaBind/typeWrapper.h>
 #include <core/handle.h>
 
 namespace Typhoon {
@@ -7,10 +7,13 @@ template <>
 class LuaBind::Wrapper<Handle> {
 public:
 	static constexpr int stackSize = 1;
-	static int           Match(lua_State* ls, int idx) {
+	static constexpr bool constRefAsValue = true;
+	
+	static int           match(lua_State* ls, int idx) {
         return lua_isnumber(ls, idx) || lua_isnone(ls, idx);
 	}
-	static int Push(lua_State* ls, Handle handle) {
+
+	static int push(lua_State* ls, Handle handle) {
 		if (handle.m_value) {
 			// Valid
 			lua_pushnumber(ls, static_cast<lua_Number>(handle.m_value));
@@ -21,7 +24,8 @@ public:
 			return 0;
 		}
 	}
-	static Handle Get(lua_State* ls, int idx) {
+	
+	static Handle get(lua_State* ls, int idx) {
 		Handle h;
 		if (lua_isnumber(ls, idx)) {
 			lua_Number luaNumber = lua_tonumber(ls, idx);

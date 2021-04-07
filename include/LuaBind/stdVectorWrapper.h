@@ -11,12 +11,13 @@ namespace Typhoon::LuaBind {
 template <class T>
 class Wrapper<std::vector<T>> {
 public:
+	static constexpr int stackSize = 1;
+
 	static int match(lua_State* ls, int idx) {
 		return lua_istable(ls, idx);
 	}
 
 	static int push(lua_State* ls, const std::vector<T>& v) {
-		// Create new table
 		Table table = newTable(ls);
 
 		// Push container values into table
@@ -57,7 +58,6 @@ public:
 
 		return v;
 	}
-	static constexpr int stackSize = 1;
 };
 
 } // namespace Typhoon::LuaBind

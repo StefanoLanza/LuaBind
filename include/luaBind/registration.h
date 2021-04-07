@@ -86,22 +86,22 @@ int beginNamespace(lua_State* ls, const char* name);
 
 #define LUA_ADD_OPERATOR(name, op)                                                                          \
 	do {                                                                                                    \
-		detail::registerMemberFunction(ls__, &boundClass__::operator##op, #name, tableStackIndex); \
+		detail::registerMemberFunction(ls__, &boundClass__::operator op, #name, tableStackIndex); \
 	} while (0)
 
 #define LUA_ADD_OPERATOR_OVERLOAD(name, op, RetType, ...)                                                                          \
 	do {                                                                                                    \
-		detail::registerMemberFunction(ls__, static_cast<RetType (boundClass__::*)(__VA_ARGS__)>(&boundClass__::operator##op), #name, tableStackIndex); \
+		detail::registerMemberFunction(ls__, static_cast<RetType (boundClass__::*)(__VA_ARGS__)>(&boundClass__::operator op), #name, tableStackIndex); \
 	} while (0)
 
 #define LUA_ADD_FREE_OPERATOR(name, op)                                  \
 	do {                                                                                \
-		detail::registerFunction(ls__, detail::Overload<boundClass__>::resolve(&operator##op), #name, tableStackIndex); \
+		detail::registerFunction(ls__, detail::Overload<boundClass__>::resolve(&operator op), #name, tableStackIndex); \
 	} while (0)
 
 #define LUA_ADD_FREE_OPERATOR_OVERLOAD(name, op, RetType, ...)                                  \
 	do {                                                                                \
-		detail::registerFunction(ls__, static_cast<RetType (*)(__VA_ARGS__)>(&operator##op), #name, tableStackIndex); \
+		detail::registerFunction(ls__, static_cast<RetType (*)(__VA_ARGS__)>(&operator op), #name, tableStackIndex); \
 	} while (0)
 
 #define LUA_GETTER(memberVar, methodName)                                                                                                 \

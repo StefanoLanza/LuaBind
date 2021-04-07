@@ -7,10 +7,9 @@ template <>
 class LuaBind::Wrapper<Handle> {
 public:
 	static constexpr int stackSize = 1;
-	static constexpr bool constRefAsValue = true;
 	
-	static int           match(lua_State* ls, int idx) {
-        return lua_isnumber(ls, idx) || lua_isnone(ls, idx);
+	static int  match(lua_State* ls, int idx) {
+		return lua_isnumber(ls, idx) || lua_isnone(ls, idx);
 	}
 
 	static int push(lua_State* ls, Handle handle) {
@@ -25,7 +24,7 @@ public:
 		}
 	}
 	
-	static Handle get(lua_State* ls, int idx) {
+	static Handle pop(lua_State* ls, int idx) {
 		Handle h;
 		if (lua_isnumber(ls, idx)) {
 			lua_Number luaNumber = lua_tonumber(ls, idx);

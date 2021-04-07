@@ -9,7 +9,6 @@ template <>
 class Wrapper<VoidPtr> {
 public:
 	static constexpr int stackSize = 1;
-	static constexpr bool constRefAsValue = true;
 
 	static int match(lua_State* ls, int idx) {
 		return Wrapper<void*>::match(ls, idx);

@@ -1,7 +1,7 @@
 // This example shows how to register C++ objects and access them in Lua
 
-#include <LuaBind/luaBind.h>
-#include <LuaBind/version.h>
+#include <luaBind/luaBind.h>
+#include <luaBind/version.h>
 
 #include <core/allocator.h>
 #include <iostream>

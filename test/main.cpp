@@ -2,7 +2,7 @@
 #include <core/allocator.h>
 #include <core/typedVoidPtr.h>
 #include <extras/voidPtrWrapper.h>
-#include <LuaBind/luaBind.h>
+#include <luaBind/luaBind.h>
 
 #include <array>
 #include <string>

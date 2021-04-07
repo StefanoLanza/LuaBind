@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../include/typeWrapper.h"
+#include <LuaBind/typeWrapper.h>
 #include <core/typedVoidPtr.h>
 
 namespace Typhoon::LuaBind {
@@ -41,10 +41,7 @@ public:
 		lua_setmetatable(ls, userDataIndex);
 		return 1;
 	}
-	/*	static int pop(lua_State* ls, int idx, VoidPtr& voidPtr)
-	    {
-	        return LUA::pop(ls, idx, &ref);
-	    }*/
+	// pop not supported
 	static constexpr int stackSize = 1;
 };
 

@@ -1,7 +1,7 @@
 // This example shows how to access in C++ objects defined in Lua
 
-#include <include/luaBind.h>
-#include <include/version.h>
+#include <LuaBind/luaBind.h>
+#include <LuaBind/version.h>
 
 #include <core/allocator.h>
 #include <iostream>

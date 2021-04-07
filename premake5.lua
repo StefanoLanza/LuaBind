@@ -121,8 +121,8 @@ project("Core")
 
 project("LuaBind")
 	kind "StaticLib"
-	files { "src/**.cpp", "src/**.h", "src/**.inl", "include/**.h", "include/**.inl", }
-	sysincludedirs { "./", "external", "include", }
+	files { "src/**.cpp", "src/**.h", "src/**.inl", "include/LuaBind/**.h", "include/LuaBind/**.inl", }
+	sysincludedirs { "./", "external", "include/LuaBind", }
 	links({"Core", "Lua"})
 
 if _OPTIONS["with-examples"] then

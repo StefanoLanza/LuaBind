@@ -386,7 +386,6 @@ struct Lightweight {
 #if TY_LUABIND_TYPE_SAFE
 		if (! detail::checkPointerType<T>(ls, userData)) {
 			luaL_argerror(ls, idx, "Invalid pointer type"); // TODO better message
-			return T {};
 		}
 #endif
 		return *static_cast<const T*>(userData);

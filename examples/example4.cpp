@@ -1,7 +1,7 @@
 // This example shows how to create a minimal C++ math library that can be used in Lua scripts
 
-#include <include/luaBind.h>
-#include <include/version.h>
+#include <LuaBind/luaBind.h>
+#include <LuaBind/version.h>
 
 #include <core/allocator.h>
 #include <iostream>

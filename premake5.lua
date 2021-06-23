@@ -18,12 +18,13 @@ newoption {
 local workspacePath = path.join("build/", _ACTION)  -- e.g. build/vs2019
 
 -- Filters
-local vs = "action:vs*"
-local xcode = "action:xcode*"
-local x86 = "platforms:x86"
-local x64 = "platforms:x86_64"
-local debug =  "configurations:Debug*"
-local release =  "configurations:Release*"
+local filter_vs = "action:vs*"
+local filter_xcode = "action:xcode*"
+local filter_gmake = "action:gmake*"
+local filter_x86 = "platforms:x86"
+local filter_x64 = "platforms:x86_64"
+local filter_debug =  "configurations:Debug*"
+local filter_release =  "configurations:Release*"
 
 -- Address sanitizer
 local asan = _OPTIONS["with-asan"]
@@ -41,41 +42,42 @@ characterset "MBCS"
 flags   { "MultiProcessorCompile", }
 startproject "UnitTest"
 exceptionhandling "Off"
-defines { "_HAS_EXCEPTIONS=0", "TY_LUABIND_TYPE_SAFE=1", }
+defines { "TY_LUABIND_TYPE_SAFE=1", }
 cppdialect "c++17"
 rtti "Off"
 
-filter { vs }
+filter { filter_vs }
 	buildoptions
 	{
 		"/permissive-",
 	}
 	system "Windows"
-	defines { 
+	defines {
+		"_HAS_EXCEPTIONS=0",	
 		"_ENABLE_EXTENDED_ALIGNED_STORAGE", 
 		"_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1", 
 		"_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1", 
 	}
 
-filter { xcode }
+filter { filter_xcode }
 	system "macosx"
 	systemversion("10.12") -- MACOSX_DEPLOYMENT_TARGET
 
-filter { x86 }
+filter { filter_x86 }
 	architecture "x86"
 	  
-filter { x64 }
+filter { filter_x64 }
 	architecture "x86_64"
 	
-filter { vs }
+filter { filter_vs }
 
-filter { vs, x86, }
+filter { filter_vs, filter_x86, }
 	defines { "WIN32", "_WIN32", }
 
-filter { vs, x64, }
+filter { filter_vs, filter_x64, }
 	defines { "WIN64", "_WIN64", }
 
-filter { vs, debug, }
+filter { filter_vs, filter_debug, }
 	defines { }
 	-- Address sanitizer for VS 2019
 	if asan then 
@@ -88,10 +90,10 @@ filter { vs, debug, }
 		editAndContinue "Off"
 	end
 
-filter { vs, release, }
+filter { filter_vs, filter_release, }
 	defines { "_ITERATOR_DEBUG_LEVEL=0", "_SECURE_SCL=0", }
 
-filter { debug }
+filter { filter_debug }
 	defines { "_DEBUG", "DEBUG", }
 	flags   { "NoManifest", }
 	optimize("Off")
@@ -100,7 +102,7 @@ filter { debug }
 	symbols "Full"
 	runtime "Debug"
 
-filter { release }
+filter { filter_release }
 	defines { "NDEBUG", }
 	flags   { "NoManifest", "LinkTimeOptimization", "NoBufferSecurityCheck", "NoRuntimeChecks", }
 	optimize("Full")
@@ -108,6 +110,8 @@ filter { release }
 	warnings "Extra"
 	symbols "Off"
 	runtime "Release"
+
+filter {}
 
 project("Lua")
 	kind "StaticLib"
@@ -131,30 +135,45 @@ if _OPTIONS["with-examples"] then
 		files "examples/example1.cpp"
 		sysincludedirs { "./", "external", "include", }
 		links({"LuaBind", })
+		filter { filter_gmake }
+			links({"Core", "Lua"})
+		filter {}
 
 	project("Example2")
 		kind "ConsoleApp"
 		files "examples/example2.cpp"
 		sysincludedirs { "./", "external", "include", }
 		links({"LuaBind", })
+		filter { filter_gmake }
+			links({"Core", "Lua"})
+		filter {}
 
 	project("Example3")
 		kind "ConsoleApp"
 		files "examples/example3.cpp"
 		sysincludedirs { "./", "external", "include", }
 		links({"LuaBind", })
+		filter { filter_gmake }
+			links({"Core", "Lua"})
+		filter {}
 
 	project("Example4")
 		kind "ConsoleApp"
 		files "examples/example4.cpp"
 		sysincludedirs { "./", "external", "include", }
 		links({"LuaBind", })
+		filter { filter_gmake }
+			links({"Core", "Lua"})
+		filter {}
 end
 
 if _OPTIONS["with-tests"] then
 	project("UnitTest")
 		kind "ConsoleApp"
-		links({"LuaBind", })
 		files "test/*.*"
 		sysincludedirs { "./", "external", "include", }
+		links({"LuaBind", })
+		filter { filter_gmake }
+			links({"Core", "Lua"})
+		filter {}
 end

@@ -74,7 +74,6 @@ PagedAllocator::PagedAllocator(Allocator& parentAllocator, size_t pageSize, size
     , maxPages(maxPages ? maxPages : std::numeric_limits<size_t>::max())
     , rootPage(nullptr)
     , currPage(nullptr)
-    , freeSize(0)
     , pageCount(0) {
 	assert(pageSize > sizeof(Page));
 }
@@ -100,8 +99,8 @@ void* PagedAllocator::alloc(size_t size, size_t alignment) {
 	}
 
 	for (Page* page = currPage; page != nullptr; page = page->next) {
+		currPage = page;
 		if (void* result = allocFromPage(*page, size, alignment); result) {
-			currPage = page;
 			return result;
 		}
 	}
@@ -122,9 +121,6 @@ void PagedAllocator::rewind() {
 	for (Page* page = currPage; page; page = page->prev) {
 		page->offset = advancePointer(page->buffer, sizeof(Page));
 	}
-	if (rootPage) {
-		freeSize = rootPage->size;
-	}
 	currPage = rootPage;
 }
 
@@ -133,8 +129,6 @@ void PagedAllocator::rewind(void* ptr) {
 		for (Page* page = currPage; page != nullptr; page = page->prev) {
 			if (ptr >= page->buffer && ptr < static_cast<const char*>(page->buffer) + page->size) {
 				page->offset = ptr;
-				freeSize = reinterpret_cast<uintptr_t>(page->buffer) + page->size - reinterpret_cast<uintptr_t>(ptr);
-				assert(freeSize <= page->size);
 				currPage = page;
 				break;
 			}
@@ -158,7 +152,6 @@ PagedAllocator::Page* PagedAllocator::allocPage() {
 		newPage.buffer = buffer;
 		newPage.offset = advancePointer(buffer, sizeof(Page));
 		newPage.size = pageSize - sizeof(Page);
-		freeSize = pageSize;
 		std::memcpy(buffer, &newPage, sizeof newPage);
 		++pageCount;
 	}
@@ -166,10 +159,11 @@ PagedAllocator::Page* PagedAllocator::allocPage() {
 }
 
 void* PagedAllocator::allocFromPage(Page& page, size_t size, size_t alignment) {
+	size_t freeSize = reinterpret_cast<uintptr_t>(page.buffer) + page.size - reinterpret_cast<uintptr_t>(page.offset);
+	assert(freeSize <= page.size - sizeof(Page));
 	void* result = std::align(alignment, size, page.offset, freeSize);
 	if (result) {
 		page.offset = advancePointer(result, size);
-		freeSize = reinterpret_cast<uintptr_t>(page.buffer) + page.size - reinterpret_cast<uintptr_t>(page.offset);
 	}
 	return result;
 }

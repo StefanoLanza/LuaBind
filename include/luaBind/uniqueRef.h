@@ -16,7 +16,7 @@ struct ReferenceDeleter {
 	struct pointer {
 		pointer(RefAndState r) : rs(r) {
 		}
-		pointer(std::nullptr_t) { rs.ls = nullptr; }
+		pointer([[maybe_unused]] std::nullptr_t dummy = nullptr) { rs.ls = nullptr; }
 		operator bool() const {
 			return rs.ref.isValid();
 		}

@@ -47,7 +47,6 @@ public:
 	Scope(lua_State* ls);
 	~Scope();
 private:
-	lua_State* ls;
 	LinearAllocator* tempAllocator;
 	void* offs;
 };

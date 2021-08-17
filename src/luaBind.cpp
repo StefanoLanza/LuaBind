@@ -197,8 +197,7 @@ Result doBuffer(lua_State* ls, const char* buffer, size_t size, const char* name
 }
 
 Scope::Scope(lua_State* ls)
-	: ls(ls)
-	, tempAllocator(detail::getContext(ls)->tempAllocator)
+	: tempAllocator(detail::getContext(ls)->tempAllocator)
 	, offs(tempAllocator->getOffset())
 { 
 }

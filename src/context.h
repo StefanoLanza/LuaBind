@@ -13,6 +13,7 @@ struct Context {
 	Allocator* allocator;
 	LinearAllocator* tempAllocator;
 	MemoryStats memoryStats;
+	WarningFunction warningFunction;
 
 #if TY_LUABIND_TYPE_SAFE
 	// FIXME Allocators

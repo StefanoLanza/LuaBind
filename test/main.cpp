@@ -37,9 +37,14 @@ class LuaBind::Wrapper<Vec3> : public LuaBind::Lightweight<Vec3> {};
 
 void bindTestClasses(lua_State* ls);
 
+void testWarningFunction(const char* message) {
+	std::cout << "Warning message: " << message << std::endl;
+}
+
 int main(int argc, char* argv[]) {
 	Typhoon::HeapAllocator heapAllocator;
-	lua_State* const ls = LuaBind::createState(heapAllocator);
+	lua_State* const       ls = LuaBind::createState(heapAllocator);
+	LuaBind::setWarningFunction(ls, testWarningFunction);
 	g_ls = ls;
 	bindTestClasses(ls);
 	const int result = Catch::Session().run(argc, argv);
@@ -52,17 +57,17 @@ TEST_CASE("Builtins") {
 	lua_State*      ls = g_ls;
 	const AutoBlock autoblock(ls);
 
-	constexpr char c = 127;
+	constexpr char          c = 127;
 	constexpr unsigned char uc = 255;
-	constexpr int i = -1000;
-	constexpr unsigned int ui = 0xFFFF;
-	constexpr long l = -123456789;
+	constexpr int           i = -1000;
+	constexpr unsigned int  ui = 0xFFFF;
+	constexpr long          l = -123456789;
 	constexpr unsigned long ul = 123456789;
-	constexpr float f = 3.141f;
-	constexpr double d = 2.718281828459045235360287471352662497757247093699951;
-	constexpr bool b = true;
-	const char* cstr = "Stefano";
-	const std::string str { "Lanza"};
+	constexpr float         f = 3.141f;
+	constexpr double        d = 2.718281828459045235360287471352662497757247093699951;
+	constexpr bool          b = true;
+	const char*             cstr = "Stefano";
+	const std::string       str { "Lanza" };
 	push(ls, c);
 	CHECK(pop<char>(ls, -1) == c);
 	push(ls, uc);
@@ -85,6 +90,13 @@ TEST_CASE("Builtins") {
 	CHECK(pop<std::string>(ls, -1) == cstr);
 	push(ls, str);
 	CHECK(pop<std::string>(ls, -1) == str);
+}
+
+TEST_CASE("Warning") {
+	using namespace LuaBind;
+	lua_State*      ls = g_ls;
+	const AutoBlock autoblock(ls);
+	CHECK(doCommand(ls, "warn('This is a warning')"));
 }
 
 TEST_CASE("Globals") {
@@ -139,7 +151,7 @@ TEST_CASE("Table") {
 	}
 
 	SECTION("ptr ptr") {
-		int dummy;
+		int         dummy;
 		const void* key = &dummy;
 		void* const value = &key;
 		table.set(key, value);
@@ -184,7 +196,7 @@ TEST_CASE("Table") {
 	}
 
 	SECTION("table string") {
-		const Table key = newTable(ls);
+		const Table       key = newTable(ls);
 		const std::string value = "some key";
 		table.set(key, value);
 		CHECK(lua_gettop(ls) == 0);
@@ -232,7 +244,7 @@ TEST_CASE("Properties") {
 	using namespace LuaBind;
 	lua_State* ls = g_ls;
 	AutoBlock  autoblock(ls);
-	Table globals = getGlobals(ls);
+	Table      globals = getGlobals(ls);
 	if (globals["ptest"]) {
 		Table ptest = (Table)globals["ptest"];
 		REQUIRE(ptest);
@@ -255,8 +267,8 @@ TEST_CASE("VoidPtr") {
 TEST_CASE("Class") {
 	using namespace LuaBind;
 	lua_State* ls = g_ls;
-	Table globals = getGlobals(ls);
-	Table registry = getRegistry(ls);
+	Table      globals = getGlobals(ls);
+	Table      registry = getRegistry(ls);
 	SECTION("base class") {
 		SECTION("binding C++ object as full user data") {
 			auto            bart = std::make_unique<GameObject>();
@@ -404,8 +416,8 @@ TEST_CASE("Class") {
 TEST_CASE("UniqueRef") {
 	using namespace LuaBind;
 	lua_State* ls = g_ls;
-	Table registry = getRegistry(ls);
-	auto obj = std::make_unique<GameObject>();
+	Table      registry = getRegistry(ls);
+	auto       obj = std::make_unique<GameObject>();
 	obj->SetName("UniqueRef");
 	const Reference ref = registerObjectAsUserData(ls, obj.get());
 	CHECK(registry[ref].getType() == LUA_TUSERDATA);
@@ -441,7 +453,6 @@ TEST_CASE("UniqueRef") {
 		CHECK(registry[ref].getType() == LUA_TUSERDATA);
 	}
 }
-
 
 void bindTestClasses(lua_State* ls) {
 	LUA_BEGIN_BINDING(ls);

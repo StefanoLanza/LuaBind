@@ -12,10 +12,10 @@ Reference registerObjectAsTable(lua_State* ls, void* objectPtr, TypeId typeId) {
 
 	AutoBlock autoBlock(ls);
 
-	const TypeName classID = typeIdToName(typeId);
+	const TypeName className = typeIdToName(typeId);
 
 	// Lookup class metatable in registry
-	luaL_getmetatable(ls, classID);
+	luaL_getmetatable(ls, className);
 	if (! lua_istable(ls, -1)) {
 		return Reference {}; // class not registered
 	}
@@ -53,7 +53,7 @@ Reference registerObjectAsUserData(lua_State* ls, void* objectPtr, TypeId typeId
 
 	const TypeName typeName = typeIdToName(typeId);
 
-	void* const userData = lua_newuserdata(ls, sizeof objectPtr);
+	void* const userData = lua_newuserdatauv(ls, sizeof objectPtr, 0);
 	// Copy C++ pointer to Lua userdata
 	std::memcpy(userData, &objectPtr, sizeof objectPtr);
 	const int userDataIndex = lua_gettop(ls);
@@ -142,7 +142,7 @@ void unregisterObject(lua_State* ls, Reference ref) {
 	void* objectPtr = nullptr;
 	if (luaType == LUA_TUSERDATA) {
 		void* userData = lua_touserdata(ls, objectIndex);
-		objectPtr = *static_cast<void**>(userData);
+		std::memcpy(&objectPtr, userData, sizeof objectPtr);
 	}
 	else if (luaType == LUA_TLIGHTUSERDATA) {
 		objectPtr = lua_touserdata(ls, objectIndex);
@@ -177,7 +177,9 @@ void unregisterObject(lua_State* ls, Reference ref) {
 }
 
 void unregisterObject(lua_State* ls, void* objectPtr) {
-	assert(objectPtr);
+	if (! objectPtr) {
+		return;
+	}
 	AutoBlock autoBlock(ls);
 
 	lua_pushlightuserdata(ls, objectPtr);

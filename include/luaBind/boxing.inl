@@ -16,7 +16,7 @@ int box(lua_State* ls) {
 	}
 
 	// Allocate full user data
-	void* const ud = lua_newuserdata(ls, sizeof boxed);
+	void* const ud = lua_newuserdatauv(ls, sizeof boxed, 0);
 	// Construct new object and store a pointer to its pointer in the user data
 	std::memcpy(ud, &boxed, sizeof boxed);
 

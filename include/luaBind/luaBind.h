@@ -30,8 +30,11 @@ struct MemoryStats {
 struct Context;
 class Result;
 
+using WarningFunction = std::function<void(const char*)>;
+
 lua_State*         createState(Allocator& allocator);
 void               closeState(lua_State* ls);
+void               setWarningFunction(lua_State* ls, WarningFunction warningFunction);
 Result             doCommand(lua_State*, const char* command);
 Result             doBuffer(lua_State*, const char* buffer, size_t size, const char* name);
 void               newFrame(lua_State* ls);

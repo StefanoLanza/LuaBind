@@ -15,7 +15,7 @@ namespace {
 const char* contextKey = "__context";
 
 void* allocFunction(void* ud, void* ptr, size_t osize, size_t nsize) {
-	Allocator* allocator = static_cast<Context*>(ud)->allocator;
+	Allocator*   allocator = static_cast<Context*>(ud)->allocator;
 	MemoryStats& stats = static_cast<Context*>(ud)->memoryStats;
 	stats.allocatedMemory -= osize;
 	void* pret = nullptr;
@@ -32,6 +32,11 @@ void* allocFunction(void* ud, void* ptr, size_t osize, size_t nsize) {
 	return pret;
 }
 
+void luaWarningFunction(void* ud, const char* msg, [[maybe_unused]] int tocont) {
+	auto const& warningFunction = static_cast<Context*>(ud)->warningFunction;
+	warningFunction(msg);
+}
+
 } // namespace
 
 namespace detail {
@@ -39,7 +44,7 @@ namespace detail {
 Context* getContext(lua_State* ls) {
 	lua_pushvalue(ls, LUA_REGISTRYINDEX);
 	lua_getfield(ls, -1, contextKey);
-	Context* context = static_cast<Context*>(lua_touserdata(ls, -1));
+	auto context = static_cast<Context*>(lua_touserdata(ls, -1));
 	lua_pop(ls, 2);
 	return context;
 }
@@ -84,15 +89,22 @@ lua_State* createState(Allocator& allocator) {
 }
 
 void closeState(lua_State* ls) {
-	Context* context = detail::getContext(ls);
+	auto context = detail::getContext(ls);
 	lua_gc(ls, LUA_GCCOLLECT, 0);
 	lua_close(ls);
 	context->allocator->destroy(context->tempAllocator);
 	context->allocator->destroy(context);
 }
 
+void setWarningFunction(lua_State* ls, WarningFunction warningFunction) {
+	auto context = detail::getContext(ls);
+	context->warningFunction = std::move(warningFunction);
+	lua_setwarnf(ls, luaWarningFunction, context);
+}
+
 void newFrame(lua_State* ls) {
-	detail::getContext(ls)->tempAllocator->rewind();
+	auto context = detail::getContext(ls);
+	context->tempAllocator->rewind();
 }
 
 void registerLoader(lua_State* ls, lua_CFunction loader, void* userData) {
@@ -155,9 +167,6 @@ const char* getErrorMessage(lua_State* ls, int error) {
 	case LUA_ERRSYNTAX:
 		errMsg = lua_tostring(ls, -1);
 		break;
-	case LUA_ERRGCMM:
-		errMsg = "GC error";
-		break;
 	default:
 		break;
 	}
@@ -181,10 +190,11 @@ Result doBuffer(lua_State* ls, const char* buffer, size_t size, const char* name
 
 	// Put the traceback function on the stack
 	lua_pushcfunction(ls, &traceback);
-	int errfunc_index = lua_gettop(ls);
+	const int errfunc_index = lua_gettop(ls);
 
-	const char* errMsg = getErrorMessage(ls, luaL_loadbuffer(ls, buffer, size, name));
-	if (errMsg) {
+	const auto error = luaL_loadbuffer(ls, buffer, size, name);
+
+	if (const char* errMsg = getErrorMessage(ls, error); errMsg) {
 		return Result(errMsg);
 	}
 	else if (0 != lua_pcall(ls, 0, 0, errfunc_index)) {
@@ -197,14 +207,12 @@ Result doBuffer(lua_State* ls, const char* buffer, size_t size, const char* name
 }
 
 Scope::Scope(lua_State* ls)
-	: tempAllocator(detail::getContext(ls)->tempAllocator)
-	, offs(tempAllocator->getOffset())
-{ 
+    : tempAllocator(detail::getContext(ls)->tempAllocator)
+    , offs(tempAllocator->getOffset()) {
 }
 
-Scope::~Scope() { 
-	tempAllocator->rewind(offs); }
-
-
+Scope::~Scope() {
+	tempAllocator->rewind(offs);
+}
 
 } // namespace Typhoon::LuaBind

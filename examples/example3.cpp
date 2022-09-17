@@ -7,7 +7,7 @@
 #include <iostream>
 #include <string>
 
-void bind(lua_State* ls);
+void bindClasses(lua_State* ls);
 void runExample(lua_State* ls);
 
 enum class GameObjectState {
@@ -121,8 +121,8 @@ const char* script = R"(
 int main(int /*argc*/, char* /*argv*/[]) {
 	std::cout << "LuaBind version: " << LuaBind::getVersionString() << std::endl;
 	Typhoon::HeapAllocator heapAllocator;
-	lua_State* const ls = LuaBind::createState(heapAllocator);
-	bind(ls);
+	const auto ls = LuaBind::createState(heapAllocator);
+	bindClasses(ls);
 	runExample(ls);
 	LuaBind::closeState(ls);
 
@@ -156,9 +156,7 @@ void runExample(lua_State* ls) {
 	unregisterObject(ls, ref1);
 }
 
-void bind(lua_State* ls) {
-	using namespace LuaBind;
-
+void bindClasses(lua_State* ls) {
 	LUA_BEGIN_BINDING(ls);
 
 	LUA_BEGIN_CLASS(GameObject);

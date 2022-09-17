@@ -85,7 +85,7 @@ TEST_CASE("Root") {
 	SECTION("Warnings") {
 		const char* warningMessage = nullptr;
 		auto        testWarningLambda = [&warningMessage](const char* message) { warningMessage = message; };
-		LuaBind::setWarningFunction(ls, testWarningLambda);
+		setWarningFunction(ls, testWarningLambda);
 		REQUIRE(doCommand(ls, "warn('This is a warning')"));
 		CHECK(! strcmp(warningMessage, "This is a warning"));
 	}

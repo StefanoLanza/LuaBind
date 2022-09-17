@@ -12,10 +12,10 @@ Reference registerObjectAsTable(lua_State* ls, void* objectPtr, TypeId typeId) {
 
 	AutoBlock autoBlock(ls);
 
-	const TypeName classID = typeIdToName(typeId);
+	const TypeName className = typeIdToName(typeId);
 
 	// Lookup class metatable in registry
-	luaL_getmetatable(ls, classID);
+	luaL_getmetatable(ls, className);
 	if (! lua_istable(ls, -1)) {
 		return Reference {}; // class not registered
 	}
@@ -177,7 +177,9 @@ void unregisterObject(lua_State* ls, Reference ref) {
 }
 
 void unregisterObject(lua_State* ls, void* objectPtr) {
-	assert(objectPtr);
+	if (! objectPtr) {
+		return;
+	}
 	AutoBlock autoBlock(ls);
 
 	lua_pushlightuserdata(ls, objectPtr);

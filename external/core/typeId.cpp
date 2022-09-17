@@ -47,7 +47,6 @@ void registerTypeName(TypeId id, const char* typeName) {
 	s.string[std::size(s.string) - 1] = 0; // null terminate
 #endif
 	[[maybe_unused]] auto r = idToName.insert({ id.impl, s });
-	assert(r.second);
 	nameToId.push_back({ s, id });
 }
 

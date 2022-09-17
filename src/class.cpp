@@ -8,8 +8,6 @@
 
 namespace Typhoon::LuaBind::detail {
 
-extern std::unordered_map<TypeId, TypeId> baseClassMap;//FIXME in a context, allocator
-
 namespace {
 
 // Store method table in globals so that scripts can add functions written in Lua.

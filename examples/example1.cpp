@@ -31,7 +31,6 @@ int main(int /*argc*/, char* /*argv*/[]) {
 
 void runExample(lua_State* ls) {
 	using namespace LuaBind;
-	const AutoBlock autoblock(ls);
 
 	if (Result res = doCommand(ls, script); ! res) {
 		std::cout << res.getErrorMessage() << std::endl;

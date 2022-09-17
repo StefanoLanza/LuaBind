@@ -93,8 +93,6 @@ void runExample(lua_State* ls) {
 }
 
 void bindClasses(lua_State* ls) {
-	using namespace LuaBind;
-
 	LUA_BEGIN_BINDING(ls);
 
 	LUA_BEGIN_CLASS(Vec3);

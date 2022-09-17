@@ -35,10 +35,6 @@ class LuaBind::Wrapper<Vec3> : public LuaBind::Lightweight<Vec3> {};
 
 void bindTestClasses(lua_State* ls);
 
-void testWarningFunction(const char* message) {
-	std::cout << "Warning message: " << message << std::endl;
-}
-
 int main(int argc, char* argv[]) {
 	return Catch::Session().run(argc, argv);
 }
@@ -48,12 +44,9 @@ TEST_CASE("Root") {
 
 	Typhoon::HeapAllocator heapAllocator;
 	lua_State* const       ls = LuaBind::createState(heapAllocator);
-	LuaBind::setWarningFunction(ls, testWarningFunction);
 	bindTestClasses(ls);
 
 	SECTION("Builtins") {
-		const AutoBlock autoblock(ls);
-
 		constexpr char          c = 127;
 		constexpr unsigned char uc = 255;
 		constexpr int           i = -1000;
@@ -89,20 +82,21 @@ TEST_CASE("Root") {
 		CHECK(pop<std::string>(ls, -1) == str);
 	}
 
-	SECTION("Warning") {
-		const AutoBlock autoblock(ls);
-		CHECK(doCommand(ls, "warn('This is a warning')"));
+	SECTION("Warnings") {
+		const char* warningMessage = nullptr;
+		auto        testWarningLambda = [&warningMessage](const char* message) { warningMessage = message; };
+		LuaBind::setWarningFunction(ls, testWarningLambda);
+		REQUIRE(doCommand(ls, "warn('This is a warning')"));
+		CHECK(! strcmp(warningMessage, "This is a warning"));
 	}
 
 	SECTION("Globals") {
-		const AutoBlock autoblock(ls);
 		CHECK(doCommand(ls, "Globals.foo()"));
 		CHECK(doCommand(ls, "Globals.foo2('hello world')"));
 	}
 
 	SECTION("Table") {
-		const AutoBlock autoblock(ls);
-		Table           table = newTable(ls);
+		Table table = newTable(ls);
 
 		SECTION("indices") {
 			CHECK(lua_gettop(ls) == 0);
@@ -199,8 +193,6 @@ TEST_CASE("Root") {
 	}
 
 	SECTION("std") {
-		AutoBlock autoblock(ls);
-
 		SECTION("std::pair") {
 			const int idx = lua_gettop(ls);
 			using pair_type = std::pair<std::string, int>;
@@ -230,8 +222,7 @@ TEST_CASE("Root") {
 	}
 
 	SECTION("Properties") {
-		AutoBlock autoblock(ls);
-		Table     globals = getGlobals(ls);
+		Table globals = getGlobals(ls);
 		if (globals["ptest"]) {
 			Table ptest = (Table)globals["ptest"];
 			REQUIRE(ptest);
@@ -242,13 +233,12 @@ TEST_CASE("Root") {
 	}
 
 	SECTION("VoidPtr") {
-		AutoBlock autoBlock(ls);
-		Biped     biped;
+		Biped biped;
 		biped.SetName("Biped");
 		const Typhoon::VoidPtr voidPtr = Typhoon::MakeVoidPtr(&biped);
 		push(ls, voidPtr);
 	}
-	
+
 	SECTION("Class") {
 		Table globals = getGlobals(ls);
 		Table registry = getRegistry(ls);

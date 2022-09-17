@@ -14,9 +14,12 @@ struct RefAndState {
 
 struct ReferenceDeleter {
 	struct pointer {
-		pointer(RefAndState r) : rs(r) {
+		pointer(RefAndState r)
+		    : rs(r) {
 		}
-		pointer([[maybe_unused]] std::nullptr_t dummy = nullptr) { rs.ls = nullptr; }
+		pointer([[maybe_unused]] std::nullptr_t dummy = nullptr) {
+			rs.ls = nullptr;
+		}
 		operator bool() const {
 			return rs.ref.isValid();
 		}
@@ -40,11 +43,11 @@ struct ReferenceDeleter {
 
 /**
  * @brief RAII wrapper for a unique Lua reference
-*/
+ */
 using UniqueRef = std::unique_ptr<RefAndState, ReferenceDeleter>;
 
 inline UniqueRef makeUniqueRef(lua_State* ls, Reference ref) {
-	return UniqueRef(RefAndState{ls, ref});
+	return UniqueRef { RefAndState { ls, ref } };
 }
 
 } // namespace Typhoon::LuaBind

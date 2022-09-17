@@ -12,10 +12,15 @@ public:
 	static constexpr int stackSize = 1;
 
 	static int match(lua_State* ls, int idx) {
-		return lua_isnumber(ls, idx);
+		return lua_isinteger(ls, idx);
 	}
 	static void push(lua_State* ls, TypedId id) {
-		lua_pushnumber(ls, static_cast<lua_Number>(id.value));
+		if (id.value) {
+			lua_pushinteger(ls, static_cast<lua_Integer>(id.value));
+		}
+		else {
+			lua_pushnil(ls);
+		}
 	}
 	static TypedId pop(lua_State* ls, int idx) {
 		return TypedId { static_cast<Impl>(lua_tonumber(ls, idx)) };

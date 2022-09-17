@@ -31,7 +31,7 @@ public:
 
 		// Copy C++ pointer to Lua userdata
 		void* const ptr = voidPtr.ptr;
-		void* const userData = lua_newuserdata(ls, sizeof ptr);
+		void* const userData = lua_newuserdatauv(ls, sizeof ptr, 0);
 		std::memcpy(userData, &ptr, sizeof ptr);
 		const int userDataIndex = lua_gettop(ls);
 

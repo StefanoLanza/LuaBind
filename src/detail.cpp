@@ -38,7 +38,7 @@ void pushObjectAsFullUserData(lua_State* ls, void* objectPtr, const char* classN
 	assert(objectPtr);
 	assert(className);
 
-	void* const userData = lua_newuserdata(ls, sizeof objectPtr);
+	void* const userData = lua_newuserdatauv(ls, sizeof objectPtr, 0);
 	// Copy C++ pointer to Lua userdata
 	std::memcpy(userData, &objectPtr, sizeof objectPtr);
 
@@ -52,7 +52,7 @@ void pushObjectAsFullUserData(lua_State* ls, void* objectPtr, const char* classN
 
 void pushFunctionAsUpvalue(lua_State* ls, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize) {
 	// Save pointer to caller and function as upvalue
-	uint8_t* buffer = static_cast<uint8_t*>(lua_newuserdata(ls, functionPtrSize));
+	uint8_t* buffer = static_cast<uint8_t*>(lua_newuserdatauv(ls, functionPtrSize, 0));
 	std::memcpy(buffer, functionPtr, functionPtrSize);
 	lua_pushcclosure(ls, closure, 1);
 }

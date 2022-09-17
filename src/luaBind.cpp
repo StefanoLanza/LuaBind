@@ -44,7 +44,7 @@ namespace detail {
 Context* getContext(lua_State* ls) {
 	lua_pushvalue(ls, LUA_REGISTRYINDEX);
 	lua_getfield(ls, -1, contextKey);
-	Context* context = static_cast<Context*>(lua_touserdata(ls, -1));
+	auto context = static_cast<Context*>(lua_touserdata(ls, -1));
 	lua_pop(ls, 2);
 	return context;
 }
@@ -89,7 +89,7 @@ lua_State* createState(Allocator& allocator) {
 }
 
 void closeState(lua_State* ls) {
-	Context* context = detail::getContext(ls);
+	auto context = detail::getContext(ls);
 	lua_gc(ls, LUA_GCCOLLECT, 0);
 	lua_close(ls);
 	context->allocator->destroy(context->tempAllocator);

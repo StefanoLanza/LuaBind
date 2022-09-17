@@ -248,14 +248,14 @@ TEST_CASE("Root") {
 		const Typhoon::VoidPtr voidPtr = Typhoon::MakeVoidPtr(&biped);
 		push(ls, voidPtr);
 	}
-
+	
 	SECTION("Class") {
 		Table globals = getGlobals(ls);
 		Table registry = getRegistry(ls);
 		SECTION("base class") {
 			SECTION("binding C++ object as full user data") {
-				auto            bart = std::make_unique<GameObject>();
-				const Reference ref(registerObjectAsUserData(ls, bart.get()));
+				auto       bart = std::make_unique<GameObject>();
+				const auto ref = registerObjectAsUserData(ls, bart.get());
 				REQUIRE(ref.isValid());
 				CHECK(registry[bart.get()].isNil() == false);
 				globals.set("bart", bart.get());
@@ -273,8 +273,8 @@ TEST_CASE("Root") {
 			}
 
 			SECTION("binding C++ object as table") {
-				auto            fred = std::make_unique<GameObject>();
-				const Reference ref(registerObjectAsTable(ls, fred.get()));
+				auto       fred = std::make_unique<GameObject>();
+				const auto ref = registerObjectAsTable(ls, fred.get());
 				REQUIRE(ref.isValid());
 				CHECK(registry[fred.get()].isNil() == false);
 				globals.set("fred", fred.get());
@@ -290,8 +290,8 @@ TEST_CASE("Root") {
 			}
 
 			SECTION("binding C++ object as light user data") {
-				auto            barney = std::make_unique<GameObject>();
-				const Reference ref = registerObjectAsLightUserData(ls, barney.get());
+				auto       barney = std::make_unique<GameObject>();
+				const auto ref = registerObjectAsLightUserData(ls, barney.get());
 				REQUIRE(ref.isValid());
 				globals.set("barney", barney.get());
 				CHECK(globals["barney"].getType() == LUA_TLIGHTUSERDATA);
@@ -318,8 +318,8 @@ TEST_CASE("Root") {
 		}
 
 		SECTION("sub class") {
-			auto            biped = std::make_unique<Biped>();
-			const Reference ref = registerObjectAsUserData(ls, biped.get());
+			auto       biped = std::make_unique<Biped>();
+			const auto ref = registerObjectAsUserData(ls, biped.get());
 			REQUIRE(ref.isValid());
 			globals.set("subobj", ref);
 			const Biped* tmp2 = static_cast<const Biped*>(globals["subobj"]);
@@ -340,7 +340,7 @@ TEST_CASE("Root") {
 		SECTION("struct") {
 			Human human;
 			human.energy = 10;
-			const Reference ref = registerObjectAsUserData(ls, &human);
+			const auto ref = registerObjectAsUserData(ls, &human);
 			REQUIRE(ref.isValid());
 
 			globals.set("human", ref);
@@ -400,7 +400,7 @@ TEST_CASE("Root") {
 		Table registry = getRegistry(ls);
 		auto  obj = std::make_unique<GameObject>();
 		obj->SetName("UniqueRef");
-		const Reference ref = registerObjectAsUserData(ls, obj.get());
+		const auto ref = registerObjectAsUserData(ls, obj.get());
 		CHECK(registry[ref].getType() == LUA_TUSERDATA);
 
 		SECTION("destruction") {

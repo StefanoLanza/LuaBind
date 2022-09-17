@@ -23,7 +23,7 @@ void registerClassInGlobals(lua_State* ls, const char* className, int methodsInd
 
 } // namespace
 
-Reference registerCppClass(lua_State* ls, const char* className, TypeId classID, TypeId baseClassID) {
+Reference registerCppClass(lua_State* ls, const char* className, TypeId classID, TypeId baseClassID, lua_CFunction destructor) {
 	assert(className);
 	assert(classID != nullTypeId);
 
@@ -42,6 +42,12 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 	lua_pushliteral(ls, "__index");
 	lua_pushvalue(ls, metatableIndex);
 	lua_settable(ls, metatableIndex);
+
+	if (destructor) {
+		// metatable.__gc = destructor
+		lua_pushcfunction(ls, destructor);
+		lua_setfield(ls, metatableIndex, "__gc");
+	}
 
 	// Create table for uniqueness
 	// lua_newtable(ls);

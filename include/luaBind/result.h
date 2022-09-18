@@ -24,6 +24,7 @@ private:
 private:
 	bool        result;
 	const char* errorMessage;
+	char        messageBuffer[64];
 };
 
 } // namespace Typhoon::LuaBind

@@ -23,7 +23,7 @@ void registerClassInGlobals(lua_State* ls, const char* className, int methodsInd
 
 } // namespace
 
-Reference registerCppClass(lua_State* ls, const char* className, TypeId classID, TypeId baseClassID, lua_CFunction destructor) {
+Reference registerCppClass(lua_State* ls, const char* className, TypeId classID, TypeId baseClassID) {
 	assert(className);
 	assert(classID != nullTypeId);
 
@@ -39,15 +39,8 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 	const int metatableIndex = lua_gettop(ls);
 
 	// metatable.__index = metatable
-	lua_pushliteral(ls, "__index");
 	lua_pushvalue(ls, metatableIndex);
-	lua_settable(ls, metatableIndex);
-
-	if (destructor) {
-		// metatable.__gc = destructor
-		lua_pushcfunction(ls, destructor);
-		lua_setfield(ls, metatableIndex, "__gc");
-	}
+	lua_setfield(ls, metatableIndex, "__index");
 
 	// Create table for uniqueness
 	// lua_newtable(ls);
@@ -75,9 +68,8 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 
 		// metatable._base = base meta table
 		// _base is used for type safety
-		lua_pushliteral(ls, "_base");
 		lua_pushvalue(ls, baseMetaTable);
-		lua_settable(ls, metatableIndex);
+		lua_setfield(ls, metatableIndex, "_base");
 
 		// Create metatable for methods table
 		lua_newtable(ls);
@@ -105,18 +97,28 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 	return Reference { luaL_ref(ls, LUA_REGISTRYINDEX) };
 }
 
-void registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure) {
+void registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure, lua_CFunction destructor) {
 	assert(closure);
-	lua_pushliteral(ls, "new");
 	lua_pushcfunction(ls, closure);
-	lua_settable(ls, tableIndex); // table.new = new_T
+	lua_setfield(ls, tableIndex, "new"); // table.new = new_T
+	if (destructor) {
+		lua_getmetatable(ls, tableIndex); // mt
+		assert(lua_istable(ls, -1));
+		lua_pushcfunction(ls, destructor); // mt, destructor
+		lua_setfield(ls, -2, "__gc");      // mt.__gc = destructor
+	}
+}
+
+void registerDeleteOperator(lua_State* ls, int tableIndex, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize) {
+	lua_getmetatable(ls, tableIndex); // mt
+	assert(lua_istable(ls, -1));
+	pushFunctionAsUpvalue(ls, closure, &functionPtr, functionPtrSize); // mt, destructor
+	lua_setfield(ls, -2, "__gc");      // mt.__gc = destructor
 }
 
 void registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize) {
-	// Push the closure with flags ==, so that we skip the first element on the stack (a table representing the caller)
-	lua_pushliteral(ls, "new");
 	pushFunctionAsUpvalue(ls, closure, &functionPtr, functionPtrSize);
-	lua_settable(ls, tableIndex); // table.new = closure
+	lua_setfield(ls, tableIndex, "new"); // table.new = closure
 }
 
 int registerLuaClass(lua_State* ls) {
@@ -150,6 +152,20 @@ int getClassMetatable(lua_State* ls) {
 	lua_pushstring(ls, className);
 	lua_rawget(ls, LUA_REGISTRYINDEX);
 	return lua_istable(ls, -1) ? 1 : 0;
+}
+
+bool isAllocatedByLua(lua_State* ls, int userDataStackIndex) {
+	bool res = false;
+	if (! lua_isuserdata(ls, userDataStackIndex)) {
+		return 0; // object registered as table
+	}
+	if (lua_getiuservalue(ls, userDataStackIndex, 1) != LUA_TNONE) {
+		assert(lua_tointeger(ls, -1) == 0);
+		res = true;
+	}
+	// else object was allocated by C++
+	lua_pop(ls, 1); // pops value pushed by lua_getiuservalue
+	return res;
 }
 
 } // namespace Typhoon::LuaBind::detail

@@ -102,6 +102,13 @@ inline void AddEnergy(Human* human, float value) {
 inline void AddEnergy(int* /*notHuman*/, float /*value*/) {
 }
 
+// Opaque C-Style class
+struct Material;
+Material* MaterialNew();
+void MaterialDestroy(Material* mat);
+void MaterialSetOpacity(Material* mat, float value);
+float MaterialGetOpacity(const Material* mat);
+
 // Lightweight math objects
 struct Vec2 {
 	float x, y;

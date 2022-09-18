@@ -9,9 +9,10 @@ struct lua_State;
 
 namespace Typhoon::LuaBind::detail {
 
-Reference registerCppClass(lua_State* ls, const char* className, TypeId classId, TypeId baseClassId, lua_CFunction destructor);
-void      registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure);
+Reference registerCppClass(lua_State* ls, const char* className, TypeId classId, TypeId baseClassId);
+void      registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure, lua_CFunction destructor);
 void      registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize);
+void      registerDeleteOperator(lua_State* ls, int tableIndex, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize);
 
 // Called from Lua, it allows registration of Lua classes visible to C++
 int registerLuaClass(lua_State* ls);
@@ -27,6 +28,8 @@ void registerNewOperator(lua_State* ls, int tableStackIndex, retType (*functionP
 
 template <typename T>
 void registerDefaultNewOperator(lua_State* ls, int tableIndex);
+
+bool isAllocatedByLua(lua_State* ls, int userDataStackIndex);
 
 } // namespace Typhoon::LuaBind::detail
 

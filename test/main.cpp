@@ -425,6 +425,22 @@ TEST_CASE("Root") {
 		}
 	}
 
+	SECTION("Opaque class from C++") {
+		auto       mat = MaterialNew();
+		const auto ref = registerObjectAsUserData(ls, mat);
+		auto       registry = getRegistry(ls);
+		CHECK(registry[ref].getType() == LUA_TUSERDATA);
+		MaterialDestroy(mat);
+	}
+
+	// FIXME Destructor not called , mat not collected
+	SECTION("Opaque class from Lua") {
+		CHECK(doCommand(ls, R"(
+			local mat = Material.new()
+			Material.setOpacity(mat, 0.5)
+		)"));
+	}
+
 	LuaBind::closeState(ls);
 }
 
@@ -480,6 +496,13 @@ void bindTestClasses(lua_State* ls) {
 
 	LUA_BEGIN_CLASS(Quat);
 	LUA_ADD_FUNCTION(setIdentity);
+	LUA_END_CLASS();
+
+	LUA_BEGIN_CLASS(Material);
+	LUA_NEW_OPERATOR(MaterialNew);
+	LUA_DELETE_OPERATOR(MaterialDestroy);
+	LUA_FUNCTION_RENAMED(MaterialSetOpacity, setOpacity);
+	LUA_FUNCTION_RENAMED(MaterialGetOpacity, getOpacity);
 	LUA_END_CLASS();
 
 	LUA_END_BINDING();

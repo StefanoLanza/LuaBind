@@ -12,36 +12,40 @@
 namespace Typhoon::LuaBind::detail {
 
 template <class T>
-int garbageCollect(lua_State* ls) {
-	if (! lua_isuserdata(ls, 1)) {
-		return 0; // object registered as table
-	}
-	// Extract pointer from user data
-	T* obj = nullptr;
-	std::memcpy(&obj, lua_touserdata(ls, 1), sizeof obj);
-	assert(obj);
-	if (lua_getiuservalue(ls, 1, 1) != LUA_TNONE) {
-		assert(lua_tointeger(ls, -1) == 0);
+int wrapDefaultDelete(lua_State* ls) {
+	if (isAllocatedByLua(ls, 1)) {
+		// Extract pointer from user data
+		T* obj = nullptr;
+		std::memcpy(&obj, lua_touserdata(ls, 1), sizeof obj);
+		assert(obj);
 		delete obj; // object allocated by Lua
 	}
-	// else object was on stack
-	lua_pop(ls, 1); // pops value pushed by lua_getiuservalue
+	// else object was allocated by C++
 	return 0;
 }
 
 template <class T>
-lua_CFunction getDestructor() {
-	if constexpr (std::is_trivially_destructible_v<T>) {
-		return nullptr;
+int wrapDeleter(lua_State* ls) {
+	if (isAllocatedByLua(ls, 1)) {
+		// Extract pointer from user data
+		T* obj = nullptr;
+		std::memcpy(&obj, lua_touserdata(ls, 1), sizeof obj);
+		assert(obj);
+
+		// Extract function pointer
+		const void* const ud = lua_touserdata(ls, lua_upvalueindex(1));
+		using Deleter = void (*)(T*);
+		const auto deleter = serializePOD<Deleter>(ud, 0);
+
+		deleter(obj); // object allocated by Lua
 	}
-	else {
-		return garbageCollect<T>;
-	}
+	// else object was allocated by C++
+	return 0;
 }
 
 template <class T>
 Reference registerCppClass(lua_State* ls, const char* className, TypeId baseClassId) {
-	const Reference ref = registerCppClass(ls, className, Typhoon::getTypeId<T>(), baseClassId, getDestructor<T>());
+	const Reference ref = registerCppClass(ls, className, Typhoon::getTypeId<T>(), baseClassId);
 	if constexpr (std::is_base_of_v<Lightweight<T>, Wrapper<T>>) {
 		// Lightweight types get boxing functions
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, ref.getValue()); // table
@@ -59,9 +63,16 @@ inline void registerNewOperator(lua_State* ls, int tableStackIndex, retType (*fu
 	registerNewOperator(ls, tableStackIndex, luaFunc, reinterpret_cast<const void*>(functionPtr), sizeof functionPtr);
 }
 
+template <typename argType>
+inline void registerDeleteOperator(lua_State* ls, int tableStackIndex, void (*functionPtr)(argType*)) {
+	lua_CFunction luaFunc = wrapDeleter<argType>;
+	// FIXME Warning: implicit conversion between pointer-to-function and pointer-to-object is a Microsoft extension
+	registerDeleteOperator(ls, tableStackIndex, luaFunc, reinterpret_cast<const void*>(functionPtr), sizeof functionPtr);
+}
+
 template <typename T>
 void registerDefaultNewOperator(lua_State* ls, int tableIndex) {
-	registerNewOperator(ls, tableIndex, newObject<T>);
+	registerNewOperator(ls, tableIndex, wrapNewObject<T>, wrapDefaultDelete<T>);
 }
 
 } // namespace Typhoon::LuaBind::detail

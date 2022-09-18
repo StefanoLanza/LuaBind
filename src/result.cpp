@@ -1,17 +1,10 @@
 #include "result.h"
+#include <array>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
-#include <array>
-//#include <xutility>
 
 namespace Typhoon::LuaBind {
-
-namespace {
-
-char tempBuffer[256];
-
-}
 
 Result::Result(bool result)
     : result(result)
@@ -28,8 +21,8 @@ Result::Result(const char* errorMessage, ...)
 }
 
 void Result::setErrorMessage(const char* msg, va_list args) {
-	vsnprintf(tempBuffer, std::size(tempBuffer), msg, args);
-	errorMessage = tempBuffer;
+	vsnprintf(messageBuffer, std::size(messageBuffer), msg, args);
+	errorMessage = messageBuffer;
 	result = false;
 }
 

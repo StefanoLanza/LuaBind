@@ -90,7 +90,6 @@ lua_State* createState(Allocator& allocator) {
 
 void closeState(lua_State* ls) {
 	auto context = detail::getContext(ls);
-	lua_gc(ls, LUA_GCCOLLECT, 0);
 	lua_close(ls);
 	context->allocator->destroy(context->tempAllocator);
 	context->allocator->destroy(context);

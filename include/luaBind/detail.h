@@ -104,7 +104,7 @@ inline void checkArgs(lua_State* ls, const int stackIndices[], std::integer_sequ
 
 // Create a new object and return it to Lua as a full user data, optionally with a destructor for GC
 template <typename T>
-int newObject(lua_State* ls) {
+int wrapNewObject(lua_State* ls) {
 	const auto ptr = new T;
 	// Allocate full user data and store the object pointer in it
 	void* const ud = lua_newuserdatauv(ls, sizeof ptr, 1);

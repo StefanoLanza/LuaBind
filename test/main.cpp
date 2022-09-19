@@ -233,7 +233,7 @@ TEST_CASE("Root") {
 	}
 
 	SECTION("VoidPtr") {
-		Biped biped;
+		Biped biped { 10.f };
 		biped.setName("Biped");
 		const Typhoon::VoidPtr voidPtr = Typhoon::MakeVoidPtr(&biped);
 		push(ls, voidPtr);
@@ -308,7 +308,7 @@ TEST_CASE("Root") {
 		}
 
 		SECTION("sub class") {
-			auto       biped = std::make_unique<Biped>();
+			auto       biped = std::make_unique<Biped>(20.f);
 			const auto ref = registerObjectAsUserData(ls, biped.get());
 			REQUIRE(ref.isValid());
 			globals.set("subobj", ref);
@@ -328,7 +328,7 @@ TEST_CASE("Root") {
 		}
 
 		SECTION("struct") {
-			Human human;
+			Human human { 10.f, 20.f };
 			human.energy = 10;
 			const auto ref = registerObjectAsUserData(ls, &human);
 			REQUIRE(ref.isValid());
@@ -426,17 +426,17 @@ TEST_CASE("Root") {
 	}
 
 	SECTION("Opaque class from C++") {
-		auto       mat = materialNew();
+		auto       mat = materialNew(0.5f);
 		const auto ref = registerObjectAsUserData(ls, mat);
 		auto       registry = getRegistry(ls);
 		CHECK(registry[ref].getType() == LUA_TUSERDATA);
 		materialDestroy(mat);
 	}
 
-	// FIXME Destructor not called , mat not collected
 	SECTION("Opaque class from Lua") {
 		CHECK(doCommand(ls, R"(
-			local mat = Material.new()
+			local mat = Material.new(0.1)
+			local opacity = Material.getOpacity(mat)
 			Material.setOpacity(mat, 0.5)
 		)"));
 	}
@@ -467,13 +467,13 @@ void bindTestClasses(lua_State* ls) {
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Biped, GameObject);
-	LUA_SET_DEFAULT_NEW_OPERATOR();
+	LUA_SET_DEFAULT_NEW_OPERATOR(float);
 	LUA_ADD_METHOD(getSpeed);
 	LUA_ADD_METHOD(setSpeed);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Human, Biped);
-	LUA_SET_DEFAULT_NEW_OPERATOR();
+	LUA_SET_DEFAULT_NEW_OPERATOR(float, float);
 	LUA_SETTER_GETTER(energy, setEnergy, getEnergy);
 	// C API
 	LUA_ADD_FUNCTION(addEnergy);
@@ -499,7 +499,7 @@ void bindTestClasses(lua_State* ls) {
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Material);
-	LUA_NEW_OPERATOR(materialNew);
+	LUA_NEW_OPERATOR(materialNew, float);
 	LUA_DELETE_OPERATOR(materialDestroy);
 	LUA_FUNCTION_RENAMED(materialSetOpacity, setOpacity);
 	LUA_FUNCTION_RENAMED(materialGetOpacity, getOpacity);

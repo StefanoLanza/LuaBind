@@ -26,7 +26,7 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId baseClas
 template <typename retType, typename... argType>
 void registerNewOperator(lua_State* ls, int tableStackIndex, retType (*functionPtr)(argType...));
 
-template <typename T>
+template <typename T, typename... argType>
 void registerDefaultNewOperator(lua_State* ls, int tableIndex);
 
 bool isAllocatedByLua(lua_State* ls, int userDataStackIndex);

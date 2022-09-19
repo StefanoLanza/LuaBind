@@ -62,9 +62,9 @@ private:
 
 class Biped : public GameObject {
 public:
-	Biped()
-	    : speed(0) {
-		std::cout << "Biped constructed" << std::endl;
+	Biped(float initialSpeed)
+	    : speed(initialSpeed) {
+		std::cout << "Biped constructed. speed: " << speed << std::endl;
 	}
 	~Biped() {
 		std::cout << "Biped destroyed" << std::endl;
@@ -81,6 +81,11 @@ private:
 };
 
 struct Human : public Biped {
+	Human(float initialSpeed, float initialEnergy)
+	    : Biped { initialSpeed }
+	    , energy { initialEnergy } {
+		std::cout << "Human constructed. speed: " << getSpeed() << " energy: " << energy << std::endl;
+	}
 	float energy;
 };
 
@@ -104,7 +109,7 @@ inline void addEnergy(int* /*notHuman*/, float /*value*/) {
 
 // Opaque C-Style class
 struct Material;
-Material* materialNew();
+Material* materialNew(float opacity);
 void      materialDestroy(Material* mat);
 void      materialSetOpacity(Material* mat, float value);
 float     materialGetOpacity(const Material* mat);

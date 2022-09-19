@@ -7,7 +7,7 @@ namespace Typhoon::LuaBind {
 class Result {
 public:
 	explicit Result(bool result);
-	explicit Result(const char* errorMessage, ...);
+	explicit Result(const char* errorMessage);
 	bool getResult() const {
 		return result;
 	}
@@ -24,7 +24,6 @@ private:
 private:
 	bool        result;
 	const char* errorMessage;
-	char        messageBuffer[64];
 };
 
 } // namespace Typhoon::LuaBind

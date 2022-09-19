@@ -146,14 +146,13 @@ int beginNamespace(lua_State* ls, const char* name);
 		detail::registerFunction(ls__, static_cast<ret_type (*)(__VA_ARGS__)>(&function), #function, tableStackIndex); \
 	} while (0)
 
-// TODO Remove
-// Instead, use LUA_NEW_OPERATOR only. And let the Wrapper create a temporary or full userdata (with __gc)
-#define LUA_SET_DEFAULT_NEW_OPERATOR()                                           \
-	do {                                                                         \
-		detail::registerDefaultNewOperator<boundClass__>(ls__, tableStackIndex); \
+// TODO How to infer the new operator arguments ?
+#define LUA_SET_DEFAULT_NEW_OPERATOR(...)                                                     \
+	do {                                                                                      \
+		detail::registerDefaultNewOperator<boundClass__, __VA_ARGS__>(ls__, tableStackIndex); \
 	} while (0)
 
-#define LUA_NEW_OPERATOR(function)                                    \
+#define LUA_NEW_OPERATOR(function, ...)                               \
 	do {                                                              \
 		detail::registerNewOperator(ls__, tableStackIndex, function); \
 	} while (0)

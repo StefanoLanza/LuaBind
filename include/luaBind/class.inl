@@ -14,10 +14,30 @@ namespace Typhoon::LuaBind::detail {
 constexpr int kLuaAllocated = 0;
 constexpr int kCppAllocated = 1;
 
+template <typename T, typename... argType>
+T* defaultNew(argType... args) {
+	return new T { args... };
+}
+
 // Create a new object and return it to Lua as a full user data
-template <typename T>
-int wrapDefaultNew(lua_State* ls) {
-	const auto ptr = new T;
+template <typename T, typename... argType, std::size_t... argIndices>
+int wrapNewImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...> indx) {
+	// Get stack size of all arguments
+	// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument
+	const int argStackSize[] = { getStackSize<argType>()..., 0 };
+
+	// Compute stack indices
+	int argStackIndex[sizeof...(argType) + 1] = {};
+	argStackIndex[0] = 1;
+	for (size_t i = 1; i < sizeof...(argType); ++i) {
+		argStackIndex[i] = argStackIndex[i - 1] + argStackSize[i - 1];
+	}
+
+	// Check arguments
+	checkArgs<argType...>(ls, argStackIndex, indx);
+
+	// TODO Pop and pass args
+	const auto ptr = defaultNew<T, argType...>(pop<argType>(ls, argStackIndex[argIndices])...);
 
 	// Allocate full user data and store the object pointer in it
 	void* const ud = lua_newuserdatauv(ls, sizeof ptr, 1);
@@ -36,6 +56,11 @@ int wrapDefaultNew(lua_State* ls) {
 	registerPointer(ls, ptr);
 #endif
 	return 1;
+}
+
+template <typename T, typename... argType>
+int wrapNew(lua_State* ls) {
+	return wrapNewImpl<T, argType...>(ls, std::index_sequence_for<argType...> {});
 }
 
 template <class T>
@@ -99,9 +124,10 @@ inline void registerDeleteOperator(lua_State* ls, int tableStackIndex, void (*fu
 	registerDeleteOperator(ls, tableStackIndex, luaFunc, reinterpret_cast<const void*>(functionPtr), sizeof functionPtr);
 }
 
-template <typename T>
+template <typename T, typename... argType>
 void registerDefaultNewOperator(lua_State* ls, int tableIndex) {
-	registerNewAndDeleteOperators(ls, tableIndex, wrapDefaultNew<T>, wrapDefaultDelete<T>);
+	// TODO push defaultNew as upvalue so that wrapNewImpl can call any function
+	registerNewAndDeleteOperators(ls, tableIndex, wrapNew<T, argType...>, wrapDefaultDelete<T>);
 }
 
 } // namespace Typhoon::LuaBind::detail

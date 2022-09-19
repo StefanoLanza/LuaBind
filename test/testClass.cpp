@@ -1,12 +1,13 @@
 #include "testClass.h"
+#include <algorithm>
 
 struct Material {
 	float opacity;
 };
 
-Material* materialNew() {
+Material* materialNew(float opacity) {
 	auto mat = new Material;
-	mat->opacity = 1.f;
+	mat->opacity = std::clamp(opacity, 0.f, 1.f);
 	return mat;
 }
 

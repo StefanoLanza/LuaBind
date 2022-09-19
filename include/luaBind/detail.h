@@ -102,21 +102,4 @@ inline void checkArgs(lua_State* ls, const int stackIndices[], std::integer_sequ
 	(void)foo;
 }
 
-// Create a new object and return it to Lua as a full user data, optionally with a destructor for GC
-template <typename T>
-int wrapNewObject(lua_State* ls) {
-	const auto ptr = new T;
-	// Allocate full user data and store the object pointer in it
-	void* const ud = lua_newuserdatauv(ls, sizeof ptr, 1);
-	std::memcpy(ud, &ptr, sizeof ptr);
-	// Mark as heap allocated by Lua. This user value is queried in garbageCollect<T>
-	lua_pushinteger(ls, 0);       // FIXME Some enum ?
-	lua_setiuservalue(ls, -2, 1); // ud.userValue[1] = 0
-
-#if TY_LUABIND_TYPE_SAFE
-	registerPointer(ls, ptr);
-#endif
-	return 1;
-}
-
 } // namespace Typhoon::LuaBind::detail

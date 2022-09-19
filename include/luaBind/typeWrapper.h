@@ -373,6 +373,10 @@ struct Lightweight {
 	}
 };
 
+template <class T>
+inline constexpr bool isLightweight = std::is_base_of_v<Lightweight<T>, Wrapper<T>>;
+
+
 //! Const reference wrapper
 template <class T>
 class Wrapper<const T&> {

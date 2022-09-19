@@ -160,7 +160,7 @@ bool isAllocatedByLua(lua_State* ls, int userDataStackIndex) {
 		return 0; // object registered as table
 	}
 	if (lua_getiuservalue(ls, userDataStackIndex, 1) != LUA_TNONE) {
-		assert(lua_tointeger(ls, -1) == 0);
+		assert(lua_tointeger(ls, -1) == kLuaAllocated);
 		res = true;
 	}
 	// else object was allocated by C++

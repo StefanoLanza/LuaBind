@@ -119,15 +119,16 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId baseClas
 	return ref;
 }
 
-template <typename retType, typename... argType>
+template <typename classType, typename retType, typename... argType>
 inline void registerNewOperator(lua_State* ls, int tableStackIndex, retType (*functionPtr)(argType...)) {
-	static_assert(! std::is_void_v<retType>, "New operator must return a type");
+	static_assert(std::is_same_v<classType, std::remove_pointer_t<retType>>, "Invalid return type for new operator");
 	// FIXME Warning: implicit conversion between pointer-to-function and pointer-to-object is a Microsoft extension
 	registerNewOperator(ls, tableStackIndex, wrapNew<retType, argType...>, functionPtr, sizeof functionPtr);
 }
 
-template <typename argType>
+template <typename classType, typename argType>
 inline void registerDeleteOperator(lua_State* ls, int tableStackIndex, void (*functionPtr)(argType*)) {
+	static_assert(std::is_same_v<classType, argType>, "Invalid argument type for delete operator");
 	lua_CFunction luaFunc = wrapDeleter<argType>;
 	// FIXME Warning: implicit conversion between pointer-to-function and pointer-to-object is a Microsoft extension
 	registerDeleteOperator(ls, tableStackIndex, luaFunc, reinterpret_cast<const void*>(functionPtr), sizeof functionPtr);

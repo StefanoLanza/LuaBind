@@ -154,10 +154,10 @@ int beginNamespace(lua_State* ls, const char* name);
 
 #define LUA_NEW_OPERATOR(function, ...)                               \
 	do {                                                              \
-		detail::registerNewOperator(ls__, tableStackIndex, function); \
+		detail::registerNewOperator<boundClass__>(ls__, tableStackIndex, function); \
 	} while (0)
 
 #define LUA_DELETE_OPERATOR(function)                                    \
 	do {                                                                 \
-		detail::registerDeleteOperator(ls__, tableStackIndex, function); \
+		detail::registerDeleteOperator<boundClass__>(ls__, tableStackIndex, function); \
 	} while (0)

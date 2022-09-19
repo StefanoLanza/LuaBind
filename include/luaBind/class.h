@@ -24,9 +24,6 @@ int getClassMetatable(lua_State* ls);
 template <class T>
 Reference registerCppClass(lua_State* ls, const char* className, TypeId baseClassId);
 
-template <typename retType, typename... argType>
-void registerNewOperator(lua_State* ls, int tableStackIndex, retType (*functionPtr)(argType...));
-
 template <typename T, typename... argType>
 void registerDefaultNewOperator(lua_State* ls, int tableIndex);
 

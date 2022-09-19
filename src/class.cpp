@@ -103,7 +103,6 @@ void registerNewAndDeleteOperators(lua_State* ls, int tableIndex, lua_CFunction 
 	assert(wrapDelete);
 	assert(newFunctionPtr);
 
-	// lua_pushcfunction(ls, newFunction);
 	pushFunctionAsUpvalue(ls, wrapNew, newFunctionPtr, newFunctionPtrSize);
 	lua_setfield(ls, tableIndex, "new"); // table.new = newFunction
 

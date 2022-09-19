@@ -4,7 +4,6 @@
 
 #include "boxing.h"
 #include "detail.h"
-#include "freeFunctionWrapper.h"
 #include "reference.h"
 #include <core/typeId.h>
 #include <type_traits>
@@ -20,10 +19,10 @@ T* defaultNew(argType... args) {
 }
 
 // Create a new object and return it to Lua as a full user data
-template <typename T, typename... argType, std::size_t... argIndices>
+template <typename retType, typename... argType, std::size_t... argIndices>
 int wrapNewImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...> indx) {
-	// Extract function pointer from Lua user data
-	using func_ptr = T* (*)(argType...);
+	// Extract function pointer from upvalue
+	using func_ptr = retType (*)(argType...);
 	const void* const func_ud = lua_touserdata(ls, lua_upvalueindex(1));
 	const func_ptr    func = serializePOD<func_ptr>(func_ud, 0);
 
@@ -42,30 +41,37 @@ int wrapNewImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...>
 	checkArgs<argType...>(ls, argStackIndex, indx);
 
 	// Pop and pass args
-	const auto ptr = func(pop<argType>(ls, argStackIndex[argIndices])...);
+	const auto obj = func(pop<argType>(ls, argStackIndex[argIndices])...);
 
-	// Allocate full user data and store the object pointer in it
-	void* const ud = lua_newuserdatauv(ls, sizeof ptr, 1);
-	std::memcpy(ud, &ptr, sizeof ptr);
+	if constexpr (isLightweight<retType>) {
+		// Push lightweight object as light user data
+		Lightweight<retType>::push(ls, obj);
+	}
+	else {
+		// Allocate full user data and store the object pointer in it
+		void* const ud = lua_newuserdatauv(ls, sizeof obj, 1);
+		std::memcpy(ud, &obj, sizeof obj);
 
-	// Associate metatable
-	const auto className = typeName<T>();
-	luaL_getmetatable(ls, className);
-	lua_setmetatable(ls, -2);
+		// Associate metatable
+		const auto className = typeName<std::remove_pointer_t<retType>>();
+		assert(className);
+		luaL_getmetatable(ls, className);
+		lua_setmetatable(ls, -2);
 
-	// Mark as heap allocated by Lua. This user value is queried in wrapDefaultDelete<T>
-	lua_pushinteger(ls, kLuaAllocated);
-	lua_setiuservalue(ls, -2, 1); // ud.userValue[1] = kLuaAllocated
+		// Mark as heap allocated by Lua. This user value is queried in wrapDefaultDelete<T>
+		lua_pushinteger(ls, kLuaAllocated);
+		lua_setiuservalue(ls, -2, 1); // ud.userValue[1] = kLuaAllocated
 
 #if TY_LUABIND_TYPE_SAFE
-	registerPointer(ls, ptr);
+		registerPointer(ls, obj);
 #endif
+	}
 	return 1;
 }
 
-template <typename T, typename... argType>
+template <typename retType, typename... argType>
 int wrapNew(lua_State* ls) {
-	return wrapNewImpl<T, argType...>(ls, std::index_sequence_for<argType...> {});
+	return wrapNewImpl<retType, argType...>(ls, std::index_sequence_for<argType...> {});
 }
 
 template <class T>
@@ -116,10 +122,8 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId baseClas
 template <typename retType, typename... argType>
 inline void registerNewOperator(lua_State* ls, int tableStackIndex, retType (*functionPtr)(argType...)) {
 	static_assert(! std::is_void_v<retType>, "New operator must return a type");
-	// FIXME wrapCustomNew
-	lua_CFunction luaFunc = freeFunctionWrapper<retType, argType...>;
 	// FIXME Warning: implicit conversion between pointer-to-function and pointer-to-object is a Microsoft extension
-	registerNewOperator(ls, tableStackIndex, luaFunc, reinterpret_cast<const void*>(functionPtr), sizeof functionPtr);
+	registerNewOperator(ls, tableStackIndex, wrapNew<retType, argType...>, functionPtr, sizeof functionPtr);
 }
 
 template <typename argType>
@@ -132,7 +136,7 @@ inline void registerDeleteOperator(lua_State* ls, int tableStackIndex, void (*fu
 template <typename T, typename... argType>
 void registerDefaultNewOperator(lua_State* ls, int tableIndex) {
 	auto actualNew = defaultNew<T, argType...>;
-	registerNewAndDeleteOperators(ls, tableIndex, wrapNew<T, argType...>, wrapDefaultDelete<T>, &actualNew, sizeof actualNew);
+	registerNewAndDeleteOperators(ls, tableIndex, wrapNew<T*, argType...>, wrapDefaultDelete<T>, &actualNew, sizeof actualNew);
 }
 
 } // namespace Typhoon::LuaBind::detail

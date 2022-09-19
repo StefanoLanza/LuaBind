@@ -97,17 +97,20 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 	return Reference { luaL_ref(ls, LUA_REGISTRYINDEX) };
 }
 
-void registerNewAndDeleteOperators(lua_State* ls, int tableIndex, lua_CFunction newFunction, lua_CFunction deleteFunction) {
-	assert(newFunction);
-	assert(deleteFunction);
+void registerNewAndDeleteOperators(lua_State* ls, int tableIndex, lua_CFunction wrapNew, lua_CFunction wrapDelete, const void* newFunctionPtr,
+                                   size_t newFunctionPtrSize) {
+	assert(wrapNew);
+	assert(wrapDelete);
+	assert(newFunctionPtr);
 
-	lua_pushcfunction(ls, newFunction);
+	// lua_pushcfunction(ls, newFunction);
+	pushFunctionAsUpvalue(ls, wrapNew, newFunctionPtr, newFunctionPtrSize);
 	lua_setfield(ls, tableIndex, "new"); // table.new = newFunction
 
-	lua_getmetatable(ls, tableIndex);    // mt
+	lua_getmetatable(ls, tableIndex); // mt
 	assert(lua_istable(ls, -1));
-	lua_pushcfunction(ls, deleteFunction); // mt, deleteFunction
-	lua_setfield(ls, -2, "__gc");          // mt.__gc = deleteFunction
+	lua_pushcfunction(ls, wrapDelete); // mt, deleteFunction
+	lua_setfield(ls, -2, "__gc");      // mt.__gc = deleteFunction
 }
 
 void registerDeleteOperator(lua_State* ls, int tableIndex, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize) {

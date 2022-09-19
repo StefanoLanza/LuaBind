@@ -22,6 +22,11 @@ T* defaultNew(argType... args) {
 // Create a new object and return it to Lua as a full user data
 template <typename T, typename... argType, std::size_t... argIndices>
 int wrapNewImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...> indx) {
+	// Extract function pointer from Lua user data
+	using func_ptr = T* (*)(argType...);
+	const void* const func_ud = lua_touserdata(ls, lua_upvalueindex(1));
+	const func_ptr    func = serializePOD<func_ptr>(func_ud, 0);
+
 	// Get stack size of all arguments
 	// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument
 	const int argStackSize[] = { getStackSize<argType>()..., 0 };
@@ -36,8 +41,8 @@ int wrapNewImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...>
 	// Check arguments
 	checkArgs<argType...>(ls, argStackIndex, indx);
 
-	// TODO Pop and pass args
-	const auto ptr = defaultNew<T, argType...>(pop<argType>(ls, argStackIndex[argIndices])...);
+	// Pop and pass args
+	const auto ptr = func(pop<argType>(ls, argStackIndex[argIndices])...);
 
 	// Allocate full user data and store the object pointer in it
 	void* const ud = lua_newuserdatauv(ls, sizeof ptr, 1);
@@ -126,8 +131,8 @@ inline void registerDeleteOperator(lua_State* ls, int tableStackIndex, void (*fu
 
 template <typename T, typename... argType>
 void registerDefaultNewOperator(lua_State* ls, int tableIndex) {
-	// TODO push defaultNew as upvalue so that wrapNewImpl can call any function
-	registerNewAndDeleteOperators(ls, tableIndex, wrapNew<T, argType...>, wrapDefaultDelete<T>);
+	auto actualNew = defaultNew<T, argType...>;
+	registerNewAndDeleteOperators(ls, tableIndex, wrapNew<T, argType...>, wrapDefaultDelete<T>, &actualNew, sizeof actualNew);
 }
 
 } // namespace Typhoon::LuaBind::detail

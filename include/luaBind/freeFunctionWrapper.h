@@ -10,12 +10,10 @@ namespace Typhoon::LuaBind::detail {
 
 template <typename retType, typename... argTypes, std::size_t... argIndices>
 int freeFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...> indx) {
+	// Extract function pointer from Lua user data
 	using func_ptr = retType (*)(argTypes...);
-
-	const void* const ud = lua_touserdata(ls, lua_upvalueindex(1));
-
-	// Extract function pointer and flags from Lua user data
-	const func_ptr func = serializePOD<func_ptr>(ud, 0);
+	const void* const func_ud = lua_touserdata(ls, lua_upvalueindex(1));
+	const auto        func = serializePOD<func_ptr>(func_ud, 0);
 
 	// Get stack size of all arguments
 	// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument

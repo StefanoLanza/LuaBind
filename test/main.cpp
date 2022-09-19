@@ -297,11 +297,12 @@ TEST_CASE("Root") {
 			}
 
 			SECTION("creating C++ object in Lua") {
-				CHECK(doCommand(ls, "obj = GameObject.new()"));
+				CHECK(doCommand(ls, "obj = Human.new(100., 200.)"));
 				CHECK(doCommand(ls, "obj:setLives(20)"));
 				CHECK(doCommand(ls, "obj:setName('Stanley')"));
 				CHECK(doCommand(ls, "obj:setState(0)"));
 				CHECK(doCommand(ls, "obj:getState()"));
+				CHECK(doCommand(ls, "obj:setEnergy(20)"));
 				CHECK(doCommand(ls, "obj = nil"));
 				CHECK(lua_gettop(ls) == 0);
 			}

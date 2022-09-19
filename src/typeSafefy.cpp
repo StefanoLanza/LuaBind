@@ -25,29 +25,29 @@ bool compatibleTypes(const Context& context, TypeId first, TypeId second) {
 } // namespace
 
 void registerBaseClass(lua_State* ls, TypeId super, TypeId base) {
-	Context* context = getContext(ls);
+	auto context = getContext(ls);
 	context->baseClassMap.emplace(super, base);
 }
 
 bool tryCheckPointerType(lua_State* ls, const void* ptr, TypeId typeId) {
-	Context* context = getContext(ls);
+	auto context = getContext(ls);
 	auto it = context->pointerMap.find(ptr);
 	return (it == context->pointerMap.end()) || compatibleTypes(*context, it->second, typeId);
 }
 
 bool checkPointerType(lua_State* ls, const void* ptr, TypeId typeId) {
-	Context* context = getContext(ls);
+	auto context = getContext(ls);
 	auto it = context->pointerMap.find(ptr);
 	return (it != context->pointerMap.end()) && compatibleTypes(*context, it->second, typeId);
 }
 
 void registerPointer(lua_State* ls, const void* ptr, TypeId typeId) {
-	Context* context = getContext(ls);
+	auto context = getContext(ls);
 	context->pointerMap.insert_or_assign(ptr, typeId);
 }
 
 void unregisterPointer(lua_State* ls, const void* ptr) {
-	Context* context = getContext(ls);
+	auto context = getContext(ls);
 	context->pointerMap.erase(ptr);
 }
 

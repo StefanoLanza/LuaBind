@@ -85,6 +85,7 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId baseClas
 
 template <typename retType, typename... argType>
 inline void registerNewOperator(lua_State* ls, int tableStackIndex, retType (*functionPtr)(argType...)) {
+	static_assert(! std::is_void_v<retType>, "New operator must return a type");
 	// FIXME wrapCustomNew
 	lua_CFunction luaFunc = freeFunctionWrapper<retType, argType...>;
 	// FIXME Warning: implicit conversion between pointer-to-function and pointer-to-object is a Microsoft extension
@@ -100,7 +101,7 @@ inline void registerDeleteOperator(lua_State* ls, int tableStackIndex, void (*fu
 
 template <typename T>
 void registerDefaultNewOperator(lua_State* ls, int tableIndex) {
-	registerNewOperator(ls, tableIndex, wrapDefaultNew<T>, wrapDefaultDelete<T>);
+	registerNewAndDeleteOperators(ls, tableIndex, wrapDefaultNew<T>, wrapDefaultDelete<T>);
 }
 
 } // namespace Typhoon::LuaBind::detail

@@ -11,13 +11,13 @@ namespace Typhoon::LuaBind::detail {
 namespace {
 
 // Store method table in globals so that scripts can add functions written in Lua.
-void registerClassInGlobals(lua_State* ls, const char* className, int methodsIndex) {
+void registerClassInGlobals(lua_State* ls, const char* className, int metatableIndex) {
 	AutoBlock autoBlock(ls);
 
 	// globals[classname] = methodsIndex
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
 	lua_pushstring(ls, className);
-	lua_pushvalue(ls, methodsIndex);
+	lua_pushvalue(ls, metatableIndex);
 	lua_settable(ls, -3);
 }
 
@@ -97,23 +97,24 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId classID,
 	return Reference { luaL_ref(ls, LUA_REGISTRYINDEX) };
 }
 
-void registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure, lua_CFunction destructor) {
-	assert(closure);
-	lua_pushcfunction(ls, closure);
-	lua_setfield(ls, tableIndex, "new"); // table.new = new_T
-	if (destructor) {
-		lua_getmetatable(ls, tableIndex); // mt
-		assert(lua_istable(ls, -1));
-		lua_pushcfunction(ls, destructor); // mt, destructor
-		lua_setfield(ls, -2, "__gc");      // mt.__gc = destructor
-	}
+void registerNewAndDeleteOperators(lua_State* ls, int tableIndex, lua_CFunction newFunction, lua_CFunction deleteFunction) {
+	assert(newFunction);
+	assert(deleteFunction);
+
+	lua_pushcfunction(ls, newFunction);
+	lua_setfield(ls, tableIndex, "new"); // table.new = newFunction
+
+	lua_getmetatable(ls, tableIndex);    // mt
+	assert(lua_istable(ls, -1));
+	lua_pushcfunction(ls, deleteFunction); // mt, deleteFunction
+	lua_setfield(ls, -2, "__gc");          // mt.__gc = deleteFunction
 }
 
 void registerDeleteOperator(lua_State* ls, int tableIndex, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize) {
 	lua_getmetatable(ls, tableIndex); // mt
 	assert(lua_istable(ls, -1));
 	pushFunctionAsUpvalue(ls, closure, &functionPtr, functionPtrSize); // mt, destructor
-	lua_setfield(ls, -2, "__gc");      // mt.__gc = destructor
+	lua_setfield(ls, -2, "__gc");                                      // mt.__gc = destructor
 }
 
 void registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize) {

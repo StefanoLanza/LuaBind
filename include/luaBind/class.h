@@ -10,7 +10,7 @@ struct lua_State;
 namespace Typhoon::LuaBind::detail {
 
 Reference registerCppClass(lua_State* ls, const char* className, TypeId classId, TypeId baseClassId);
-void      registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure, lua_CFunction destructor);
+void      registerNewAndDeleteOperators(lua_State* ls, int tableIndex, lua_CFunction newFunction, lua_CFunction deleteFunction);
 void      registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize);
 void      registerDeleteOperator(lua_State* ls, int tableIndex, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize);
 

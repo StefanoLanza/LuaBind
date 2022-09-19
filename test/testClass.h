@@ -1,5 +1,4 @@
 #include <iostream>
-#include <memory>
 #include <string>
 
 enum class GameObjectState {
@@ -10,31 +9,32 @@ enum class GameObjectState {
 class GameObject {
 public:
 	GameObject()
-	    : a(0)
-	    , b(0)
+	    : lives(0)
+	    , weapon(0)
 	    , state(GameObjectState::alive) {
-		std::cout << "Avatar created" << std::endl;
+		std::cout << "GameObject constructed" << std::endl;
 	}
 	virtual ~GameObject() {
-		std::cout << "Avatar deleted (name:" << name << ")" << std::endl;
+		std::cout << "GameObject destroyed (name:" << name << ")" << std::endl;
 	}
 
-	void SetName(std::string v) {
-		std::cout << "Name set to " << v << std::endl;
+	void setName(std::string v) {
+		std::cout << "GameObject name set to " << v << std::endl;
 		name = std::move(v);
 	}
-	void SetA(int v) {
-		std::cout << "SetA " << v << std::endl;
-		a = v;
+	void setLives(int v) {
+		std::cout << "GameObject lives set to " << v << std::endl;
+		lives = v;
 	}
-	void SetB(int v) {
-		b = v;
+	void setWeapon(int v) {
+		std::cout << "GameObject weapon set to " << v << std::endl;
+		weapon = v;
 	}
-	int GetA() const {
-		return a;
+	int getLives() const {
+		return lives;
 	}
-	int GetB() const {
-		return b;
+	int getWeapon() const {
+		return weapon;
 	}
 	GameObjectState getState() const {
 		return state;
@@ -55,29 +55,29 @@ public:
 
 private:
 	std::string     name;
-	int             a;
-	int             b;
+	int             lives;
+	int             weapon;
 	GameObjectState state;
 };
 
 class Biped : public GameObject {
 public:
 	Biped()
-	    : c(0) {
-		std::cout << "Biped created" << std::endl;
+	    : speed(0) {
+		std::cout << "Biped constructed" << std::endl;
 	}
 	~Biped() {
-		std::cout << "Biped deleted" << std::endl;
+		std::cout << "Biped destroyed" << std::endl;
 	}
-	void SetC(float v) {
-		c = v;
+	void setSpeed(float v) {
+		speed = v;
 	}
-	float GetC() const {
-		return c;
+	float getSpeed() const {
+		return speed;
 	}
 
 private:
-	float c;
+	float speed;
 };
 
 struct Human : public Biped {
@@ -85,29 +85,29 @@ struct Human : public Biped {
 };
 
 // Free functions
-inline float GetEnergy(const Human* human) {
+inline float getEnergy(const Human* human) {
 	return human->energy;
 }
 
 // Bad overload
-inline float GetEnergy(const int* /*notHuman*/) {
+inline float getEnergy(const int* /*notHuman*/) {
 	return 0;
 }
 
-inline void AddEnergy(Human* human, float value) {
+inline void addEnergy(Human* human, float value) {
 	human->energy += value;
 }
 
 // Test overloading
-inline void AddEnergy(int* /*notHuman*/, float /*value*/) {
+inline void addEnergy(int* /*notHuman*/, float /*value*/) {
 }
 
 // Opaque C-Style class
 struct Material;
-Material* MaterialNew();
-void MaterialDestroy(Material* mat);
-void MaterialSetOpacity(Material* mat, float value);
-float MaterialGetOpacity(const Material* mat);
+Material* materialNew();
+void      materialDestroy(Material* mat);
+void      materialSetOpacity(Material* mat, float value);
+float     materialGetOpacity(const Material* mat);
 
 // Lightweight math objects
 struct Vec2 {
@@ -115,9 +115,9 @@ struct Vec2 {
 };
 
 struct Vec3 {
-	double x, y, z;
-	inline Vec3 operator + (const Vec3& b) const {
-		return { x + b.x, y + b.y, z + b.z };
+	double      x, y, z;
+	inline Vec3 operator+(const Vec3& weapon) const {
+		return { x + weapon.x, y + weapon.y, z + weapon.z };
 	}
 };
 
@@ -125,28 +125,28 @@ struct Quat {
 	double x, y, z, w;
 };
 
-inline Vec2 cross([[maybe_unused]]const Vec2& a, [[maybe_unused]] const Vec2& b) {
+inline Vec2 cross([[maybe_unused]] const Vec2& lives, [[maybe_unused]] const Vec2& weapon) {
 	return {};
 }
 
-inline Vec3 cross([[maybe_unused]]const Vec3& a, [[maybe_unused]] const Vec3& b) {
+inline Vec3 cross([[maybe_unused]] const Vec3& lives, [[maybe_unused]] const Vec3& weapon) {
 	return {};
 }
 
-inline Vec2 operator - (Vec2 a, Vec2 b) {
-	return { a.x + b.x, a.y - b.y };
+inline Vec2 operator-(Vec2 lives, Vec2 weapon) {
+	return { lives.x + weapon.x, lives.y - weapon.y };
 }
 
-inline Vec3 operator - (Vec3 a, Vec3 b)  {
-	return { a.x - b.x, a.y - b.y, a.z - b.z };
+inline Vec3 operator-(Vec3 lives, Vec3 weapon) {
+	return { lives.x - weapon.x, lives.y - weapon.y, lives.z - weapon.z };
 }
 
 inline Vec2 newVec2(float x, float y) {
-	return Vec2 {x, y };
+	return Vec2 { x, y };
 }
 
 inline Vec3 newVec3(float x, float y, float z) {
-	return Vec3 {x, y, z };
+	return Vec3 { x, y, z };
 }
 
 inline Vec3 add(const Vec3& v0, const Vec3& v1) {

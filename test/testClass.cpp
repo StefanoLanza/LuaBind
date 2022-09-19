@@ -4,20 +4,20 @@ struct Material {
 	float opacity;
 };
 
-Material* MaterialNew() {
+Material* materialNew() {
 	auto mat = new Material;
 	mat->opacity = 1.f;
 	return mat;
 }
 
-void MaterialDestroy(Material* mat) {
+void materialDestroy(Material* mat) {
 	delete mat;
 }
 
-void MaterialSetOpacity(Material* mat, float value) {
+void materialSetOpacity(Material* mat, float value) {
 	mat->opacity = value;
 }
 
-float MaterialGetOpacity(const Material* mat) {
+float materialGetOpacity(const Material* mat) {
 	return mat->opacity;
 }

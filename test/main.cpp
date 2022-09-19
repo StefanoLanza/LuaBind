@@ -47,7 +47,7 @@ TEST_CASE("Root") {
 	bindTestClasses(ls);
 
 	SECTION("Builtins") {
-		constexpr char          c = 127;
+		constexpr char          speed = 127;
 		constexpr unsigned char uc = 255;
 		constexpr int           i = -1000;
 		constexpr unsigned int  ui = 0xFFFF;
@@ -55,11 +55,11 @@ TEST_CASE("Root") {
 		constexpr unsigned long ul = 123456789;
 		constexpr float         f = 3.141f;
 		constexpr double        d = 2.718281828459045235360287471352662497757247093699951;
-		constexpr bool          b = true;
+		constexpr bool          weapon = true;
 		const char*             cstr = "Stefano";
 		const std::string       str { "Lanza" };
-		push(ls, c);
-		CHECK(pop<char>(ls, -1) == c);
+		push(ls, speed);
+		CHECK(pop<char>(ls, -1) == speed);
 		push(ls, uc);
 		CHECK(pop<unsigned char>(ls, -1) == uc);
 		push(ls, i);
@@ -74,8 +74,8 @@ TEST_CASE("Root") {
 		CHECK(pop<float>(ls, -1) == f);
 		push(ls, d);
 		CHECK(pop<double>(ls, -1) == d);
-		push(ls, b);
-		CHECK(pop<bool>(ls, -1) == b);
+		push(ls, weapon);
+		CHECK(pop<bool>(ls, -1) == weapon);
 		push(ls, cstr);
 		CHECK(pop<std::string>(ls, -1) == cstr);
 		push(ls, str);
@@ -234,7 +234,7 @@ TEST_CASE("Root") {
 
 	SECTION("VoidPtr") {
 		Biped biped;
-		biped.SetName("Biped");
+		biped.setName("Biped");
 		const Typhoon::VoidPtr voidPtr = Typhoon::MakeVoidPtr(&biped);
 		push(ls, voidPtr);
 	}
@@ -250,9 +250,9 @@ TEST_CASE("Root") {
 				CHECK(registry[bart.get()].isNil() == false);
 				globals.set("bart", bart.get());
 				CHECK(globals["bart"].getType() == LUA_TUSERDATA);
-				CHECK(doCommand(ls, "bart:SetA(10)"));
-				CHECK(bart->GetA() == 10);
-				CHECK(doCommand(ls, "bart:SetName('Bart')"));
+				CHECK(doCommand(ls, "bart:setLives(10)"));
+				CHECK(bart->getLives() == 10);
+				CHECK(doCommand(ls, "bart:setName('Bart')"));
 				CHECK(bart->getName() == "Bart");
 				if (ref) {
 					unregisterObject(ls, ref);
@@ -269,9 +269,9 @@ TEST_CASE("Root") {
 				CHECK(registry[fred.get()].isNil() == false);
 				globals.set("fred", fred.get());
 				CHECK(globals["fred"].getType() == LUA_TTABLE);
-				CHECK(doCommand(ls, "fred:SetA(20)"));
-				CHECK(fred->GetA() == 20);
-				CHECK(doCommand(ls, "fred:SetName('Fred')"));
+				CHECK(doCommand(ls, "fred:setLives(20)"));
+				CHECK(fred->getLives() == 20);
+				CHECK(doCommand(ls, "fred:setName('Fred')"));
 				CHECK(fred->getName() == "Fred");
 				unregisterObject(ls, ref);
 				CHECK(registry[fred.get()].isNil() == true);
@@ -286,9 +286,9 @@ TEST_CASE("Root") {
 				globals.set("barney", barney.get());
 				CHECK(globals["barney"].getType() == LUA_TLIGHTUSERDATA);
 
-				CHECK(doCommand(ls, "GameObject.SetA(barney, 20)"));
-				CHECK(barney->GetA() == 20);
-				CHECK(doCommand(ls, "GameObject.SetName(barney, 'Barney')"));
+				CHECK(doCommand(ls, "GameObject.setLives(barney, 20)"));
+				CHECK(barney->getLives() == 20);
+				CHECK(doCommand(ls, "GameObject.setName(barney, 'Barney')"));
 				CHECK(barney->getName() == "Barney");
 
 				unregisterObject(ls, ref);
@@ -298,8 +298,8 @@ TEST_CASE("Root") {
 
 			SECTION("creating C++ object in Lua") {
 				CHECK(doCommand(ls, "obj = GameObject.new()"));
-				CHECK(doCommand(ls, "obj:SetA(20)"));
-				CHECK(doCommand(ls, "obj:SetName('Stanley')"));
+				CHECK(doCommand(ls, "obj:setLives(20)"));
+				CHECK(doCommand(ls, "obj:setName('Stanley')"));
 				CHECK(doCommand(ls, "obj:setState(0)"));
 				CHECK(doCommand(ls, "obj:getState()"));
 				CHECK(doCommand(ls, "obj = nil"));
@@ -315,11 +315,11 @@ TEST_CASE("Root") {
 			const Biped* tmp2 = static_cast<const Biped*>(globals["subobj"]);
 			REQUIRE(tmp2);
 			CHECK(globals["subobj"].getType() == LUA_TUSERDATA);
-			doCommand(ls, "subobj:SetA(20)");
-			CHECK(biped->GetA() == 20);
-			doCommand(ls, "subobj:SetC(30)");
-			CHECK(biped->GetC() == 30.f);
-			doCommand(ls, "subobj:SetName('Homer')");
+			doCommand(ls, "subobj:setLives(20)");
+			CHECK(biped->getLives() == 20);
+			doCommand(ls, "subobj:setSpeed(30)");
+			CHECK(biped->getSpeed() == 30.f);
+			doCommand(ls, "subobj:setName('Homer')");
 			CHECK(biped->getNameRef() == "Homer");
 
 			unregisterObject(ls, ref);
@@ -337,18 +337,18 @@ TEST_CASE("Root") {
 
 			CHECK_FALSE(globals["human"].isNil());
 
-			CHECK(doCommand(ls, "human:SetName('Rocky')"));
+			CHECK(doCommand(ls, "human:setName('Rocky')"));
 			CHECK(human.getName() == "Rocky");
 
-			doCommand(ls, "energy = human:GetEnergy()");
+			doCommand(ls, "energy = human:getEnergy()");
 			const float energy = (float)globals["energy"];
 			CHECK(energy == human.energy);
 
-			doCommand(ls, "energy = human:SetEnergy(20)");
+			doCommand(ls, "energy = human:setEnergy(20)");
 			CHECK(20 == human.energy);
 
 			// C API
-			doCommand(ls, "Human.AddEnergy(human, 10.)");
+			doCommand(ls, "Human.addEnergy(human, 10.)");
 		}
 
 		SECTION("temporaries") {
@@ -389,7 +389,7 @@ TEST_CASE("Root") {
 	SECTION("UniqueRef") {
 		Table registry = getRegistry(ls);
 		auto  obj = std::make_unique<GameObject>();
-		obj->SetName("UniqueRef");
+		obj->setName("UniqueRef");
 		const auto ref = registerObjectAsUserData(ls, obj.get());
 		CHECK(registry[ref].getType() == LUA_TUSERDATA);
 
@@ -426,11 +426,11 @@ TEST_CASE("Root") {
 	}
 
 	SECTION("Opaque class from C++") {
-		auto       mat = MaterialNew();
+		auto       mat = materialNew();
 		const auto ref = registerObjectAsUserData(ls, mat);
 		auto       registry = getRegistry(ls);
 		CHECK(registry[ref].getType() == LUA_TUSERDATA);
-		MaterialDestroy(mat);
+		materialDestroy(mat);
 	}
 
 	// FIXME Destructor not called , mat not collected
@@ -454,13 +454,13 @@ void bindTestClasses(lua_State* ls) {
 
 	LUA_BEGIN_CLASS(GameObject);
 	LUA_SET_DEFAULT_NEW_OPERATOR();
-	LUA_ADD_METHOD(SetName);
+	LUA_ADD_METHOD(setName);
 	LUA_ADD_METHOD(getNameRef);
 	LUA_ADD_METHOD(getName);
-	LUA_ADD_METHOD(SetA);
-	LUA_ADD_METHOD(SetB);
-	LUA_ADD_METHOD(GetA);
-	LUA_ADD_METHOD(GetB);
+	LUA_ADD_METHOD(setLives);
+	LUA_ADD_METHOD(setWeapon);
+	LUA_ADD_METHOD(getLives);
+	LUA_ADD_METHOD(getWeapon);
 	LUA_ADD_METHOD(getState);
 	LUA_ADD_METHOD(setState);
 	LUA_ADD_OVERLOADED_METHOD(overloaded, void, float);
@@ -468,16 +468,16 @@ void bindTestClasses(lua_State* ls) {
 
 	LUA_BEGIN_SUB_CLASS(Biped, GameObject);
 	LUA_SET_DEFAULT_NEW_OPERATOR();
-	LUA_ADD_METHOD(GetC);
-	LUA_ADD_METHOD(SetC);
+	LUA_ADD_METHOD(getSpeed);
+	LUA_ADD_METHOD(setSpeed);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Human, Biped);
 	LUA_SET_DEFAULT_NEW_OPERATOR();
-	LUA_SETTER_GETTER(energy, SetEnergy, GetEnergy);
+	LUA_SETTER_GETTER(energy, setEnergy, getEnergy);
 	// C API
-	LUA_ADD_FUNCTION(AddEnergy);
-	LUA_ADD_FUNCTION(GetEnergy);
+	LUA_ADD_FUNCTION(addEnergy);
+	LUA_ADD_FUNCTION(getEnergy);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Vec2);
@@ -499,10 +499,10 @@ void bindTestClasses(lua_State* ls) {
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Material);
-	LUA_NEW_OPERATOR(MaterialNew);
-	LUA_DELETE_OPERATOR(MaterialDestroy);
-	LUA_FUNCTION_RENAMED(MaterialSetOpacity, setOpacity);
-	LUA_FUNCTION_RENAMED(MaterialGetOpacity, getOpacity);
+	LUA_NEW_OPERATOR(materialNew);
+	LUA_DELETE_OPERATOR(materialDestroy);
+	LUA_FUNCTION_RENAMED(materialSetOpacity, setOpacity);
+	LUA_FUNCTION_RENAMED(materialGetOpacity, getOpacity);
 	LUA_END_CLASS();
 
 	LUA_END_BINDING();

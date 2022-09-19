@@ -112,18 +112,6 @@ void registerNewAndDeleteOperators(lua_State* ls, int tableIndex, lua_CFunction 
 	lua_setfield(ls, -2, "__gc");      // mt.__gc = deleteFunction
 }
 
-void registerDeleteOperator(lua_State* ls, int tableIndex, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize) {
-	lua_getmetatable(ls, tableIndex); // mt
-	assert(lua_istable(ls, -1));
-	pushFunctionAsUpvalue(ls, closure, &functionPtr, functionPtrSize); // mt, destructor
-	lua_setfield(ls, -2, "__gc");                                      // mt.__gc = destructor
-}
-
-void registerNewOperator(lua_State* ls, int tableIndex, lua_CFunction closure, const void* functionPtr, size_t functionPtrSize) {
-	pushFunctionAsUpvalue(ls, closure, &functionPtr, functionPtrSize);
-	lua_setfield(ls, tableIndex, "new"); // table.new = closure
-}
-
 int registerLuaClass(lua_State* ls) {
 	const int nargs = lua_gettop(ls);
 	if (nargs != 2) {

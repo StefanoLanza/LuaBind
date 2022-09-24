@@ -146,18 +146,21 @@ int beginNamespace(lua_State* ls, const char* name);
 		detail::registerFunction(ls__, static_cast<ret_type (*)(__VA_ARGS__)>(&function), #function, tableStackIndex); \
 	} while (0)
 
+// Portable alternative to __VA_OPT__(,)
+#define VA_ARGS(...) , ##__VA_ARGS__
+
 // TODO How to infer the new operator arguments ?
-#define LUA_SET_DEFAULT_NEW_OPERATOR(...)                                                     \
-	do {                                                                                      \
-		detail::registerDefaultNewOperator<boundClass__, __VA_ARGS__>(ls__, tableStackIndex); \
+#define LUA_SET_DEFAULT_NEW_OPERATOR(...)                                                                    \
+	do {                                                                                                     \
+		detail::registerDefaultNewOperator<boundClass__ VA_ARGS(__VA_ARGS__)>(ls__, tableStackIndex); \
 	} while (0)
 
-#define LUA_NEW_OPERATOR(function, ...)                               \
-	do {                                                              \
+#define LUA_NEW_OPERATOR(function, ...)                                             \
+	do {                                                                            \
 		detail::registerNewOperator<boundClass__>(ls__, tableStackIndex, function); \
 	} while (0)
 
-#define LUA_DELETE_OPERATOR(function)                                    \
-	do {                                                                 \
+#define LUA_DELETE_OPERATOR(function)                                                  \
+	do {                                                                               \
 		detail::registerDeleteOperator<boundClass__>(ls__, tableStackIndex, function); \
 	} while (0)

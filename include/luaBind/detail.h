@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstdint>
 #include <utility>
+#include <type_traits>
 
 namespace Typhoon::LuaBind::detail {
 
@@ -100,6 +101,14 @@ inline void checkArgs(lua_State* ls, const int stackIndices[], std::integer_sequ
 	// Call CheckArg for each function argument
 	const int foo[] = { checkArg<argTypes>(ls, stackIndices[argIndices])..., 0 };
 	(void)foo;
+}
+
+template <typename T>
+inline T serializePOD(const void* ptr) {
+	static_assert(std::is_trivially_copyable_v<T>);
+	T obj;
+	std::memcpy(&obj, ptr, sizeof obj);
+	return obj;
 }
 
 } // namespace Typhoon::LuaBind::detail

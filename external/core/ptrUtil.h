@@ -1,9 +1,7 @@
 #pragma once
 
-//#include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <type_traits>
 
 namespace Typhoon {
 
@@ -30,14 +28,6 @@ inline const void* advancePointer(const void* ptr, ptrdiff_t offset) {
 template <typename T>
 inline T* advancePointer(T* ptr, ptrdiff_t offset) {
 	return reinterpret_cast<T*>(reinterpret_cast<uintptr_t>(ptr) + offset);
-}
-
-template <typename T>
-inline T serializePOD(const void* ptr, ptrdiff_t offset = 0) {
-	static_assert(std::is_pod_v<T>);
-	T obj;
-	std::memcpy(&obj, advancePointer(ptr, offset), sizeof obj);
-	return obj;
 }
 
 } // namespace Typhoon

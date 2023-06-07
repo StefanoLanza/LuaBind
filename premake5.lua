@@ -40,6 +40,7 @@ filter { filter_vs }
 	buildoptions
 	{
 		"/permissive-",
+		"/Zc:preprocessor",  -- support for __VA_OPT__ in C++20
 	}
 	system "Windows"
 	defines {
@@ -113,19 +114,19 @@ project("Lua")
 project("Core")
 	kind "StaticLib"
 	files { "external/core/**.cpp", "external/core/**.h", }
-	sysincludedirs { "./", "external", }
+	externalincludedirs { "./", "external", }
 
 project("LuaBind")
 	kind "StaticLib"
 	files { "src/**.cpp", "src/**.h", "src/**.inl", "include/luaBind/**.h", "include/luaBind/**.inl", }
-	sysincludedirs { "./", "external", "include/luaBind", }
+	externalincludedirs { "./", "external", "include/luaBind", }
 	links({"Core", "Lua"})
 
 if _OPTIONS["with-examples"] then
 	project("Example1")
 		kind "ConsoleApp"
 		files "examples/example1.cpp"
-		sysincludedirs { "./", "external", "include", }
+		externalincludedirs { "./", "external", "include", }
 		links({"LuaBind", })
 		filter { filter_gmake }
 			links({"Core", "Lua"})
@@ -134,7 +135,7 @@ if _OPTIONS["with-examples"] then
 	project("Example2")
 		kind "ConsoleApp"
 		files "examples/example2.cpp"
-		sysincludedirs { "./", "external", "include", }
+		externalincludedirs { "./", "external", "include", }
 		links({"LuaBind", })
 		filter { filter_gmake }
 			links({"Core", "Lua"})
@@ -143,7 +144,7 @@ if _OPTIONS["with-examples"] then
 	project("Example3")
 		kind "ConsoleApp"
 		files "examples/example3.cpp"
-		sysincludedirs { "./", "external", "include", }
+		externalincludedirs { "./", "external", "include", }
 		links({"LuaBind", })
 		filter { filter_gmake }
 			links({"Core", "Lua"})
@@ -152,7 +153,7 @@ if _OPTIONS["with-examples"] then
 	project("Example4")
 		kind "ConsoleApp"
 		files "examples/example4.cpp"
-		sysincludedirs { "./", "external", "include", }
+		externalincludedirs { "./", "external", "include", }
 		links({"LuaBind", })
 		filter { filter_gmake }
 			links({"Core", "Lua"})
@@ -163,7 +164,7 @@ if _OPTIONS["with-tests"] then
 	project("UnitTest")
 		kind "ConsoleApp"
 		files "test/*.*"
-		sysincludedirs { "./", "external", "include", }
+		externalincludedirs { "./", "external", "include", }
 		links({"LuaBind", })
 		filter { filter_gmake }
 			links({"Core", "Lua"})

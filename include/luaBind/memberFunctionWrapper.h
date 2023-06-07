@@ -13,7 +13,7 @@ int memberFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, 
 
 	// Extract function pointer from Lua user data
 	using func_ptr = retType (objType::*)(argType...);
-	const func_ptr func = serializePOD<func_ptr>(ud, 0);
+	const func_ptr func = serializePOD<func_ptr>(ud);
 
 	// Get self
 	objType* const self = pop<objType*>(ls, 1);

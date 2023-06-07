@@ -13,7 +13,7 @@ int freeFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, ar
 	// Extract function pointer from Lua user data
 	using func_ptr = retType (*)(argTypes...);
 	const void* const func_ud = lua_touserdata(ls, lua_upvalueindex(1));
-	const auto        func = serializePOD<func_ptr>(func_ud, 0);
+	const auto        func = serializePOD<func_ptr>(func_ud);
 
 	// Get stack size of all arguments
 	// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument

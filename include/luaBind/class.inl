@@ -24,7 +24,7 @@ int wrapNewImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...>
 	// Extract function pointer from upvalue
 	using func_ptr = retType (*)(argType...);
 	const void* const func_ud = lua_touserdata(ls, lua_upvalueindex(1));
-	const func_ptr    func = serializePOD<func_ptr>(func_ud, 0);
+	const func_ptr    func = serializePOD<func_ptr>(func_ud);
 
 	// Get stack size of all arguments
 	// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument
@@ -98,7 +98,7 @@ int wrapDeleter(lua_State* ls) {
 		// Extract function pointer
 		const void* const ud = lua_touserdata(ls, lua_upvalueindex(1));
 		using Deleter = void (*)(T*);
-		const auto deleter = serializePOD<Deleter>(ud, 0);
+		const auto deleter = serializePOD<Deleter>(ud);
 
 		deleter(obj); // object allocated by Lua
 	}

@@ -41,6 +41,15 @@ void* LinearAllocator::realloc([[maybe_unused]] void* ptr, size_t bytes, size_t 
 
 BufferAllocator::BufferAllocator(void* buffer, size_t bufferSize)
     : buffer(buffer)
+    , parentAllocator(nullptr)
+    , offset(buffer)
+    , bufferSize(bufferSize)
+    , freeSize(bufferSize) {
+}
+
+BufferAllocator::BufferAllocator(Allocator& parentAllocator, size_t bufferSize)
+    : buffer(parentAllocator.alloc(bufferSize, parentAllocator.defaultAlignment))
+    , parentAllocator(&parentAllocator)
     , offset(buffer)
     , bufferSize(bufferSize)
     , freeSize(bufferSize) {
@@ -81,7 +90,7 @@ PagedAllocator::PagedAllocator(Allocator& parentAllocator, size_t pageSize, size
 }
 
 PagedAllocator::~PagedAllocator() {
-	for (Page* page = rootPage; page; ) {
+	for (Page* page = rootPage; page;) {
 		Page* next = page->next; // Fetch before freeing page
 		allocator->free(page->buffer, pageSize);
 		page = next;

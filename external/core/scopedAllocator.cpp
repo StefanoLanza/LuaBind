@@ -16,6 +16,20 @@ ScopedAllocator::ScopedAllocator(LinearAllocator& allocator)
 }
 
 ScopedAllocator::~ScopedAllocator() {
+	destroyAll();
+}
+
+void ScopedAllocator::registerObject(void* obj, size_t objSize, Destructor destructor) {
+	auto f = allocator.alloc<Finalizer>();
+	assert(f);
+	f->destructor = destructor;
+	f->obj = obj;
+	f->objSize = objSize;
+	f->next = finalizerHead;
+	finalizerHead = f;
+}
+
+void ScopedAllocator::destroyAll() {
 	for (Finalizer *f = finalizerHead, *next = nullptr; f; f = next) {
 		if (f->destructor) {
 			f->destructor(f->obj);
@@ -25,22 +39,7 @@ ScopedAllocator::~ScopedAllocator() {
 		void* obj = f->obj;
 		allocator.rewind(obj);
 	}
-}
-
-void* ScopedAllocator::alloc(size_t size, size_t alignment) {
-	void* ptr = allocator.alloc(size, alignment);
-	registerObject(ptr, size, nullptr);
-	return ptr;
-}
-
-void ScopedAllocator::registerObject(void* obj, size_t objSize, Destructor destructor) {
-	Finalizer* f = static_cast<Finalizer*>(allocator.alloc(sizeof(Finalizer), alignof(Finalizer)));
-	assert(f);
-	f->destructor = destructor;
-	f->obj = obj;
-	f->objSize = objSize;
-	f->next = finalizerHead;
-	finalizerHead = f;
+	finalizerHead = nullptr;
 }
 
 } // namespace Typhoon

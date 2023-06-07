@@ -15,8 +15,8 @@ public:
 		return lua_isinteger(ls, idx);
 	}
 	static void push(lua_State* ls, TypedId id) {
-		if (id.value) {
-			lua_pushinteger(ls, static_cast<lua_Integer>(id.value));
+		if (id) {
+			lua_pushinteger(ls, static_cast<lua_Integer>(id.getValue()));
 		}
 		else {
 			lua_pushnil(ls);

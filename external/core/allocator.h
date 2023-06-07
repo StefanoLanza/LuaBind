@@ -22,20 +22,30 @@ public:
 	// Helpers
 	template <class T>
 	T* alloc() {
-		static_assert(std::is_pod_v<T>);
-		return static_cast<T*>(alloc(sizeof(T), alignof(T)));
+		void* ptr = alloc(sizeof(T), alignof(T));
+		if constexpr (std::is_trivially_default_constructible_v<T>) {
+			return static_cast<T*>(ptr);
+		}
+		else {
+			return new (ptr) T;
+		}
 	}
 
 	template <class T>
 	T* allocArray(size_t count) {
-		static_assert(std::is_pod_v<T>);
-		return static_cast<T*>(alloc(sizeof(T) * count, alignof(T)));
+		void* ptr = alloc(sizeof(T) * count, alignof(T));
+		if constexpr (! std::is_trivially_default_constructible_v<T>) {
+			for (size_t i = 0; i < count; ++i) {
+				new (static_cast<std::byte*>(ptr) + sizeof(T) * i) T;
+			}
+		}
+		return static_cast<T*>(ptr);
 	}
 
 	template <class T, class... ArgTypes>
-	T* construct(ArgTypes... args) {
+	T* construct(ArgTypes&&... args) {
 		void* ptr = alloc(sizeof(T), alignof(T));
-		return ptr ? new (ptr) T(std::forward<ArgTypes>(args)...) : nullptr;
+		return ptr ? new (ptr) T{std::forward<ArgTypes>(args)...} : nullptr;
 	}
 
 	template <class T>
@@ -62,9 +72,8 @@ public:
  */
 class LinearAllocator : public Allocator {
 public:
-
-	void  free(void* ptr, size_t size) override;
-	void* realloc(void* ptr, size_t bytes, size_t alignment) override;
+	void          free(void* ptr, size_t size) override;
+	void*         realloc(void* ptr, size_t bytes, size_t alignment) override;
 	virtual void  rewind() = 0;
 	virtual void  rewind(void* ptr) = 0;
 	virtual void* getOffset() const = 0;
@@ -76,6 +85,7 @@ public:
 class BufferAllocator : public LinearAllocator {
 public:
 	BufferAllocator(void* buffer, size_t bufferSize);
+	BufferAllocator(Allocator& parentAllocator, size_t bufferSize);
 
 	void* alloc(size_t size, size_t alignment) override;
 	void  rewind() override;
@@ -84,10 +94,11 @@ public:
 	void* getBuffer() const;
 
 private:
-	void*  buffer;
-	void*  offset;
-	size_t bufferSize;
-	size_t freeSize;
+	void*      buffer;
+	Allocator* parentAllocator;
+	void*      offset;
+	size_t     bufferSize;
+	size_t     freeSize;
 };
 
 inline void* BufferAllocator::getOffset() const {

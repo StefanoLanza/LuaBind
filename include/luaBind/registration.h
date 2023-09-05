@@ -152,7 +152,7 @@ int beginNamespace(lua_State* ls, const char* name);
 // TODO How to infer the new operator arguments ?
 #define LUA_SET_DEFAULT_NEW_OPERATOR(...)                                                                    \
 	do {                                                                                                     \
-		detail::registerDefaultNewOperator<boundClass__ VA_ARGS(__VA_ARGS__)>(ls__, tableStackIndex); \
+		detail::registerDefaultNewOperator<boundClass__ __VA_OPT__(,) __VA_ARGS__>(ls__, tableStackIndex); \
 	} while (0)
 
 #define LUA_NEW_OPERATOR(function, ...)                                             \

@@ -1,4 +1,5 @@
 #include "typeWrapper.h"
+#include "detail.h"
 #include <cassert>
 #include <core/ptrUtil.h>
 #include <type_traits>

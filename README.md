@@ -24,7 +24,7 @@
   * Run `premake gmake -cc=gcc --with-tests --with-examples`. <br>
   This command generate GNU makefiles
   * Build and run the examples and the UnitTest application
-     * `make -C build/gmake --config=configuration` (e.g. `release_x86`)
+     * `make -C build/gmake config=configuration` (e.g. `release_x86`)
 * On MacOS
   * Run `premake xcode4` <br>
   This command generates an XCode workspace

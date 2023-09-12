@@ -146,9 +146,6 @@ int beginNamespace(lua_State* ls, const char* name);
 		detail::registerFunction(ls__, static_cast<ret_type (*)(__VA_ARGS__)>(&function), #function, tableStackIndex); \
 	} while (0)
 
-// Portable alternative to __VA_OPT__(,)
-#define VA_ARGS(...) , ##__VA_ARGS__
-
 // TODO How to infer the new operator arguments ?
 #define LUA_SET_DEFAULT_NEW_OPERATOR(...)                                                                    \
 	do {                                                                                                     \

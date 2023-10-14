@@ -3,10 +3,10 @@
 
 namespace Typhoon {
 
-template <class Tag, class Impl>
-class LuaBind::Wrapper<Id<Tag, Impl>> {
+template <class Tag, class Impl, Impl nullValue>
+class LuaBind::Wrapper<Id<Tag, Impl, nullValue>> {
 private:
-	using TypedId = Id<Tag, Impl>;
+	using TypedId = Id<Tag, Impl, nullValue>;
 
 public:
 	static constexpr int stackSize = 1;

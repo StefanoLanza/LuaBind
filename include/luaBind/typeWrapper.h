@@ -10,6 +10,10 @@
 #include <lua/src/lua.hpp>
 #include <string>
 
+#if __cplusplus >= 202002L
+#include <concepts>
+#endif
+
 namespace Typhoon::LuaBind {
 
 namespace detail {
@@ -70,10 +74,10 @@ public:
 };
 
 template <class I>
-class IntegerWrapper {
 #if __cplusplus >= 202002L
 requires std::integral<I>
 #endif
+class IntegerWrapper {
 public:
 	static constexpr int stackSize = 1;
 
@@ -96,10 +100,10 @@ public:
 };
 
 template <class F>
-class FloatWrapper {
 #if __cplusplus >= 202002L
 requires std::floating_point<F>
 #endif
+class FloatWrapper {
 public:
 	static constexpr int stackSize = 1;
 

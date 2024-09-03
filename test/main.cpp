@@ -58,6 +58,7 @@ TEST_CASE("Root") {
 		constexpr bool          weapon = true;
 		const char*             cstr = "Stefano";
 		const std::string       str { "Lanza" };
+#if 1
 		push(ls, speed);
 		CHECK(pop<char>(ls, -1) == speed);
 		push(ls, uc);
@@ -80,6 +81,7 @@ TEST_CASE("Root") {
 		CHECK(pop<std::string>(ls, -1) == cstr);
 		push(ls, str);
 		CHECK(pop<std::string>(ls, -1) == str);
+#endif
 	}
 
 	SECTION("Warnings") {

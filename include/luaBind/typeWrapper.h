@@ -18,9 +18,11 @@ template <class T>
 T* allocTemporary(lua_State* ls);
 
 template <typename...>
-struct always_false { static constexpr bool value = false; };
+struct always_false {
+	static constexpr bool value = false;
+};
 
-}
+} // namespace detail
 
 template <class T, class... ArgTypes>
 inline T* newTemporary(lua_State* ls, ArgTypes... args);
@@ -56,16 +58,22 @@ public:
 	static int match(lua_State* ls, int idx) {
 		return lua_isnil(ls, idx);
 	}
-	static void push(lua_State* ls, Nil) {
+	static void push(lua_State* ls, Nil /*nil*/) {
 		lua_pushnil(ls);
 	}
-	static Nil pop( [[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
+	static void pushAsKey(lua_State* ls, Nil /*nil*/) {
+		lua_pushnil(ls);
+	}
+	static Nil pop([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
 		return Nil {};
 	}
 };
 
 template <class I>
 class IntegerWrapper {
+#if __cplusplus >= 202002L
+requires std::integral<I>
+#endif
 public:
 	static constexpr int stackSize = 1;
 
@@ -73,7 +81,7 @@ public:
 		return lua_isinteger(ls, idx);
 	}
 	static void pushAsKey(lua_State* ls, I arg) {
-		push(ls,arg);
+		push(ls, arg);
 	}
 	static void push(lua_State* ls, I arg) {
 		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
@@ -89,6 +97,9 @@ public:
 
 template <class F>
 class FloatWrapper {
+#if __cplusplus >= 202002L
+requires std::floating_point<F>
+#endif
 public:
 	static constexpr int stackSize = 1;
 
@@ -96,7 +107,7 @@ public:
 		return lua_isnumber(ls, idx);
 	}
 	static void pushAsKey(lua_State* ls, F arg) {
-		push(ls,arg);
+		push(ls, arg);
 	}
 	static void push(lua_State* ls, F arg) {
 		lua_pushnumber(ls, static_cast<lua_Number>(arg));
@@ -107,44 +118,34 @@ public:
 };
 
 template <>
-class Wrapper<char> : public IntegerWrapper<char> {
-};
+class Wrapper<char> : public IntegerWrapper<char> {};
 
 template <>
-class Wrapper<unsigned char> : public IntegerWrapper<unsigned char> {
-};
+class Wrapper<unsigned char> : public IntegerWrapper<unsigned char> {};
 
 template <>
-class Wrapper<int> : public IntegerWrapper<int>{
-};
+class Wrapper<int> : public IntegerWrapper<int> {};
 
 template <>
-class Wrapper<unsigned int> : public IntegerWrapper<unsigned int> {
-};
+class Wrapper<unsigned int> : public IntegerWrapper<unsigned int> {};
 
 template <>
-class Wrapper<long> : public IntegerWrapper<long> {
-};
+class Wrapper<long> : public IntegerWrapper<long> {};
 
 template <>
-class Wrapper<unsigned long> : public IntegerWrapper<unsigned long> {
-};
+class Wrapper<unsigned long> : public IntegerWrapper<unsigned long> {};
 
 template <>
-class Wrapper<long long> : public IntegerWrapper<long long> {
-};
+class Wrapper<long long> : public IntegerWrapper<long long> {};
 
 template <>
-class Wrapper<unsigned long long> : public IntegerWrapper<unsigned long long> {
-};
+class Wrapper<unsigned long long> : public IntegerWrapper<unsigned long long> {};
 
 template <>
-class Wrapper<double> : public FloatWrapper<double> {
-};
+class Wrapper<double> : public FloatWrapper<double> {};
 
 template <>
-class Wrapper<float> : public FloatWrapper<float> {
-};
+class Wrapper<float> : public FloatWrapper<float> {};
 
 template <>
 class Wrapper<bool> {
@@ -183,14 +184,11 @@ public:
 
 // C literal string
 template <size_t Size>
-class Wrapper<char [Size]> : public Wrapper<const char*> {
-};
+class Wrapper<const char(&)[Size]> : public Wrapper<const char*> {};
 
 //! Raw pointer wrapper
 template <class T>
 class Wrapper<T*> {
-private:
-	using non_const_ptr = std::remove_const_t<T>*;
 public:
 	static constexpr int stackSize = 1;
 
@@ -262,6 +260,9 @@ public:
 #endif
 		return ptr;
 	}
+
+private:
+	using non_const_ptr = std::remove_const_t<T>*;
 };
 
 // enum specialization
@@ -274,7 +275,7 @@ public:
 		return lua_isnumber(ls, idx);
 	}
 	static void pushAsKey(lua_State* ls, T arg) {
-		push(ls,arg);
+		push(ls, arg);
 	}
 	static void push(lua_State* ls, T arg) {
 		lua_pushinteger(ls, static_cast<lua_Integer>(arg));
@@ -294,7 +295,7 @@ public:
 		return true;
 	}
 	static void pushAsKey(lua_State* ls, StackIndex stackIndex) {
-		push(ls,stackIndex);
+		push(ls, stackIndex);
 	}
 	static void push(lua_State* ls, StackIndex stackIndex) {
 		assert(stackIndex.isValid());
@@ -315,7 +316,7 @@ public:
 		return true;
 	}
 	static void pushAsKey(lua_State* ls, Reference ref) {
-		push(ls,ref);
+		push(ls, ref);
 	}
 	static void push(lua_State* ls, Reference ref) {
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, ref.getValue());
@@ -332,7 +333,7 @@ public:
 		return lua_type(ls, idx) == LUA_TSTRING;
 	}
 	static void pushAsKey(lua_State* ls, const std::string& arg) {
-		push(ls,arg);
+		push(ls, arg);
 	}
 	static void push(lua_State* ls, const std::string& arg) {
 		lua_pushstring(ls, arg.c_str());
@@ -352,7 +353,7 @@ public:
 		return lua_type(ls, idx) == LUA_TSTRING;
 	}
 	static void pushAsKey(lua_State* ls, const std::string_view& arg) {
-		push(ls,arg);
+		push(ls, arg);
 	}
 	static void push(lua_State* ls, const std::string_view& arg) {
 		lua_pushlstring(ls, arg.data(), arg.size());
@@ -375,9 +376,9 @@ struct Lightweight {
 		void* const mem = detail::allocTemporary<T>(ls);
 		if (mem) {
 			T* ud = new (mem) T { value };
-	#if TY_LUABIND_TYPE_SAFE
+#if TY_LUABIND_TYPE_SAFE
 			detail::registerPointer(ls, ud);
-	#endif
+#endif
 			lua_pushlightuserdata(ls, ud);
 		}
 		else {
@@ -399,7 +400,6 @@ struct Lightweight {
 template <class T>
 inline constexpr bool isLightweight = std::is_base_of_v<Lightweight<T>, Wrapper<T>>;
 
-
 //! Const reference wrapper
 template <class T>
 class Wrapper<const T&> {
@@ -407,10 +407,9 @@ class Wrapper<const T&> {
 	// Otherwise, treat the reference as a pointer
 	static constexpr bool isDefined = (Wrapper<T>::stackSize > 0);
 	using PopType = std::conditional_t<isDefined, T, const T&>;
-public:
 
-	// FIXME wrong for std::pair 
-	static constexpr int stackSize = 1;
+public:
+	static constexpr int stackSize = isDefined ? Wrapper<T>::stackSize : 1;
 
 	static int match(lua_State* ls, int idx) {
 		if constexpr (isDefined) {
@@ -433,21 +432,21 @@ public:
 	static void push(lua_State* ls, const T& ref) {
 		if constexpr (isDefined) {
 			// Push a copy
-			Wrapper<T>::push(ls,ref);
+			Wrapper<T>::push(ls, ref);
 		}
 		else {
 			// Convert to pointer and push
-			Wrapper<const T*>::push(ls,&ref);
+			Wrapper<const T*>::push(ls, &ref);
 		}
 	}
 	static void pushAsKey(lua_State* ls, const T& ref) {
 		if constexpr (isDefined) {
 			// Push a copy
-			Wrapper<T>::pushAsKey(ls,ref);
+			Wrapper<T>::pushAsKey(ls, ref);
 		}
 		else {
 			// Convert to pointer and push
-			Wrapper<const T*>::pushAsKey(ls,&ref);
+			Wrapper<const T*>::pushAsKey(ls, &ref);
 		}
 	}
 };
@@ -459,7 +458,7 @@ public:
 	static constexpr int stackSize = 1;
 
 	static int match(lua_State* ls, int idx) {
-        return Wrapper<T*>::match(ls, idx);
+		return Wrapper<T*>::match(ls, idx);
 	}
 	static T& pop(lua_State* ls, int idx) {
 		T* ptr = Wrapper<T*>::pop(ls, idx);
@@ -467,7 +466,7 @@ public:
 		return *ptr;
 	}
 	static void push(lua_State* ls, T& ref) {
-		Wrapper<T*>::push(ls,&ref);
+		Wrapper<T*>::push(ls, &ref);
 	}
 	static void pushAsKey(lua_State* ls, T& ref) {
 		push(ref);

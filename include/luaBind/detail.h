@@ -28,7 +28,7 @@ public:
 		const size_t offset = static_cast<size_t>(lua_tonumber(ls, lua_upvalueindex(1)));
 
 		// Get self
-		const obj_type* self = pop<const obj_type*>(ls, 1);
+		const obj_type* self = Wrapper<const obj_type*>::pop(ls, 1);
 		if (! self) {
 			return luaL_argerror(ls, 1, "nil self");
 		}
@@ -36,7 +36,7 @@ public:
 		// Get pointer to member var
 		const ret_type* memberVar = reinterpret_cast<const ret_type*>(reinterpret_cast<uintptr_t>(self) + offset);
 
-		push(ls, *memberVar);
+		Wrapper<ret_type>::push(ls, *memberVar);
 		return Wrapper<ret_type>::stackSize;
 	}
 };
@@ -48,7 +48,7 @@ public:
 		const size_t offset = static_cast<size_t>(lua_tonumber(ls, lua_upvalueindex(1)));
 
 		// Get self
-		obj_type* self = pop<obj_type*>(ls, 1);
+		obj_type* self = Wrapper<obj_type*>::pop(ls, 1);
 		if (! self) {
 			return luaL_argerror(ls, 1, "nil self");
 		}
@@ -57,7 +57,7 @@ public:
 		ret_type* memberVar = reinterpret_cast<ret_type*>(reinterpret_cast<uintptr_t>(self) + offset);
 
 		// Get value
-		*memberVar = pop<ret_type>(ls, 2);
+		*memberVar = Wrapper<ret_type>::pop(ls, 2);
 
 		return 0;
 	}
@@ -89,7 +89,7 @@ void pushObjectAsFullUserData(lua_State* ls, void* objectPtr, const char* classN
 
 template <typename T>
 inline int checkArg(lua_State* ls, int stackIndex) {
-	if (! match<T>(ls, stackIndex)) {
+	if (! Wrapper<T>::match(ls, stackIndex)) {
 		// Note: check that you're not passing by const reference a primitive object because they are handled by pointer
 		return luaL_argerror(ls, stackIndex, lua_typename(ls, lua_type(ls, stackIndex)));
 	}

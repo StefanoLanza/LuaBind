@@ -10,7 +10,6 @@ AlignTrailingComments: 'true'
 AlignAfterOpenBracket: Align
 AllowAllArgumentsOnNextLine: 'true'
 AllowAllConstructorInitializersOnNextLine: true
-AllowAllParametersOfDeclarationOnNextLine: 'true'
 AllowShortBlocksOnASingleLine: 'false'
 AllowShortFunctionsOnASingleLine: 'false'
 AllowShortCaseLabelsOnASingleLine: 'false'
@@ -59,6 +58,5 @@ ConstructorInitializerAllOnOneLineOrOnePerLine : false
 MaxEmptyLinesToKeep : 1
 ColumnLimit: 150
 SpaceAfterCStyleCast: 'false'
-SpaceBeforeAssignmentOperators: 'true'
 KeepEmptyLinesAtTheStartOfBlocks: true
 ...

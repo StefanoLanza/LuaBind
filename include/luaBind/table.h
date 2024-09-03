@@ -65,9 +65,6 @@ public:
 	Value operator[](const KeyType& key) const;
 
 	//
-	Value operator[](const char* key) const;
-
-	//
 	Value operator[](Reference reference) const;
 
 	//

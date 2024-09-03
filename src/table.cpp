@@ -103,16 +103,6 @@ bool Table::hasElement(lua_Integer index) const {
 	return res;
 }
 
-Value Table::operator[](const char* key) const {
-	assert(key);
-	assert(isValid());
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	lua_getfield(ls, -1, key);
-	Value value { ls, topStackIndex };
-	lua_pop(ls, 2); // table, value
-	return value;
-}
-
 Value Table::operator[](Reference reference) const {
 	assert(isValid());
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);

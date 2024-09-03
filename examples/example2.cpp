@@ -18,6 +18,13 @@ const char* script = R"(
 		y = 0.,
 	}
 
+	function testObject:setName(newName)
+		if type(newName) ~= "string" then
+			return error("string expected")
+		end
+		self.name = newName
+	end
+
 	function testObject:getName()
 		return self.name
 	end
@@ -31,10 +38,19 @@ const char* script = R"(
 	end
 
 	function testObject:setSpeed(newSpeed)
+		if type(newSpeed) ~= "number" then
+			return error("number expected")
+		end
 		self.speed = newSpeed
 	end
 
 	function testObject:setPosition(x, y)
+		if type(x) ~= "number" then
+			return error("number expected")
+		end
+		if type(y) ~= "number" then
+			return error("number expected")
+		end
 		self.x = x
 		self.y = y
 	end
@@ -73,11 +89,33 @@ void runExample(lua_State* ls) {
 	}
 
 	Object obj(ls, test.getReference());
+	Result r { false };
 
 	std::string name;
-	Result      r = obj.callMethodRet("getName", name);
+	r = obj.callMethodRet("getName", name);
 	if (r) {
 		std::cout << "Name: " << name << std::endl;
+	}
+	else {
+		std::cout << r.getErrorMessage() << std::endl;
+	}
+
+	// Bad arguments
+	std::pair p{ 0, 1 };
+	r = obj.callMethod("setName", p);
+	if (! r) {
+		std::cout << r.getErrorMessage() << std::endl;
+	}
+
+	name = "bird";
+	r = obj.callMethod("setName", name);
+	if (! r) {
+		std::cout << r.getErrorMessage() << std::endl;
+	}
+
+	r = obj.callMethodRet("getName", name);
+	if (r) {
+		std::cout << "New name: " << name << std::endl;
 	}
 	else {
 		std::cout << r.getErrorMessage() << std::endl;
@@ -92,7 +130,7 @@ void runExample(lua_State* ls) {
 		std::cout << r.getErrorMessage() << std::endl;
 	}
 
-	r = obj.callMethod("setSpeed", speed * 2.f);
+	r = obj.callMethod("setSpeed", 2.f);
 	if (! r) {
 		std::cout << r.getErrorMessage() << std::endl;
 	}

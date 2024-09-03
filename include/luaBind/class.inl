@@ -28,7 +28,7 @@ int wrapNewImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...>
 
 	// Get stack size of all arguments
 	// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument
-	const int argStackSize[] = { getStackSize<argType>()..., 0 };
+	const int argStackSize[] = { Wrapper<argType>::stackSize..., 0 };
 
 	// Compute stack indices
 	int argStackIndex[sizeof...(argType) + 1] = {};
@@ -41,7 +41,7 @@ int wrapNewImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...>
 	checkArgs<argType...>(ls, argStackIndex, indx);
 
 	// Pop and pass args
-	const auto obj = func(pop<argType>(ls, argStackIndex[argIndices])...);
+	const auto obj = func(Wrapper<argType>::pop(ls, argStackIndex[argIndices])...);
 
 	if constexpr (isLightweight<retType>) {
 		// Push lightweight object as light user data

@@ -17,7 +17,7 @@ int freeFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, ar
 
 	// Get stack size of all arguments
 	// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument
-	const int argStackSize[] = { getStackSize<argTypes>()..., 0 };
+	const int argStackSize[] = { Wrapper<argTypes>::stackSize..., 0 };
 
 	// Compute stack indices
 	int argStackIndex[sizeof...(argTypes) + 1] = {};
@@ -35,7 +35,7 @@ int freeFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, ar
 		return 0;
 	}
 	else {
-		push(ls, func(pop<argTypes>(ls, argStackIndex[argIndices])...));
+		Wrapper<retType>::push(ls, func(Wrapper<argTypes>::pop(ls, argStackIndex[argIndices])...));
 		return Wrapper<retType>::stackSize;
 	}
 }

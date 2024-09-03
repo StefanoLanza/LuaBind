@@ -16,14 +16,14 @@ int memberFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, 
 	const func_ptr func = serializePOD<func_ptr>(ud);
 
 	// Get self
-	objType* const self = pop<objType*>(ls, 1);
+	objType* const self = Wrapper<objType*>::pop(ls, 1);
 	if (! self) {
 		return luaL_argerror(ls, 1, "nil self");
 	}
 
 	// Get stack size of all arguments
 	// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument
-	const int argStackSize[] = { getStackSize<argType>()..., 0 };
+	const int argStackSize[] = { Wrapper<argType>::stackSize..., 0 };
 
 	// Compute stack indices
 	int argStackIndex[sizeof...(argType) + 1] = {};
@@ -36,11 +36,11 @@ int memberFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, 
 	checkArgs<argType...>(ls, argStackIndex, indx);
 
 	if constexpr (std::is_void_v<retType>) {
-		(self->*func)(pop<argType>(ls, argStackIndex[argIndices])...);
+		(self->*func)(Wrapper<argType>::pop(ls, argStackIndex[argIndices])...);
 		return 0;
 	}
 	else {
-		push(ls, (self->*func)(pop<argType>(ls, argStackIndex[argIndices])...));
+		Wrapper<retType>::push(ls, (self->*func)(Wrapper<argType>::pop(ls, argStackIndex[argIndices])...));
 		return Wrapper<retType>::stackSize;
 	}
 }

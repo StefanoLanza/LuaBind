@@ -196,7 +196,7 @@ public:
 
 	static int match(lua_State* ls, int idx) {
 		const int luaType = lua_type(ls, idx);
-		return (luaType == LUA_TLIGHTUSERDATA || luaType == LUA_TUSERDATA || luaType == LUA_TTABLE);
+		return (luaType == LUA_TLIGHTUSERDATA || luaType == LUA_TUSERDATA || luaType == LUA_TTABLE || luaType == LUA_TNIL);
 	}
 
 	static void pushAsKey(lua_State* ls, T* ptr) {
@@ -249,6 +249,9 @@ public:
 			}
 			ptr = static_cast<T*>(lua_touserdata(ls, -1));
 			lua_pop(ls, 1);
+		}
+		else if (luaType == LUA_TNIL) {
+			ptr = nullptr;
 		}
 
 #if TY_LUABIND_TYPE_SAFE
@@ -337,6 +340,26 @@ public:
 	static std::string pop(lua_State* ls, int idx) {
 		const char* cstr = lua_tostring(ls, idx);
 		return std::string { cstr };
+	}
+};
+
+template <>
+class Wrapper<std::string_view> {
+public:
+	static constexpr int stackSize = 1;
+
+	static int match(lua_State* ls, int idx) {
+		return lua_type(ls, idx) == LUA_TSTRING;
+	}
+	static void pushAsKey(lua_State* ls, const std::string_view& arg) {
+		push(ls,arg);
+	}
+	static void push(lua_State* ls, const std::string_view& arg) {
+		lua_pushlstring(ls, arg.data(), arg.size());
+	}
+	static std::string_view pop(lua_State* ls, int idx) {
+		const char* cstr = lua_tostring(ls, idx);
+		return std::string_view { cstr };
 	}
 };
 
@@ -445,6 +468,9 @@ public:
 	}
 	static void push(lua_State* ls, T& ref) {
 		Wrapper<T*>::push(ls,&ref);
+	}
+	static void pushAsKey(lua_State* ls, T& ref) {
+		push(ref);
 	}
 };
 

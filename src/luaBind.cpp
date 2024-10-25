@@ -101,7 +101,7 @@ void setWarningFunction(lua_State* ls, WarningFunction warningFunction) {
 	lua_setwarnf(ls, luaWarningFunction, context);
 }
 
-void newFrame(lua_State* ls) {
+void reset(lua_State* ls) {
 	auto context = detail::getContext(ls);
 	context->tempAllocator->rewind();
 }

@@ -37,7 +37,7 @@ void               closeState(lua_State* ls);
 void               setWarningFunction(lua_State* ls, WarningFunction warningFunction);
 Result             doCommand(lua_State*, const char* command);
 Result             doBuffer(lua_State*, const char* buffer, size_t size, const char* name);
-void               newFrame(lua_State* ls);
+void               reset(lua_State* ls);
 void               registerLoader(lua_State* ls, lua_CFunction loader, void* userData);
 const char*        getPath(lua_State* ls);
 void               setPath(lua_State* ls, const char* path);

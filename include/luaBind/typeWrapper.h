@@ -128,6 +128,12 @@ template <>
 class Wrapper<unsigned char> : public IntegerWrapper<unsigned char> {};
 
 template <>
+class Wrapper<short> : public IntegerWrapper<short> {};
+
+template <>
+class Wrapper<unsigned short> : public IntegerWrapper<unsigned short> {};
+
+template <>
 class Wrapper<int> : public IntegerWrapper<int> {};
 
 template <>

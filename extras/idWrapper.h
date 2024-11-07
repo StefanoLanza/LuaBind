@@ -1,5 +1,5 @@
-#include <luaBind/typeWrapper.h>
 #include <core/id.h>
+#include <luaBind/typeWrapper.h>
 
 namespace Typhoon {
 
@@ -11,8 +11,10 @@ private:
 public:
 	static constexpr int stackSize = 1;
 
+	// An invalid id becomes nil in Lua
+
 	static int match(lua_State* ls, int idx) {
-		return lua_isinteger(ls, idx);
+		return lua_isinteger(ls, idx) | lua_isnil(ls, idx);
 	}
 	static void push(lua_State* ls, TypedId id) {
 		if (id) {
@@ -23,7 +25,12 @@ public:
 		}
 	}
 	static TypedId pop(lua_State* ls, int idx) {
-		return TypedId { static_cast<Impl>(lua_tonumber(ls, idx)) };
+		if (lua_isnil(ls, idx)) {
+			return TypedId {};
+		}
+		else {
+			return TypedId { static_cast<Impl>(lua_tonumber(ls, idx)) };
+		}
 	}
 };
 

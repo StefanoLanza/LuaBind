@@ -26,7 +26,7 @@ public:
 
 		const TypeName typeName = typeIdToName(voidPtr.typeId);
 		if (! typeName) {
-			luaL_error(ls, "class not registered");
+			luaL_error(ls, "Failed to push instance of VoidPtr. C++ class not registered");
 		}
 
 		// Copy C++ pointer to Lua userdata

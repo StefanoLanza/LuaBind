@@ -14,7 +14,7 @@ public:
 
 	static int match(lua_State* ls, int idx) {
 		const int idx2 = idx + Wrapper<T1>::stackSize;
-		return Wrapper<T1>::Match(ls, idx) && Wrapper<T2>::Match(ls, idx2);
+		return Wrapper<T1>::match(ls, idx) && Wrapper<T2>::match(ls, idx2);
 	}
 	static void push(lua_State* ls, const pairType& pair) {
 		Wrapper<T1>::push(ls, pair.first);

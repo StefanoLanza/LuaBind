@@ -7,8 +7,11 @@
 #include "objectRegistration.h"
 #include "stdArrayWrapper.h"
 #include "stdPairWrapper.h"
+#include "stdTupleWrapper.h"
 #include "stdSharedPtrWrapper.h"
 #include "stdVectorWrapper.h"
+#include "stdExpectedWrapper.h"
+#include "stdOptionalWrapper.h"
 #include "tableWrapper.h"
 #include <cassert>
 

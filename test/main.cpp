@@ -197,11 +197,19 @@ TEST_CASE("Root") {
 	SECTION("std") {
 		SECTION("std::pair") {
 			const int idx = lua_gettop(ls);
-			using pair_type = std::pair<std::string, int>;
-			const pair_type pair { "value", 10 };
+			using PairType = std::pair<std::string, int>;
+			const PairType pair { "value", 10 };
 			push(ls, pair);
-			const pair_type tmp = pop<pair_type>(ls, idx + 1);
+			const PairType tmp = pop<PairType>(ls, idx + 1);
 			CHECK(pair == tmp);
+		}
+		SECTION("std::tuple") {
+			const int idx = lua_gettop(ls);
+			using TupleType = std::tuple<std::string, int, double, bool>;
+			const TupleType tuple { "Stefano", 45, 200.000, true };
+			push(ls, tuple);
+			const TupleType tmp = pop<TupleType>(ls, idx + 1);
+			CHECK(tuple == tmp);
 		}
 
 		SECTION("std::vector") {
@@ -221,6 +229,50 @@ TEST_CASE("Root") {
 			const arrayType testArray = pop<arrayType>(ls, idx + 1);
 			CHECK(stringArray == testArray);
 		}
+
+#ifdef __cpp_lib_expected
+        SECTION("std::expected") {
+	        using ParseResult = std::expected<std::string, int>;
+			{
+				const ParseResult res { "stefano"  };
+				const int       idx = lua_gettop(ls);
+				push(ls, res);
+				const ParseResult test = pop<ParseResult>(ls, idx + 1);
+				CHECK(test.has_value());
+				CHECK(test.value() == res.value());
+	        }
+	        {
+		        ParseResult res { std::unexpected(-1) };
+		        const int         idx = lua_gettop(ls);
+		        push(ls, res);
+		        const ParseResult test = pop<ParseResult>(ls, idx + 1);
+		        CHECK(!test.has_value());
+		        CHECK(test.error() == -1);
+	        }
+        }
+#endif
+
+#ifdef __cpp_lib_optional
+        SECTION("std::optional") {
+	        using Optional = std::optional<std::string>;
+	        {
+		        const Optional opt { "manlio" };
+		        const int      idx = lua_gettop(ls);
+		        push(ls, opt);
+		        const Optional test = pop<Optional>(ls, idx + 1);
+		        CHECK(test.has_value());
+		        CHECK(test.value() == opt.value());
+	        }
+	        {
+		        const Optional opt = std::nullopt;		        
+		        const int      idx = lua_gettop(ls);
+		        push(ls, opt);
+		        const Optional test = pop<Optional>(ls, idx + 1);
+		        CHECK(!test.has_value());
+	        }
+        }
+#endif
+
 	}
 
 	SECTION("Properties") {

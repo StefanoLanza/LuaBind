@@ -4,6 +4,7 @@
 #include "reference.h"
 #include "stackIndex.h"
 #include "typeSafefy.h"
+
 #include <cassert>
 #include <cstring>
 #include <limits>
@@ -17,6 +18,9 @@
 namespace Typhoon::LuaBind {
 
 namespace detail {
+
+constexpr int kLuaAllocated = 0;
+constexpr int kCppAllocated = 1;
 
 template <class T>
 T* allocTemporary(lua_State* ls);
@@ -32,25 +36,58 @@ template <class T, class... ArgTypes>
 inline T* newTemporary(lua_State* ls, ArgTypes... args);
 
 // typename = void is used for specializations based on std::enable_if. See the enum specialization
+// Generic wrapper
+// The object is copied to Lua userdata, or light userdata
 template <class T, typename = void>
 class Wrapper {
 public:
-	// Traits
-	static constexpr int stackSize = 0; // undefined
+	static constexpr int stackSize = 1;
 
-	static int match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
-		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
-		return 0;
+	static int match(lua_State* ls, int idx) {
+		return lua_isuserdata(ls, idx);
 	}
-	static void pushAsKey([[maybe_unused]] lua_State* ls, T) {
-		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
+	static void push(lua_State* ls, const T& value) {
+		// TODO handle lightweight trait here
+		// 
+		// void* mem = nullptr;
+		/* if constexpr (isLightweight<T>) {
+		    mem = detail::allocTemporary<T>(ls);
+		    T* ptr = new (mem) T { value };
+		    Lightweight<T>::push(ls, ptr);
+		}
+		else*/
+		{
+			// TODO Remove indirection, store value in ud directly
+			const T* valueCopy = new T { value }; // copy value
+
+			// Allocate full user data and store the object pointer in it
+			void* const ud = lua_newuserdatauv(ls, sizeof valueCopy, 1);
+			std::memcpy(ud, &valueCopy, sizeof valueCopy);			
+
+			// Associate metatable
+			const char* className = typeName<T>();
+			assert(className);
+			luaL_getmetatable(ls, className);
+			lua_setmetatable(ls, -2);
+
+			// Mark as heap allocated by Lua. This user value is queried in wrapDefaultDelete<T>
+			lua_pushinteger(ls, detail::kLuaAllocated);
+			lua_setiuservalue(ls, -2, 1); // ud.userValue[1] = kLuaAllocated
+
+#if TY_LUABIND_TYPE_SAFE
+			detail::registerPointer(ls, valueCopy);
+#endif
+		}
 	}
-	static void push([[maybe_unused]] lua_State* ls, T) {
-		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
-	}
-	static T pop([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
-		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
-		return {};
+	static T pop(lua_State* ls, int idx) {
+		void* userData = lua_touserdata(ls, idx);
+		assert(userData);
+#if TY_LUABIND_TYPE_SAFE
+		if (! detail::checkPointerType<T>(ls, userData)) {
+			luaL_argerror(ls, idx, "Invalid pointer type"); // TODO better message
+		}
+#endif
+		return *static_cast<const T*>(userData);
 	}
 };
 
@@ -77,7 +114,7 @@ template <class I>
 #if __cplusplus >= 202002L
 requires std::integral<I>
 #endif
-class IntegerWrapper {
+    class IntegerWrapper {
 public:
 	static constexpr int stackSize = 1;
 
@@ -103,7 +140,7 @@ template <class F>
 #if __cplusplus >= 202002L
 requires std::floating_point<F>
 #endif
-class FloatWrapper {
+    class FloatWrapper {
 public:
 	static constexpr int stackSize = 1;
 
@@ -194,7 +231,7 @@ public:
 
 // C literal string
 template <size_t Size>
-class Wrapper<const char(&)[Size]> : public Wrapper<const char*> {};
+class Wrapper<const char (&)[Size]> : public Wrapper<const char*> {};
 
 //! Raw pointer wrapper
 template <class T>
@@ -226,7 +263,10 @@ public:
 				lua_pushlightuserdata(ls, ud);
 
 #if TY_LUABIND_TYPE_SAFE
-				detail::registerPointer(ls, ptr);
+				if constexpr (! std::is_void<T>()) {
+					detail::registerPointer(ls, ptr);
+				}
+				// else void* ptr, type is lost
 #endif
 			}
 			else {
@@ -378,6 +418,7 @@ public:
 template <class T>
 struct Lightweight {
 	static constexpr int stackSize = 1;
+	static_assert(std::is_trivially_destructible_v<T>, "Lightweight trait requires a trivially destructible class");
 
 	static int match(lua_State* ls, int idx) {
 		return lua_isuserdata(ls, idx);

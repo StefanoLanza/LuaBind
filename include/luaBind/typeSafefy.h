@@ -20,7 +20,8 @@ void unregisterPointer(lua_State* ls, const void* ptr);
 // Helpers
 template <class T>
 inline void registerPointer(lua_State* ls, const T* ptr) {
-	registerPointer(ls, static_cast<const void*>(ptr), getTypeId(ptr));
+	static_assert(! std::is_void<T>(), "invalid const void* ptr");
+	registerPointer(ls, ptr, getTypeId<T>());
 }
 
 

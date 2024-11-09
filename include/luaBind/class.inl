@@ -17,7 +17,7 @@ T* defaultNew(argType... args) {
 
 // Create a new object and return it to Lua as a full user data
 template <typename retType, typename... argType, std::size_t... argIndices>
-int wrapNewImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...> indx) {
+int wrapNewImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 	// Extract function pointer from upvalue
 	using func_ptr = retType (*)(argType...);
 	const void* const func_ud = lua_touserdata(ls, lua_upvalueindex(1));

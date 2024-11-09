@@ -31,13 +31,18 @@ private:
 		return match;
 	}
 
-	template <size_t index>
-	static void popAll(TupleType& tuple, lua_State* ls, int idx) {
-		using E = std::tuple_element_t<index, TupleType>;
-		std::get<index>(tuple) = Wrapper<E>::pop(ls, idx);
-		if constexpr (index + 1 < std::tuple_size_v<TupleType>) {
-			popAll<index + 1>(tuple, ls, Wrapper<E>::stackSize + idx);
+	template <std::size_t... argIndices>
+	static TupleType popAll(lua_State* ls, int idx, std::index_sequence<argIndices...> /*indx*/) {
+		// Get stack size of all arguments
+		constexpr int argStackSize[] = { Wrapper<Args>::stackSize..., 0 };
+
+		// Compute stack indices
+		int argStackIndex[sizeof...(Args) + 1] = {};
+		argStackIndex[0] = idx;
+		for (size_t i = 1; i < sizeof...(Args); ++i) {
+			argStackIndex[i] = argStackIndex[i - 1] + argStackSize[i - 1];
 		}
+		return { Wrapper<Args>::pop(ls, argStackIndex[argIndices])... };
 	}
 
 public:
@@ -50,25 +55,8 @@ public:
 		std::apply([ls](auto&... x) { (..., LuaBind::push(ls, x)); }, tuple);
 	}
 	static TupleType pop(lua_State* ls, int idx) {
-		// Get stack size of all arguments
-		// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument
-		const int argStackSize[] = { Wrapper<Args>::stackSize..., 0 };
-
-		using argIndices = std::index_sequence_for<Args...>;
-
-		// Compute stack indices
-		int argStackIndex[sizeof...(Args) + 1] = {};
-		argStackIndex[0] = 1;
-		for (size_t i = 1; i < sizeof...(Args); ++i) {
-			argStackIndex[i] = argStackIndex[i - 1] + argStackSize[i - 1];
-		}
-		return { Wrapper<Args>::pop(ls, argStackIndex[argIndices])... };
-		/* TupleType t {};
-		popAll<0>(t, ls, idx);
-		return t;*/
+		return popAll(ls, idx, std::index_sequence_for<Args...> {});
 	}
-
-private:
 };
 
 } // namespace Typhoon::LuaBind

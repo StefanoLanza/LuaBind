@@ -82,12 +82,15 @@ public:
 	static T pop(lua_State* ls, int idx) {
 		void* userData = lua_touserdata(ls, idx);
 		assert(userData);
+		// TODO userData might be the objPtr directly too, see TODO above
+		T* objPtr = nullptr;
+		std::memcpy(&objPtr, userData, sizeof objPtr);
 #if TY_LUABIND_TYPE_SAFE
-		if (! detail::checkPointerType<T>(ls, userData)) {
+		if (! detail::checkPointerType<T>(ls, objPtr)) {
 			luaL_argerror(ls, idx, "Invalid pointer type"); // TODO better message
 		}
 #endif
-		return *static_cast<const T*>(userData);
+		return *objPtr;
 	}
 };
 
@@ -451,54 +454,22 @@ struct Lightweight {
 template <class T>
 inline constexpr bool isLightweight = std::is_base_of_v<Lightweight<T>, Wrapper<T>>;
 
-//! Const reference wrapper
+//! Const reference wrapper. Treat as value
 template <class T>
 class Wrapper<const T&> {
-	// If Wrapper<T> specialization of Wrapper<T> exists, use that to push and pop
-	// Otherwise, treat the reference as a pointer
-	static constexpr bool isDefined = (Wrapper<T>::stackSize > 0);
-	using PopType = std::conditional_t<isDefined, T, const T&>;
-
 public:
-	static constexpr int stackSize = isDefined ? Wrapper<T>::stackSize : 1;
-
+	static constexpr int stackSize = Wrapper<T>::stackSize;
 	static int match(lua_State* ls, int idx) {
-		if constexpr (isDefined) {
-			return Wrapper<T>::match(ls, idx);
-		}
-		else {
-			return Wrapper<const T*>::match(ls, idx);
-		}
+		return Wrapper<T>::match(ls, idx);
 	}
-	static PopType pop(lua_State* ls, int idx) {
-		if constexpr (isDefined) {
-			// Pop and return value
-			return Wrapper<T>::pop(ls, idx);
-		}
-		else {
-			// Pop pointer and convert to const reference
-			return *Wrapper<const T*>::pop(ls, idx);
-		}
+	static T pop(lua_State* ls, int idx) {
+		return Wrapper<T>::pop(ls, idx);
 	}
 	static void push(lua_State* ls, const T& ref) {
-		if constexpr (isDefined) {
-			// Push a copy
-			Wrapper<T>::push(ls, ref);
-		}
-		else {
-			// Convert to pointer and push
-			Wrapper<const T*>::push(ls, &ref);
-		}
+		Wrapper<T>::push(ls, ref);
 	}
 	static void pushAsKey(lua_State* ls, const T& ref) {
-		if constexpr (isDefined) {
-			// Push a copy
-			Wrapper<T>::pushAsKey(ls, ref);
-		}
-		else {
-			// Convert to pointer and push
-			Wrapper<const T*>::pushAsKey(ls, &ref);
-		}
+		Wrapper<T>::pushAsKey(ls, ref);
 	}
 };
 

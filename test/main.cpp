@@ -503,54 +503,54 @@ void bindTestClasses(lua_State* ls) {
 	LUA_BEGIN_BINDING(ls);
 
 	LUA_BEGIN_NAMESPACE(Globals);
-	LUA_ADD_FREE_FUNCTION(foo);
-	LUA_ADD_FREE_FUNCTION(foo2);
+	LUA_FREE_FUNCTION(foo);
+	LUA_FREE_FUNCTION(foo2);
 	LUA_END_NAMESPACE();
 
 	LUA_BEGIN_CLASS(GameObject);
 	LUA_SET_DEFAULT_NEW_OPERATOR();
-	LUA_ADD_METHOD(setName);
-	LUA_ADD_METHOD(getNameRef);
-	LUA_ADD_METHOD(getName);
-	LUA_ADD_METHOD(setLives);
-	LUA_ADD_METHOD(setWeapon);
-	LUA_ADD_METHOD(getLives);
-	LUA_ADD_METHOD(getWeapon);
-	LUA_ADD_METHOD(getState);
-	LUA_ADD_METHOD(setState);
-	LUA_ADD_OVERLOADED_METHOD(overloaded, void, float);
+	LUA_METHOD(setName);
+	LUA_METHOD(getNameRef);
+	LUA_METHOD(getName);
+	LUA_METHOD(setLives);
+	LUA_METHOD(setWeapon);
+	LUA_METHOD(getLives);
+	LUA_METHOD(getWeapon);
+	LUA_METHOD(getState);
+	LUA_METHOD(setState);
+	LUA_METHOD_OVERLOAD(overloaded, void, float);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Biped, GameObject);
 	LUA_SET_DEFAULT_NEW_OPERATOR(float);
-	LUA_ADD_METHOD(getSpeed);
-	LUA_ADD_METHOD(setSpeed);
+	LUA_METHOD(getSpeed);
+	LUA_METHOD(setSpeed);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Human, Biped);
 	LUA_SET_DEFAULT_NEW_OPERATOR(float, float);
 	LUA_SETTER_GETTER(energy, setEnergy, getEnergy);
 	// C API
-	LUA_ADD_FUNCTION(addEnergy);
-	LUA_ADD_FUNCTION(getEnergy);
+	LUA_FUNCTION(addEnergy);
+	LUA_FUNCTION(getEnergy);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Vec2);
 	LUA_NEW_OPERATOR(newVec2);
-	LUA_ADD_FUNCTION(cross);
-	LUA_ADD_FREE_OPERATOR(sub, -);
+	LUA_FUNCTION(cross);
+	LUA_FREE_OPERATOR(sub, -);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Vec3);
 	LUA_NEW_OPERATOR(newVec3);
-	LUA_ADD_FUNCTION(add);
-	LUA_ADD_FUNCTION(cross);
-	LUA_ADD_OPERATOR(add, +);
-	LUA_ADD_FREE_OPERATOR(sub, -);
+	LUA_FUNCTION(add);
+	LUA_FUNCTION(cross);
+	LUA_OPERATOR(add, +);
+	LUA_FREE_OPERATOR(sub, -);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Quat);
-	LUA_ADD_FUNCTION(setIdentity);
+	LUA_FUNCTION(setIdentity);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Material);

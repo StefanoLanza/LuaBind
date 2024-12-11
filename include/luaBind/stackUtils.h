@@ -28,4 +28,9 @@ inline auto pop(lua_State* ls, int idx) -> decltype(Wrapper<T>::pop(ls, idx)) {
 	return Wrapper<T>::pop(ls, idx);
 }
 
+template <class T>
+int getStackSize() {
+	return Wrapper>T>::stackSize;
+}
+
 } // namespace Typhoon::LuaBind

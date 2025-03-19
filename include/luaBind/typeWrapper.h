@@ -40,17 +40,11 @@ inline T* newTemporary(lua_State* ls, ArgTypes... args);
 template <class T, typename = void>
 class Wrapper {
 public:
-	static constexpr int stackSize = 1;
+	static constexpr int stackSize = -1;
 
-	static int match(lua_State* ls, int idx) {
-		static_assert(sizeof(T) == 0, "must specialize");
-	}
-	static void push(lua_State* ls, const T& value) {
-		static_assert(sizeof(T) == 0, "must specialize");
-	}
-	static T pop(lua_State* ls, int idx) {
-		static_assert(sizeof(T) == 0, "must specialize");
-	}
+	static int match(lua_State* ls, int idx) = delete;
+	static void push(lua_State* ls, const T& value) = delete;
+	static T pop(lua_State* ls, int idx) = delete;
 };
 
 // Helper to push and pop temporary objects as light user data
@@ -90,6 +84,7 @@ struct Lightweight {
 	}
 };
 
+// Traits
 template <class T>
 inline constexpr bool isLightweight = std::is_base_of_v<Lightweight<T>, Wrapper<T>>;
 
@@ -307,7 +302,7 @@ public:
 
 				// Cache association ptr -> user data in registry
 				// registry[ptr] = userData
-				lua_pushlightuserdata(ls, ptr);
+				lua_pushlightuserdata(ls, const_cast<non_const_ptr>(ptr));
 				lua_pushvalue(ls, userDataIndex);
 				lua_rawset(ls, LUA_REGISTRYINDEX);
 

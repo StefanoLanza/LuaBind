@@ -52,6 +52,9 @@ Reference registerObjectAsUserData(lua_State* ls, void* objectPtr, TypeId typeId
 	AutoBlock autoBlock(ls);
 
 	const TypeName typeName = typeIdToName(typeId);
+	if (!typeName) {
+		return Reference{}; // class not registered in C++
+	}
 
 	void* const userData = lua_newuserdatauv(ls, sizeof objectPtr, 0);
 	// Copy C++ pointer to Lua userdata

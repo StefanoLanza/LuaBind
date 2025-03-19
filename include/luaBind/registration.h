@@ -51,58 +51,58 @@ int beginNamespace(lua_State* ls, const char* name);
 	static_assert(std::is_base_of_v<baseClass, class>); \
 	LUA_BEGIN_CLASS_(class, #class, Typhoon::getTypeId<baseClass>())
 
-#define LUA_ADD_METHOD(func)                                                               \
+#define LUA_METHOD(func)                                                               \
 	do {                                                                                   \
 		detail::registerMemberFunction(ls__, &boundClass__::func, #func, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_OVERLOADED_METHOD(func, ret_type, ...)                                                                                           \
+#define LUA_METHOD_OVERLOAD(func, ret_type, ...)                                                                                           \
 	do {                                                                                                                                         \
 		detail::registerMemberFunction(ls__, static_cast<ret_type (boundClass__::*)(__VA_ARGS__)>(&boundClass__::func), #func, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_OVERLOADED_METHOD_CONST(func, ret_type, ...)                                                                         \
+#define LUA_METHOD_OVERLOAD_CONST(func, ret_type, ...)                                                                         \
 	do {                                                                                                                             \
 		detail::registerMemberFunction(ls__, static_cast<ret_type (boundClass__::*)(__VA_ARGS__) const>(&boundClass__::func), #func, \
 		                               tableStackIndex);                                                                             \
 	} while (0)
 
-#define LUA_ADD_C_FUNCTION_RENAMED(func, funcName) \
+#define LUA_C_FUNCTION_RENAMED(func, funcName) \
 	do {                                           \
 		lua_pushliteral(ls__, #funcName);          \
 		lua_pushcfunction(ls__, &func);            \
 		lua_settable(ls__, tableStackIndex);       \
 	} while (0)
 
-#define LUA_ADD_FREE_FUNCTION(function)                                       \
+#define LUA_FREE_FUNCTION(function)                                       \
 	do {                                                                      \
 		detail::registerFunction(ls__, function, #function, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_STATIC_FUNCTION_RENAMED(function, functionName)                                 \
+#define LUA_STATIC_FUNCTION_RENAMED(function, functionName)                                 \
 	do {                                                                                        \
 		detail::registerFunction(ls__, boundClass__::function, #functionName, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_STATIC_FUNCTION(function) LUA_ADD_STATIC_FUNCTION_RENAMED(function, function)
+#define LUA_STATIC_FUNCTION(function) LUA_STATIC_FUNCTION_RENAMED(function, function)
 
-#define LUA_ADD_OPERATOR(name, op)                                                                \
+#define LUA_OPERATOR(name, op)                                                                \
 	do {                                                                                          \
 		detail::registerMemberFunction(ls__, &boundClass__::operator op, #name, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_OPERATOR_OVERLOAD(name, op, RetType, ...)                                                                            \
+#define LUA_OPERATOR_OVERLOAD(name, op, RetType, ...)                                                                            \
 	do {                                                                                                                             \
 		detail::registerMemberFunction(ls__, static_cast<RetType (boundClass__::*)(__VA_ARGS__)>(&boundClass__::operator op), #name, \
 		                               tableStackIndex);                                                                             \
 	} while (0)
 
-#define LUA_ADD_FREE_OPERATOR(name, op)                                                                                \
+#define LUA_FREE_OPERATOR(name, op)                                                                                \
 	do {                                                                                                               \
 		detail::registerFunction(ls__, detail::Overload<boundClass__>::resolve(&operator op), #name, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_FREE_OPERATOR_OVERLOAD(name, op, RetType, ...)                                                       \
+#define LUA_FREE_OPERATOR_OVERLOAD(name, op, RetType, ...)                                                       \
 	do {                                                                                                             \
 		detail::registerFunction(ls__, static_cast<RetType (*)(__VA_ARGS__)>(&operator op), #name, tableStackIndex); \
 	} while (0)
@@ -142,9 +142,9 @@ int beginNamespace(lua_State* ls, const char* name);
 		detail::registerFunction(ls__, detail::Overload<boundClass__>::resolve(function), #functionName, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_FUNCTION(function) LUA_FUNCTION_RENAMED(function, function)
+#define LUA_FUNCTION(function) LUA_FUNCTION_RENAMED(function, function)
 
-#define LUA_ADD_OVERLOADED_FUNCTION(function, ret_type, ...)                                                           \
+#define LUA_FUNCTION_OVERLOAD(function, ret_type, ...)                                                           \
 	do {                                                                                                               \
 		detail::registerFunction(ls__, static_cast<ret_type (*)(__VA_ARGS__)>(&function), #function, tableStackIndex); \
 	} while (0)

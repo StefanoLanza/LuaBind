@@ -160,22 +160,22 @@ void bindClasses(lua_State* ls) {
 	LUA_BEGIN_BINDING(ls);
 
 	LUA_BEGIN_CLASS(GameObject);
-	LUA_ADD_METHOD(setName);
-	LUA_ADD_METHOD(getName);
-	LUA_ADD_METHOD(getState);
-	LUA_ADD_METHOD(setState);
+	LUA_METHOD(setName);
+	LUA_METHOD(getName);
+	LUA_METHOD(getState);
+	LUA_METHOD(setState);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Human, GameObject);
 	LUA_SET_DEFAULT_NEW_OPERATOR();
-	LUA_ADD_METHOD(setWeapon);
-	LUA_ADD_METHOD(getWeapon);
+	LUA_METHOD(setWeapon);
+	LUA_METHOD(getWeapon);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Monster, GameObject);
 	LUA_SET_DEFAULT_NEW_OPERATOR();
-	LUA_ADD_METHOD(setHunger);
-	LUA_ADD_METHOD(getHunger);
+	LUA_METHOD(setHunger);
+	LUA_METHOD(getHunger);
 	LUA_END_CLASS();
 
 	LUA_END_BINDING();

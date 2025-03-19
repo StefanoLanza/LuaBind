@@ -8,7 +8,7 @@
 namespace Typhoon::LuaBind::detail {
 
 template <typename objType, typename retType, typename... argType, std::size_t... argIndices>
-int memberFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...> indx) {
+int memberFunctionWrapperImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 	const void* const ud = lua_touserdata(ls, lua_upvalueindex(1));
 
 	// Extract function pointer from Lua user data

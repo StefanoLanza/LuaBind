@@ -37,8 +37,12 @@ int box(lua_State* ls) {
 template <class T>
 int store(lua_State* ls) {
 	// Stack: boxed (ud), value(ud)
-	assert(lua_isuserdata(ls, 1));
-	assert(lua_isuserdata(ls, 2));
+	if (!lua_isuserdata(ls, 1)) {
+		return luaL_argerror(ls, 1, "not a userdata");
+	}
+	if (!lua_isuserdata(ls, 2)) {
+		return luaL_argerror(ls, 2, "not a userdata");
+	}
 	// Extract pointer from userdata
 	T* boxed = serializePOD<T*>(lua_touserdata(ls, 1));
 	// Store value in boxed object
@@ -50,7 +54,7 @@ template <class T>
 int retrieve(lua_State* ls) {
 	// Stack: boxed (ud)
 	if (! lua_isuserdata(ls, 1)) {
-		return 0;
+		return luaL_argerror(ls, 1, "not a userdata");
 	}
 	// Extract pointer from userdata
 	const T* boxed = serializePOD<T*>(lua_touserdata(ls, 1));

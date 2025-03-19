@@ -297,6 +297,17 @@ TEST_CASE("Root") {
 		Table globals = getGlobals(ls);
 		Table registry = getRegistry(ls);
 		SECTION("base class") {
+			SECTION("auto binding C++ object as full user data") {
+				auto       bart = std::make_unique<GameObject>();
+				globals.set("bart", bart.get());
+				CHECK(globals["bart"].getType() == LUA_TUSERDATA);
+				CHECK(doCommand(ls, "bart:setLives(10)"));
+				CHECK(bart->getLives() == 10);
+				CHECK(doCommand(ls, "bart:setName('Bart')"));
+				CHECK(bart->getName() == "Bart");
+				globals.set("bart", nil);
+				CHECK(lua_gettop(ls) == 0);
+			}
 			SECTION("binding C++ object as full user data") {
 				auto       bart = std::make_unique<GameObject>();
 				const auto ref = registerObjectAsUserData(ls, bart.get());
@@ -316,6 +327,7 @@ TEST_CASE("Root") {
 				CHECK(lua_gettop(ls) == 0);
 			}
 
+			// TODO Remove ?
 			SECTION("binding C++ object as table") {
 				auto       fred = std::make_unique<GameObject>();
 				const auto ref = registerObjectAsTable(ls, fred.get());
@@ -337,7 +349,7 @@ TEST_CASE("Root") {
 				auto       barney = std::make_unique<GameObject>();
 				const auto ref = registerObjectAsLightUserData(ls, barney.get());
 				REQUIRE(ref.isValid());
-				globals.set("barney", barney.get());
+				globals.set("barney", ref);
 				CHECK(globals["barney"].getType() == LUA_TLIGHTUSERDATA);
 
 				CHECK(doCommand(ls, "GameObject.setLives(barney, 20)"));

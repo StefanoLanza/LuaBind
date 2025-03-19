@@ -37,47 +37,46 @@ inline T* newTemporary(lua_State* ls, ArgTypes... args);
 
 // typename = void is used for specializations based on std::enable_if. See the enum specialization
 // Generic wrapper
-// The object is copied to Lua userdata, or light userdata
 template <class T, typename = void>
 class Wrapper {
 public:
 	static constexpr int stackSize = 1;
 
 	static int match(lua_State* ls, int idx) {
+		static_assert(sizeof(T) == 0, "must specialize");
+	}
+	static void push(lua_State* ls, const T& value) {
+		static_assert(sizeof(T) == 0, "must specialize");
+	}
+	static T pop(lua_State* ls, int idx) {
+		static_assert(sizeof(T) == 0, "must specialize");
+	}
+};
+
+// Helper to push and pop temporary objects as light user data
+template <class T>
+struct Lightweight {
+	static constexpr int stackSize = 1;
+	static_assert(std::is_trivially_destructible_v<T>, "Lightweight trait requires a trivially destructible class");
+
+	static int match(lua_State* ls, int idx) {
 		return lua_isuserdata(ls, idx);
 	}
 	static void push(lua_State* ls, const T& value) {
-		// TODO handle lightweight trait here
-		// 
-		// void* mem = nullptr;
-		/* if constexpr (isLightweight<T>) {
-		    mem = detail::allocTemporary<T>(ls);
-		    T* ptr = new (mem) T { value };
-		    Lightweight<T>::push(ls, ptr);
-		}
-		else*/
-		{
-			// TODO Remove indirection, store value in ud directly
-			const T* valueCopy = new T { value }; // copy value
-
-			// Allocate full user data and store the object pointer in it
-			void* const ud = lua_newuserdatauv(ls, sizeof valueCopy, 1);
-			std::memcpy(ud, &valueCopy, sizeof valueCopy);			
-
-			// Associate metatable
-			const char* className = typeName<T>();
-			assert(className);
-			luaL_getmetatable(ls, className);
-			lua_setmetatable(ls, -2);
-
-			// Mark as heap allocated by Lua. This user value is queried in wrapDefaultDelete<T>
-			lua_pushinteger(ls, detail::kLuaAllocated);
-			lua_setiuservalue(ls, -2, 1); // ud.userValue[1] = kLuaAllocated
-
+		void* const mem = detail::allocTemporary<T>(ls);
+		if (mem) {
+			T* ud = new (mem) T { value };
 #if TY_LUABIND_TYPE_SAFE
-			detail::registerPointer(ls, valueCopy);
+			detail::registerPointer(ls, ud);
 #endif
+			lua_pushlightuserdata(ls, ud);
 		}
+		else {
+			lua_pushnil(ls);
+		}
+	}
+	static void pushAsKey(lua_State* ls, const T& value) {
+		push(ls, value);
 	}
 	static T pop(lua_State* ls, int idx) {
 		void* userData = lua_touserdata(ls, idx);
@@ -90,6 +89,9 @@ public:
 		return *static_cast<const T*>(userData);
 	}
 };
+
+template <class T>
+inline constexpr bool isLightweight = std::is_base_of_v<Lightweight<T>, Wrapper<T>>;
 
 template <>
 class Wrapper<Nil> {
@@ -245,36 +247,77 @@ public:
 	}
 
 	static void pushAsKey(lua_State* ls, T* ptr) {
-		lua_pushlightuserdata(ls, const_cast<non_const_ptr>(ptr));
+		if (ptr) {
+			lua_pushlightuserdata(ls, const_cast<non_const_ptr>(ptr));
+		}
+		else {
+			lua_pushnil(ls);
+		}
 	}
 
 	static void push(lua_State* ls, T* ptr) {
-		if (ptr) {
-			// Remove const from pointer type
-			void* const ud = const_cast<non_const_ptr>(ptr);
+		if (! ptr) {
+			lua_pushnil(ls);
+			return;
+		}
+
+		void* const ud = const_cast<non_const_ptr>(ptr);
+
+		if constexpr (std::is_void_v<T>) {
+			// void*, push ptr as light user data
+			lua_pushlightuserdata(ls, ud);
+		}
+		else if constexpr (isLightweight<T>) {
+			// lightweight type, push ptr as light user data
+			lua_pushlightuserdata(ls, ud);
+#if TY_LUABIND_TYPE_SAFE
+			detail::registerPointer(ls, ptr);
+#endif
+		}
+		else {
+			// Embed ptr into full user data
 
 			// Get userdata/table associated with the pointer from registry
 			lua_pushlightuserdata(ls, ud);
 			lua_rawget(ls, LUA_REGISTRYINDEX);
 			if (lua_isnil(ls, -1)) {
 				// The ptr is not registered
-				// Return it as light user data
 				lua_pop(ls, 1);
-				lua_pushlightuserdata(ls, ud);
+
+				// Lookup class metatable in registry
+				const auto     typeId = getTypeId<T>();
+				const TypeName typeName = typeIdToName(typeId);
+				if (! typeName) {
+					lua_pushnil(ls);
+					return; // class not registered in C++
+				}
+
+				void* const userData = lua_newuserdatauv(ls, sizeof ptr, 0);
+				// Copy C++ pointer to Lua userdata
+				std::memcpy(userData, &ptr, sizeof ptr);
+				const int userDataIndex = lua_gettop(ls);
+
+				luaL_getmetatable(ls, typeName);
+				if (! lua_istable(ls, -1)) {
+					lua_pushnil(ls);
+					return; // class not registered
+				}
+				// Set metatable of user data at index idx
+				lua_setmetatable(ls, userDataIndex);
+
+				// Cache association ptr -> user data in registry
+				// registry[ptr] = userData
+				lua_pushlightuserdata(ls, ptr);
+				lua_pushvalue(ls, userDataIndex);
+				lua_rawset(ls, LUA_REGISTRYINDEX);
 
 #if TY_LUABIND_TYPE_SAFE
-				if constexpr (! std::is_void<T>()) {
-					detail::registerPointer(ls, ptr);
-				}
-				// else void* ptr, type is lost
+				detail::registerPointer(ls, ptr);
 #endif
 			}
 			else {
 				// The ptr has been registered. Return it
 			}
-		}
-		else {
-			lua_pushnil(ls);
 		}
 	}
 
@@ -304,8 +347,8 @@ public:
 
 #if TY_LUABIND_TYPE_SAFE
 		if (ptr && ! detail::checkPointerType(ls, ptr, getTypeId(ptr))) {
-			ptr = nullptr;
 			luaL_argerror(ls, idx, "invalid pointer type");
+			ptr = nullptr;
 		}
 #endif
 		return ptr;
@@ -413,43 +456,6 @@ public:
 		return std::string_view { cstr };
 	}
 };
-
-// Helper to push and pop temporary objects as light user data
-template <class T>
-struct Lightweight {
-	static constexpr int stackSize = 1;
-	static_assert(std::is_trivially_destructible_v<T>, "Lightweight trait requires a trivially destructible class");
-
-	static int match(lua_State* ls, int idx) {
-		return lua_isuserdata(ls, idx);
-	}
-	static void push(lua_State* ls, const T& value) {
-		void* const mem = detail::allocTemporary<T>(ls);
-		if (mem) {
-			T* ud = new (mem) T { value };
-#if TY_LUABIND_TYPE_SAFE
-			detail::registerPointer(ls, ud);
-#endif
-			lua_pushlightuserdata(ls, ud);
-		}
-		else {
-			lua_pushnil(ls);
-		}
-	}
-	static T pop(lua_State* ls, int idx) {
-		void* userData = lua_touserdata(ls, idx);
-		assert(userData);
-#if TY_LUABIND_TYPE_SAFE
-		if (! detail::checkPointerType<T>(ls, userData)) {
-			luaL_argerror(ls, idx, "Invalid pointer type"); // TODO better message
-		}
-#endif
-		return *static_cast<const T*>(userData);
-	}
-};
-
-template <class T>
-inline constexpr bool isLightweight = std::is_base_of_v<Lightweight<T>, Wrapper<T>>;
 
 //! Const reference wrapper
 template <class T>

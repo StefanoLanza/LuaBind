@@ -101,7 +101,6 @@ void bindClasses(lua_State* ls) {
 	LUA_GETTER(x, getX);
 	LUA_GETTER(y, getY);
 	LUA_GETTER(z, getZ);
-	// LUA_BOX_OPERATOR();
 	LUA_END_CLASS();
 
 	LUA_END_BINDING();

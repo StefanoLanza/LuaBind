@@ -67,7 +67,7 @@ const char* script = R"(
 int main(int /*argc*/, char* /*argv*/[]) {
 	std::cout << "LuaBind version: " << LuaBind::getVersionString() << std::endl;
 	Typhoon::HeapAllocator heapAllocator;
-	lua_State* const ls = LuaBind::createState(heapAllocator);
+	lua_State* const       ls = LuaBind::createState(heapAllocator);
 	runExample(ls);
 	LuaBind::closeState(ls);
 
@@ -88,7 +88,7 @@ void runExample(lua_State* ls) {
 		return;
 	}
 
-	Object obj(ls, test.getReference());
+	const Object obj { ls, test.getReference() };
 	Result r { false };
 
 	std::string name;
@@ -101,7 +101,7 @@ void runExample(lua_State* ls) {
 	}
 
 	// Bad arguments
-	std::pair p{ 0, 1 };
+	std::pair p { 0, 1 };
 	r = obj.callMethod("setName", p);
 	if (! r) {
 		std::cout << r.getErrorMessage() << std::endl;

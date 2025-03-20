@@ -53,7 +53,7 @@ inline void registerFunction(lua_State* ls, retType (*functionPtr)(argType...), 
 	lua_settable(ls, tableStackIndex);
 }
 
-// Pick the overload with the first argument matching the bound class
+// Pick the overload whose first argument matches the bound class
 template <typename T>
 struct Overload {
 	template <typename retType, typename... argType>
@@ -74,6 +74,19 @@ struct Overload {
 	}
 	template <typename retType, typename... argType>
 	static auto resolve(retType(func)(const T& self, argType...)) {
+		return func;
+	}
+	template <typename retType, typename... argType>
+	static auto resolve(retType(func)(argType...)) {
+		return func;
+	}
+};
+
+// Used for namespaces, which have no class bound
+template <>
+struct Overload<void> {
+	template <typename retType, typename... argType>
+	static auto resolve(retType(func)(argType...)) {
 		return func;
 	}
 };

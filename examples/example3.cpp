@@ -52,7 +52,7 @@ protected:
 	GameObjectState state;
 };
 
-class Human : public GameObject {
+class Human final : public GameObject {
 public:
 	Human()
 	    : weapon(Weapon::hand) {
@@ -72,7 +72,7 @@ private:
 	Weapon weapon;
 };
 
-class Monster : public GameObject {
+class Monster final : public GameObject {
 public:
 	Monster()
 	    : hunger(0) {
@@ -94,10 +94,13 @@ private:
 
 const char* script = R"(
 	-- Create an object in Lua directly
---	local luaHuman = Human.new()
---	luaHuman:setName("luaHuman")
---	local name = luaHuman:getName()
---	print ("luaHuman name:"..name)
+	local luaHuman = Human.new()
+	luaHuman:setName("luaHuman")
+	local name = luaHuman:getName()
+	print ("luaHuman name:"..name)
+
+	local weapon_hand = 0
+	local weapon_rifle = 1
 
 	-- cppHuman and cppMonster were created by native code and bound to Lua
 
@@ -105,6 +108,9 @@ const char* script = R"(
 	assert(type(cppHuman) == "userdata")
 	local name = cppHuman:getName()
 	print ("cppHuman name:"..name)
+	cppHuman:setWeapon(weapon_rifle)
+	local weapon = cppHuman:getWeapon()
+	print ("cppHuman weapon:"..weapon)
 
 	-- cppMonster is a table
 	assert(type(cppMonster) == "table")
@@ -167,13 +173,13 @@ void bindClasses(lua_State* ls) {
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Human, GameObject);
-	LUA_SET_DEFAULT_NEW_OPERATOR();
+	LUA_DEFAULT_NEW_OPERATOR();
 	LUA_METHOD(setWeapon);
 	LUA_METHOD(getWeapon);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Monster, GameObject);
-	LUA_SET_DEFAULT_NEW_OPERATOR();
+	LUA_DEFAULT_NEW_OPERATOR();
 	LUA_METHOD(setHunger);
 	LUA_METHOD(getHunger);
 	LUA_END_CLASS();

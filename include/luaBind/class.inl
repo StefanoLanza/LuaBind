@@ -16,7 +16,7 @@ T* defaultNew(argType... args) {
 }
 
 // Create a new object and return it to Lua as a full user data
-template <typename retType, typename... argType, std::size_t... argIndices>
+template <typename classType, typename retType, typename... argType, std::size_t... argIndices>
 int wrapNewImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 	// Extract function pointer from upvalue
 	using func_ptr = retType (*)(argType...);
@@ -40,11 +40,14 @@ int wrapNewImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 	// Pop and pass args
 	const auto obj = func(Wrapper<argType>::pop(ls, argStackIndex[argIndices])...);
 
-	if constexpr (isLightweight<retType>) {
+	if constexpr (isLightweight<classType>) {
+		static_assert(std::is_same_v<classType, retType>, "new function must return by value");
 		// Push lightweight object as light user data
 		Lightweight<retType>::push(ls, obj);
 	}
 	else {
+		static_assert(std::is_same_v<classType*, retType>, "new function must return a pointer");
+
 		// Allocate full user data and store the object pointer in it
 		void* const ud = lua_newuserdatauv(ls, sizeof obj, 1);
 		std::memcpy(ud, &obj, sizeof obj);
@@ -66,9 +69,9 @@ int wrapNewImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 	return 1;
 }
 
-template <typename retType, typename... argType>
+template <typename classType, typename retType, typename... argType>
 int wrapNew(lua_State* ls) {
-	return wrapNewImpl<retType, argType...>(ls, std::index_sequence_for<argType...> {});
+	return wrapNewImpl<classType, retType, argType...>(ls, std::index_sequence_for<argType...> {});
 }
 
 template <class T>
@@ -121,7 +124,7 @@ inline void registerNewOperator(lua_State* ls, int classTableStackIndex, retType
 	static_assert(std::is_same_v<classType, std::remove_pointer_t<retType>>, "Invalid return type for new operator");
 	void* buffer = lua_newuserdatauv(ls, sizeof functionPtr, 0);
 	std::memcpy(buffer, &functionPtr, sizeof functionPtr);
-	lua_pushcclosure(ls, wrapNew<retType, argType...>, 1);
+	lua_pushcclosure(ls, wrapNew<classType, retType, argType...>, 1);
 	lua_setfield(ls, classTableStackIndex, "new"); // table.new = wrapNew
 }
 
@@ -138,7 +141,7 @@ inline void registerDeleteOperator(lua_State* ls, int classTableStackIndex, void
 template <typename T, typename... argType>
 void registerDefaultNewOperator(lua_State* ls, int classTableStackIndex) {
 	auto actualNew = defaultNew<T, argType...>;
-	registerNewAndDeleteOperators(ls, classTableStackIndex, wrapNew<T*, argType...>, wrapDefaultDelete<T>, &actualNew, sizeof actualNew);
+	registerNewAndDeleteOperators(ls, classTableStackIndex, wrapNew<T, T*, argType...>, wrapDefaultDelete<T>, &actualNew, sizeof actualNew);
 }
 
 } // namespace Typhoon::LuaBind::detail

@@ -515,12 +515,12 @@ void bindTestClasses(lua_State* ls) {
 	LUA_BEGIN_BINDING(ls);
 
 	LUA_BEGIN_NAMESPACE(Globals);
-	LUA_FREE_FUNCTION(foo);
-	LUA_FREE_FUNCTION(foo2);
+	LUA_FUNCTION(foo);
+	LUA_FUNCTION(foo2);
 	LUA_END_NAMESPACE();
 
 	LUA_BEGIN_CLASS(GameObject);
-	LUA_SET_DEFAULT_NEW_OPERATOR();
+	LUA_DEFAULT_NEW_OPERATOR();
 	LUA_METHOD(setName);
 	LUA_METHOD(getNameRef);
 	LUA_METHOD(getName);
@@ -534,13 +534,13 @@ void bindTestClasses(lua_State* ls) {
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Biped, GameObject);
-	LUA_SET_DEFAULT_NEW_OPERATOR(float);
+	LUA_DEFAULT_NEW_OPERATOR(float);
 	LUA_METHOD(getSpeed);
 	LUA_METHOD(setSpeed);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Human, Biped);
-	LUA_SET_DEFAULT_NEW_OPERATOR(float, float);
+	LUA_DEFAULT_NEW_OPERATOR(float, float);
 	LUA_SETTER_GETTER(energy, setEnergy, getEnergy);
 	// C API
 	LUA_FUNCTION(addEnergy);

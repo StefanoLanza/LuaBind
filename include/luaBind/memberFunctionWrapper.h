@@ -23,7 +23,7 @@ int memberFunctionWrapperImpl(lua_State* ls, std::index_sequence<argIndices...> 
 
 	// Get stack size of all arguments
 	// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument
-	constexpr int argStackSize[] = { Wrapper<argType>::stackSize..., 0 };
+	constexpr int argStackSize[] = { Wrapper<argType>::getStackSize()..., 0 };
 
 	// Compute stack indices
 	int argStackIndex[sizeof...(argType) + 1] = {};
@@ -41,7 +41,7 @@ int memberFunctionWrapperImpl(lua_State* ls, std::index_sequence<argIndices...> 
 	}
 	else {
 		Wrapper<retType>::push(ls, (self->*func)(Wrapper<argType>::pop(ls, argStackIndex[argIndices])...));
-		return Wrapper<retType>::stackSize;
+		return Wrapper<retType>::getStackSize();
 	}
 }
 

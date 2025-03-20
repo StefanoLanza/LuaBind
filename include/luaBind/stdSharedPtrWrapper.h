@@ -10,8 +10,9 @@ namespace Typhoon::LuaBind {
 template <class T>
 class Wrapper<std::shared_ptr<T>> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return Wrapper<T*>::match(ls, idx);
 	}

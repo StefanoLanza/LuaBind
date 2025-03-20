@@ -20,6 +20,17 @@ enum class Weapon {
 	rifle = 1,
 };
 
+struct GameObjectMeta {
+	uint64_t    uid = 0;
+	std::string name;
+	std::string path;
+
+	const std::string& getName() const {
+		std::cout << "GameObjectMeta::getName" << std::endl;
+		return name;
+	}
+};
+
 class GameObject {
 public:
 	GameObject()
@@ -27,16 +38,16 @@ public:
 		std::cout << "GameObject::constructor" << std::endl;
 	}
 	virtual ~GameObject() {
-		std::cout << "GameObject::destructor (name: " << name << ")" << std::endl;
+		std::cout << "GameObject::destructor (name: " << metaData.name << ")" << std::endl;
 	}
 
 	void setName(std::string v) {
 		std::cout << "GameObject::setName (arg: " << v << ")" << std::endl;
-		name = std::move(v);
+		metaData.name = std::move(v);
 	}
 	const std::string& getName() const {
 		std::cout << "GameObject::getName" << std::endl;
-		return name;
+		return metaData.name;
 	}
 	GameObjectState getState() const {
 		std::cout << "GameObject::getState" << std::endl;
@@ -46,9 +57,12 @@ public:
 		std::cout << "GameObject::setState" << std::endl;
 		state = s;
 	}
+	const GameObjectMeta& getMeta() const {
+		return metaData;
+	}
 
 protected:
-	std::string     name;
+	GameObjectMeta  metaData;
 	GameObjectState state;
 };
 
@@ -59,7 +73,7 @@ public:
 		std::cout << "Human::constructor" << std::endl;
 	}
 	~Human() {
-		std::cout << "Human::destructor (name: " << name << ")" << std::endl;
+		std::cout << "Human::destructor (name: " << metaData.name << ")" << std::endl;
 	}
 	Weapon getWeapon() const {
 		return weapon;
@@ -79,7 +93,7 @@ public:
 		std::cout << "Monster::constructor" << std::endl;
 	}
 	~Monster() {
-		std::cout << "Monster::destructor (name: " << name << ")" << std::endl;
+		std::cout << "Monster::destructor (name: " << metaData.name << ")" << std::endl;
 	}
 	float getHunger() const {
 		return hunger;
@@ -106,7 +120,8 @@ const char* script = R"(
 
 	-- cppMonster is a user data
 	assert(type(cppHuman) == "userdata")
-	local name = cppHuman:getName()
+	local meta = cppHuman:getMeta()
+	local name = meta:getName()
 	print ("cppHuman name:"..name)
 	cppHuman:setWeapon(weapon_rifle)
 	local weapon = cppHuman:getWeapon()
@@ -127,7 +142,7 @@ const char* script = R"(
 int main(int /*argc*/, char* /*argv*/[]) {
 	std::cout << "LuaBind version: " << LuaBind::getVersionString() << std::endl;
 	Typhoon::HeapAllocator heapAllocator;
-	const auto ls = LuaBind::createState(heapAllocator);
+	const auto             ls = LuaBind::createState(heapAllocator);
 	bindClasses(ls);
 	runExample(ls);
 	LuaBind::closeState(ls);
@@ -146,7 +161,7 @@ void runExample(lua_State* ls) {
 	obj1.setName("cppMonster");
 
 	// Expose cpp object to Lua as a full userdata
-	const Reference ref0 { registerObjectAsUserData(ls, &obj0)/*, ls*/ };
+	const Reference ref0 { registerObjectAsUserData(ls, &obj0) /*, ls*/ };
 	getGlobals(ls).rawSet("cppHuman", ref0);
 
 	// Expose cpp object to Lua as a table. This way, in Lua we can associate custom elements to the object
@@ -165,11 +180,17 @@ void runExample(lua_State* ls) {
 void bindClasses(lua_State* ls) {
 	LUA_BEGIN_BINDING(ls);
 
+/*
+	LUA_BEGIN_CLASS(GameObjectMeta);
+	LUA_METHOD(getName);
+	LUA_END_CLASS();
+*/
 	LUA_BEGIN_CLASS(GameObject);
 	LUA_METHOD(setName);
 	LUA_METHOD(getName);
 	LUA_METHOD(getState);
 	LUA_METHOD(setState);
+	LUA_METHOD(getMeta);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Human, GameObject);

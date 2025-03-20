@@ -14,8 +14,9 @@ private:
 	using OptionalType = std::optional<T>;
 
 public:
-	static constexpr int stackSize = std::max(Wrapper<T>::stackSize, Wrapper<Nil>::stackSize);
-
+	static constexpr int getStackSize() {
+		return std::max(Wrapper<T>::getStackSize(), Wrapper<Nil>::getStackSize());
+	}
 	static int match(lua_State* ls, int idx) {
 		return Wrapper<T>::match(ls, idx) || Wrapper<Nil>::match(ls, idx);
 	}

@@ -13,8 +13,9 @@ class Wrapper<std::array<T, Size>> {
 	using ArrayType = std::array<T, Size>;
 
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_istable(ls, idx);
 	}

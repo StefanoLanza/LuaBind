@@ -14,8 +14,9 @@ private:
 	using ExpectedType = std::expected<T, E>;
 
 public:
-	static constexpr int stackSize = std::max(Wrapper<T>::stackSize, Wrapper<E>::stackSize);
-
+	static constexpr int getStackSize() {
+		return std::max(Wrapper<T>::getStackSize(), Wrapper<E>::getStackSize());
+	}
 	static int match(lua_State* ls, int idx) {
 		return Wrapper<T>::match(ls, idx) || Wrapper<E>::match(ls, idx);
 	}

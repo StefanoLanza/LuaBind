@@ -37,7 +37,7 @@ public:
 		const ret_type* memberVar = reinterpret_cast<const ret_type*>(reinterpret_cast<uintptr_t>(self) + offset);
 
 		Wrapper<ret_type>::push(ls, *memberVar);
-		return Wrapper<ret_type>::stackSize;
+		return Wrapper<ret_type>::getStackSize();
 	}
 };
 

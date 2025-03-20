@@ -14,7 +14,7 @@ private:
 	template <size_t index>
 	static constexpr int getTotalStackSize() {
 		using E = std::tuple_element_t<index, TupleType>;
-		int stackSize = Wrapper<E>::stackSize;
+		int stackSize = Wrapper<E>::getStackSize();
 		if constexpr (index + 1 < std::tuple_size_v<TupleType>) {
 			stackSize += getTotalStackSize<index + 1>();
 		}
@@ -26,7 +26,7 @@ private:
 		using E = std::tuple_element_t<index, TupleType>;
 		bool match = Wrapper<E>::match(ls, idx);
 		if constexpr (index + 1 < std::tuple_size_v<TupleType>) {
-			match = match && getMatch<index + 1>(ls, Wrapper<E>::stackSize + idx);
+			match = match && getMatch<index + 1>(ls, Wrapper<E>::getStackSize() + idx);
 		}
 		return match;
 	}
@@ -34,7 +34,7 @@ private:
 	template <std::size_t... argIndices>
 	static TupleType popAll(lua_State* ls, int idx, std::index_sequence<argIndices...> /*indx*/) {
 		// Get stack size of all arguments
-		constexpr int argStackSize[] = { Wrapper<Args>::stackSize..., 0 };
+		constexpr int argStackSize[] = { Wrapper<Args>::getStackSize()..., 0 };
 
 		// Compute stack indices
 		int argStackIndex[sizeof...(Args) + 1] = {};
@@ -46,8 +46,9 @@ private:
 	}
 
 public:
-	static constexpr int stackSize = getTotalStackSize<0>();
-
+	static constexpr int getStackSize() {
+		return getTotalStackSize<0>();
+	}
 	static int match(lua_State* ls, int idx) {
 		return getMatch<0>(ls, idx);
 	}

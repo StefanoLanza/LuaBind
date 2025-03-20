@@ -9,14 +9,14 @@ private:
 	using TypedId = Id<Tag, Impl, nullValue>;
 
 public:
-	static constexpr int stackSize = 1;
-
-	// An invalid id becomes nil in Lua
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_isinteger(ls, idx) | lua_isnil(ls, idx);
 	}
 	static void push(lua_State* ls, TypedId id) {
+		// An invalid id becomes nil in Lua
 		if (id) {
 			lua_pushinteger(ls, static_cast<lua_Integer>(id.getValue()));
 		}

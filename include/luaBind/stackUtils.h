@@ -19,18 +19,8 @@ inline void push(lua_State* ls, const T& object) {
 }
 
 template <class T>
-inline void pushAsKey(lua_State* ls, const T& object) {
-	Wrapper<const T&>::pushAsKey(ls, object);
-}
-
-template <class T>
 inline auto pop(lua_State* ls, int idx) -> decltype(Wrapper<T>::pop(ls, idx)) {
 	return Wrapper<T>::pop(ls, idx);
-}
-
-template <class T>
-int getStackSize() {
-	return Wrapper<T>::stackSize;
 }
 
 } // namespace Typhoon::LuaBind

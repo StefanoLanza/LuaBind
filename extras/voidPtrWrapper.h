@@ -1,15 +1,16 @@
 #pragma once
 
-#include <luaBind/typeWrapper.h>
 #include <core/typedVoidPtr.h>
+#include <luaBind/typeWrapper.h>
 
 namespace Typhoon::LuaBind {
 
 template <>
 class Wrapper<VoidPtr> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return Wrapper<void*>::match(ls, idx);
 	}

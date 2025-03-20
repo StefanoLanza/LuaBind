@@ -40,19 +40,20 @@ inline T* newTemporary(lua_State* ls, ArgTypes... args);
 template <class T, typename = void>
 class Wrapper {
 public:
-	static constexpr int stackSize = -1;
-
-	static int match(lua_State* ls, int idx) = delete;
-	static void push(lua_State* ls, const T& value) = delete;
-	static T pop(lua_State* ls, int idx) = delete;
+	static constexpr int getStackSize() { return -1; }
+	static int           match(lua_State* ls, int idx) = delete;
+	static void          push(lua_State* ls, const T& value) = delete;
+	static T             pop(lua_State* ls, int idx) = delete;
 };
 
 // Helper to push and pop temporary objects as light user data
 template <class T>
 struct Lightweight {
-	static constexpr int stackSize = 1;
 	static_assert(std::is_trivially_destructible_v<T>, "Lightweight trait requires a trivially destructible class");
 
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_isuserdata(ls, idx);
 	}
@@ -91,8 +92,9 @@ inline constexpr bool isLightweight = std::is_base_of_v<Lightweight<T>, Wrapper<
 template <>
 class Wrapper<Nil> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_isnil(ls, idx);
 	}
@@ -113,8 +115,9 @@ requires std::integral<I>
 #endif
     class IntegerWrapper {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_isinteger(ls, idx);
 	}
@@ -139,8 +142,9 @@ requires std::floating_point<F>
 #endif
     class FloatWrapper {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_isnumber(ls, idx);
 	}
@@ -194,8 +198,9 @@ class Wrapper<float> : public FloatWrapper<float> {};
 template <>
 class Wrapper<bool> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_isboolean(ls, idx);
 	}
@@ -210,8 +215,9 @@ public:
 template <>
 class Wrapper<const char*> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_type(ls, idx) == LUA_TSTRING;
 	}
@@ -234,8 +240,9 @@ class Wrapper<const char (&)[Size]> : public Wrapper<const char*> {};
 template <class T>
 class Wrapper<T*> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		const int luaType = lua_type(ls, idx);
 		return (luaType == LUA_TLIGHTUSERDATA || luaType == LUA_TUSERDATA || luaType == LUA_TTABLE || luaType == LUA_TNIL);
@@ -284,6 +291,7 @@ public:
 				const TypeName typeName = typeIdToName(typeId);
 				if (! typeName) {
 					lua_pushnil(ls);
+					luaL_error(ls, "Unregistered type %s", typeid(T).name());
 					return; // class not registered in C++
 				}
 
@@ -295,7 +303,8 @@ public:
 				luaL_getmetatable(ls, typeName);
 				if (! lua_istable(ls, -1)) {
 					lua_pushnil(ls);
-					return; // class not registered
+					luaL_error(ls, "Cannot get metatable for type %s", typeName);
+					return; // class metatable not registered
 				}
 				// Set metatable of user data at index idx
 				lua_setmetatable(ls, userDataIndex);
@@ -357,8 +366,9 @@ private:
 template <typename T>
 class Wrapper<T, typename std::enable_if_t<std::is_enum_v<T>>> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_isnumber(ls, idx);
 	}
@@ -377,8 +387,9 @@ public:
 template <>
 class Wrapper<StackIndex> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
 		return true;
 	}
@@ -398,8 +409,9 @@ public:
 template <>
 class Wrapper<Reference> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
 		return true;
 	}
@@ -415,8 +427,9 @@ public:
 template <>
 class Wrapper<std::string> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_type(ls, idx) == LUA_TSTRING;
 	}
@@ -435,8 +448,9 @@ public:
 template <>
 class Wrapper<std::string_view> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_type(ls, idx) == LUA_TSTRING;
 	}
@@ -457,12 +471,14 @@ template <class T>
 class Wrapper<const T&> {
 	// If Wrapper<T> specialization of Wrapper<T> exists, use that to push and pop
 	// Otherwise, treat the reference as a pointer
-	static constexpr bool isDefined = (Wrapper<T>::stackSize > 0);
+	static constexpr bool isDefined = (Wrapper<T>::getStackSize() > 0);
 	using PopType = std::conditional_t<isDefined, T, const T&>;
 
 public:
-	static constexpr int stackSize = isDefined ? Wrapper<T>::stackSize : 1;
 
+	static constexpr int getStackSize() {
+		return isDefined ? Wrapper<T>::getStackSize() : 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		if constexpr (isDefined) {
 			return Wrapper<T>::match(ls, idx);
@@ -507,8 +523,9 @@ public:
 template <class T>
 class Wrapper<T&> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return Wrapper<T*>::match(ls, idx);
 	}

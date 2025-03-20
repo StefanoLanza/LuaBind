@@ -25,7 +25,7 @@ int wrapNewImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 
 	// Get stack size of all arguments
 	// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument
-	const int argStackSize[] = { Wrapper<argType>::stackSize..., 0 };
+	const int argStackSize[] = { Wrapper<argType>::getStackSize()..., 0 };
 
 	// Compute stack indices
 	int argStackIndex[sizeof...(argType) + 1] = {};

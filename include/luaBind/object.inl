@@ -16,7 +16,7 @@ Result Object::callMethodRet(const char* func, RetType& ret, const ArgTypes&... 
 		return Result { false };
 	}
 
-	constexpr int argStackSize[] = { Wrapper<const ArgTypes&>::stackSize..., 0 };
+	constexpr int argStackSize[] = { Wrapper<const ArgTypes&>::getStackSize()..., 0 };
 
 	// Push arguments
 	// Because of C++ rules, by creating an array, push is called in the correct order for each argument
@@ -29,7 +29,7 @@ Result Object::callMethodRet(const char* func, RetType& ret, const ArgTypes&... 
 		narg += argStackSize[i];
 	}
 
-	constexpr int nres = Wrapper<RetType>::stackSize;
+	constexpr int nres = Wrapper<RetType>::getStackSize();
 	const Result  res = callMethodImpl(narg, nres);
 	if (res) {
 		ret = Wrapper<RetType>::pop(ls, resStackIndex);
@@ -46,7 +46,7 @@ Result Object::callMethod(const char* func, const ArgTypes&... args) const {
 		return Result { false };
 	}
 
-	constexpr int argStackSize[] = { Wrapper<const ArgTypes&>::stackSize..., 0 };
+	constexpr int argStackSize[] = { Wrapper<const ArgTypes&>::getStackSize()..., 0 };
 
 	// Push arguments
 	// Because of C++ rules, by creating an array, push is called in the correct order for each argument

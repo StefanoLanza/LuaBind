@@ -76,10 +76,11 @@ private:
 template <>
 class Wrapper<Value> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
-        return true;
+		return true;
 	}
 	static void pushAsKey(lua_State* ls, const Value& value) {
 		push(ls, value);

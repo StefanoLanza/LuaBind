@@ -14,8 +14,13 @@ bool toDouble(lua_State* ls, int numArg, double& d);
 // Helpers
 
 template <class T>
-inline void push(lua_State* ls, const T& object) {
-	Wrapper<const T&>::push(ls, object);
+inline void push(lua_State* ls, T&& object) {
+	Wrapper<T&&>::push(ls, std::forward<T>(object));
+}
+
+template <class T>
+inline void pushAsKey(lua_State* ls, T&& object) {
+	Wrapper<T&&>::pushAsKey(ls, std::forward<T>(object));
 }
 
 template <class T>

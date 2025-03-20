@@ -291,7 +291,7 @@ public:
 				const TypeName typeName = typeIdToName(typeId);
 				if (! typeName) {
 					lua_pushnil(ls);
-					luaL_error(ls, "Unregistered type %s", typeid(T).name());
+					luaL_error(ls, "Unregistered type");
 					return; // class not registered in C++
 				}
 

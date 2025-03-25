@@ -32,9 +32,6 @@ struct always_false {
 
 } // namespace detail
 
-template <class T, class... ArgTypes>
-inline T* newTemporary(lua_State* ls, ArgTypes... args);
-
 // typename = void is used for specializations based on std::enable_if. See the enum specialization
 // Generic wrapper
 template <class T, typename = void>
@@ -44,7 +41,7 @@ public:
 		return 1;
 	}
 	static int match(lua_State* ls, int idx) {
-		return lua_isuserdata(ls, idx);
+		return lua_type(ls, idx) == LUA_TUSERDATA;
 	}
 	static void push(lua_State* ls, const T& value) {
 		void* const mem = detail::allocTemporary<T>(ls);
@@ -95,15 +92,18 @@ public:
 		}
 	}
 
-	static T pop(lua_State* ls, int idx) {
+	// FIXME Do not copy
+	static const T& pop(lua_State* ls, int idx) {
 		void* userData = lua_touserdata(ls, idx);
 		assert(userData);
+		T* ptr = nullptr;
+		std::memcpy(&ptr, userData, sizeof ptr);
 #if TY_LUABIND_TYPE_SAFE
-		if (! detail::checkPointerType<T>(ls, userData)) {
-			luaL_argerror(ls, idx, "Invalid pointer type"); // TODO better message
+		if (! detail::checkPointerType<T>(ls, ptr)) {
+			luaL_argerror(ls, idx, "Invalid pointer type");
 		}
 #endif
-		return *static_cast<const T*>(userData);
+		return *ptr;
 	}
 };
 
@@ -131,9 +131,12 @@ struct Lightweight {
 			lua_pushnil(ls);
 		}
 	}
+
 	static void pushAsKey(lua_State* ls, const T& value) {
 		push(ls, value);
 	}
+
+	// FIXME Do not copy
 	static T pop(lua_State* ls, int idx) {
 		void* userData = lua_touserdata(ls, idx);
 		assert(userData);
@@ -411,7 +414,7 @@ public:
 		}
 
 #if TY_LUABIND_TYPE_SAFE
-		if (ptr && ! detail::checkPointerType(ls, ptr, getTypeId(ptr))) {
+		if (ptr && ! detail::checkPointerType(ls, ptr, getTypeId<T>())) {
 			luaL_argerror(ls, idx, "invalid pointer type");
 			ptr = nullptr;
 		}
@@ -530,11 +533,6 @@ public:
 //! Const reference wrapper
 template <class T>
 class Wrapper<const T&> {
-	// If Wrapper<T> specialization of Wrapper<T> exists, use that to push and pop
-	// Otherwise, treat the reference as a pointer
-	static constexpr bool isDefined = (Wrapper<T>::getStackSize() > 0);
-	using PopType = std::conditional_t<isDefined, T, const T&>;
-
 public:
 	static constexpr int getStackSize() {
 		return Wrapper<T>::getStackSize();
@@ -542,7 +540,7 @@ public:
 	static int match(lua_State* ls, int idx) {
 		return Wrapper<T>::match(ls, idx);
 	}
-	static PopType pop(lua_State* ls, int idx) {
+	static auto pop(lua_State* ls, int idx) {
 		return Wrapper<T>::pop(ls, idx);
 	}
 	static void push(lua_State* ls, const T& ref) {

@@ -372,6 +372,11 @@ TEST_CASE("Root") {
 				CHECK(doCommand(ls, "obj = nil"));
 				CHECK(lua_gettop(ls) == 0);
 			}
+
+			SECTION("pushing C++ object to Lua") {
+//				GameObject obj;
+	//			push(ls, obj);
+			}
 		}
 
 		SECTION("sub class") {

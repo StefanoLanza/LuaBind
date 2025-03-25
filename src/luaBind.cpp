@@ -104,6 +104,9 @@ void setWarningFunction(lua_State* ls, WarningFunction warningFunction) {
 void resetAllocator(lua_State* ls) {
 	auto context = detail::getContext(ls);
 	context->tempAllocator->rewind();
+#if TY_LUABIND_TYPE_SAFE
+	context->tempPointerMap.clear();
+#endif
 }
 
 void registerLoader(lua_State* ls, lua_CFunction loader, void* userData) {

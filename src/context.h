@@ -19,6 +19,7 @@ struct Context {
 	// FIXME Allocators
 	std::unordered_map<TypeId, TypeId> baseClassMap;
 	std::unordered_map<const void*, TypeId> pointerMap;
+	std::unordered_map<const void*, TypeId> tempPointerMap;
 #endif
 };
 

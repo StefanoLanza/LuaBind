@@ -121,6 +121,7 @@ const char* script = R"(
 	-- cppMonster is a user data
 	assert(type(cppHuman) == "userdata")
 	local meta = cppHuman:getMeta()
+	assert(type(meta) == "userdata")
 	local name = meta:getName()
 	print ("cppHuman name:"..name)
 	cppHuman:setWeapon(weapon_rifle)
@@ -180,11 +181,10 @@ void runExample(lua_State* ls) {
 void bindClasses(lua_State* ls) {
 	LUA_BEGIN_BINDING(ls);
 
-/*
 	LUA_BEGIN_CLASS(GameObjectMeta);
 	LUA_METHOD(getName);
 	LUA_END_CLASS();
-*/
+
 	LUA_BEGIN_CLASS(GameObject);
 	LUA_METHOD(setName);
 	LUA_METHOD(getName);

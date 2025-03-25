@@ -133,7 +133,7 @@ bool Value::cast(void*& userData, [[maybe_unused]] TypeId typeId) const {
 	if (userData) {
 		res = true;
 #if TY_LUABIND_TYPE_SAFE
-		if (! detail::tryCheckPointerType(ls, userData, typeId)) {
+		if (! detail::checkPointerType(ls, userData, typeId)) {
 			userData = nullptr;
 			res = false;
 		}

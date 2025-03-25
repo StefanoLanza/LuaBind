@@ -40,10 +40,71 @@ inline T* newTemporary(lua_State* ls, ArgTypes... args);
 template <class T, typename = void>
 class Wrapper {
 public:
-	static constexpr int getStackSize() { return -1; }
-	static int           match(lua_State* ls, int idx) = delete;
-	static void          push(lua_State* ls, const T& value) = delete;
-	static T             pop(lua_State* ls, int idx) = delete;
+	static constexpr int getStackSize() {
+		return 1;
+	}
+	static int match(lua_State* ls, int idx) {
+		return lua_isuserdata(ls, idx);
+	}
+	static void push(lua_State* ls, const T& value) {
+		void* const mem = detail::allocTemporary<T>(ls);
+		if (mem) {
+
+			// Embed ptr into full user data
+
+			// Lookup class metatable in registry
+			const auto     typeId = getTypeId<T>();
+			const TypeName typeName = typeIdToName(typeId);
+			if (! typeName) {
+				lua_pushnil(ls);
+				luaL_error(ls, "Unregistered type");
+				return; // class not registered in C++
+			}
+
+			T* ptr = new (mem) T { value };
+
+			void* const userData = lua_newuserdatauv(ls, sizeof ptr, 0);
+			// Copy C++ pointer to Lua userdata
+			std::memcpy(userData, &ptr, sizeof ptr);
+			const int userDataIndex = lua_gettop(ls);
+
+			luaL_getmetatable(ls, typeName);
+			if (! lua_istable(ls, -1)) {
+				lua_pushnil(ls);
+				luaL_error(ls, "Cannot get metatable for type %s", typeName);
+				return; // class metatable not registered
+			}
+			// Set metatable of user data at index idx
+			lua_setmetatable(ls, userDataIndex);
+
+#if 0
+			// Cache association ptr -> user data in registry
+			// registry[ptr] = userData
+			lua_pushlightuserdata(ls, ptr);
+			lua_pushvalue(ls, userDataIndex);
+			lua_rawset(ls, LUA_REGISTRYINDEX);
+#endif
+
+#if TY_LUABIND_TYPE_SAFE
+			detail::registerTemporaryPointer(ls, ptr);
+#endif
+			// userData left on stack, return it
+		}
+		else {
+			lua_pushnil(ls);
+		}
+	}
+
+	static T pop(lua_State* ls, int idx) {
+		void* userData = lua_touserdata(ls, idx);
+		assert(userData);
+#if TY_LUABIND_TYPE_SAFE
+		if (! detail::checkPointerType<T>(ls, userData)) {
+			luaL_argerror(ls, idx, "Invalid pointer type"); // TODO better message
+		}
+#endif
+		return *static_cast<const T*>(userData);
+	}
 };
 
 // Helper to push and pop temporary objects as light user data
@@ -62,7 +123,7 @@ struct Lightweight {
 		if (mem) {
 			T* ud = new (mem) T { value };
 #if TY_LUABIND_TYPE_SAFE
-			detail::registerPointer(ls, ud);
+			detail::registerTemporaryPointer(ls, ud);
 #endif
 			lua_pushlightuserdata(ls, ud);
 		}
@@ -475,47 +536,20 @@ class Wrapper<const T&> {
 	using PopType = std::conditional_t<isDefined, T, const T&>;
 
 public:
-
 	static constexpr int getStackSize() {
-		return isDefined ? Wrapper<T>::getStackSize() : 1;
+		return Wrapper<T>::getStackSize();
 	}
 	static int match(lua_State* ls, int idx) {
-		if constexpr (isDefined) {
-			return Wrapper<T>::match(ls, idx);
-		}
-		else {
-			return Wrapper<const T*>::match(ls, idx);
-		}
+		return Wrapper<T>::match(ls, idx);
 	}
 	static PopType pop(lua_State* ls, int idx) {
-		if constexpr (isDefined) {
-			// Pop and return value
-			return Wrapper<T>::pop(ls, idx);
-		}
-		else {
-			// Pop pointer and convert to const reference
-			return *Wrapper<const T*>::pop(ls, idx);
-		}
+		return Wrapper<T>::pop(ls, idx);
 	}
 	static void push(lua_State* ls, const T& ref) {
-		if constexpr (isDefined) {
-			// Push a copy
-			Wrapper<T>::push(ls, ref);
-		}
-		else {
-			// Convert to pointer and push
-			Wrapper<const T*>::push(ls, &ref);
-		}
+		Wrapper<T>::push(ls, ref);
 	}
 	static void pushAsKey(lua_State* ls, const T& ref) {
-		if constexpr (isDefined) {
-			// Push a copy
-			Wrapper<T>::pushAsKey(ls, ref);
-		}
-		else {
-			// Convert to pointer and push
-			Wrapper<const T*>::pushAsKey(ls, &ref);
-		}
+		Wrapper<T>::pushAsKey(ls, ref);
 	}
 };
 

@@ -12,6 +12,8 @@
 #include "uniqueRef.h"
 #include "value.h"
 
+#include <core/uncopyable.h>
+
 namespace Typhoon {
 	class Allocator;
 	class LinearAllocator;
@@ -45,7 +47,7 @@ const char*        getErrorMessage(lua_State* ls, int error);
 int                getMemoryInUse(lua_State* ls);
 const MemoryStats& getMemoryStats(const Context* context);
 
-class Scope {
+class Scope : Uncopyable {
 public:
 	Scope(lua_State* ls);
 	~Scope();

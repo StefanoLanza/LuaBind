@@ -29,16 +29,16 @@ void registerBaseClass(lua_State* ls, TypeId super, TypeId base) {
 	context->baseClassMap.emplace(super, base);
 }
 
-bool tryCheckPointerType(lua_State* ls, const void* ptr, TypeId typeId) {
-	auto context = getContext(ls);
-	auto it = context->pointerMap.find(ptr);
-	return (it == context->pointerMap.end()) || compatibleTypes(*context, it->second, typeId);
-}
-
 bool checkPointerType(lua_State* ls, const void* ptr, TypeId typeId) {
 	auto context = getContext(ls);
 	auto it = context->pointerMap.find(ptr);
-	return (it != context->pointerMap.end()) && compatibleTypes(*context, it->second, typeId);
+	if (it == context->pointerMap.end()) {
+		it = context->tempPointerMap.find(ptr);
+		if (it == context->tempPointerMap.end()) {
+			return false;
+		}
+	}
+	return compatibleTypes(*context, it->second, typeId);
 }
 
 void registerPointer(lua_State* ls, const void* ptr, TypeId typeId) {
@@ -49,6 +49,11 @@ void registerPointer(lua_State* ls, const void* ptr, TypeId typeId) {
 void unregisterPointer(lua_State* ls, const void* ptr) {
 	auto context = getContext(ls);
 	context->pointerMap.erase(ptr);
+}
+
+void registerTemporaryPointer(lua_State* ls, const void* ptr, TypeId typeId) {
+	auto context = getContext(ls);
+	context->tempPointerMap.insert_or_assign(ptr, typeId);
 }
 
 } // namespace Typhoon::LuaBind::detail

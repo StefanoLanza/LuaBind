@@ -28,8 +28,8 @@ Reference registerObjectAsTable(lua_State* ls, void* objectPtr, TypeId typeId) {
 	const int tableStackIndex = lua_gettop(ls);
 
 	// table["_ptr"] = objectPtr
-	pushAsKey(ls, "_ptr");
-	push(ls, objectPtr);
+	lua_pushstring(ls, "_ptr");
+	lua_pushlightuserdata(ls, objectPtr);
 	lua_rawset(ls, tableStackIndex);
 
 	// registry[objectPtr] = table

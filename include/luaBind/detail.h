@@ -85,8 +85,6 @@ void registerSetter(lua_State* ls, MEMBER_TYPE OBJECT_TYPE::*field, size_t offse
 
 void pushFunctionAsUpvalue(lua_State* ls, lua_CFunction closure, const void* functionPointer, size_t functionPointerSize);
 
-void pushObjectAsFullUserData(lua_State* ls, void* objectPtr, const char* className);
-
 template <typename T>
 inline int checkArg(lua_State* ls, int stackIndex) {
 	if (! Wrapper<T>::match(ls, stackIndex)) {

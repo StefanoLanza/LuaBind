@@ -30,13 +30,6 @@ void registerBaseClass(lua_State* ls, TypeId super, TypeId base) {
 
 bool checkPointerType(lua_State* ls, const void* ptr, TypeId typeId) {
 	auto context = getContext(ls);
-	for (const auto& key : context->pointerMap) {
-		if (key.first == ptr) {
-			if (compatibleTypes(*context, key.second, typeId)) {
-				return true;
-			}
-		}
-	}
 	for (const auto& key : context->tempPointerMap) {
 		if (key.first == ptr) {
 			if (compatibleTypes(*context, key.second, typeId)) {
@@ -45,18 +38,6 @@ bool checkPointerType(lua_State* ls, const void* ptr, TypeId typeId) {
 		}
 	}
 	return false;
-}
-
-void registerPointer(lua_State* ls, const void* ptr, TypeId typeId) {
-	auto context = getContext(ls);
-	auto key = std::make_pair(ptr, typeId);
-	context->pointerMap.push_back(key);
-}
-
-void unregisterPointer(lua_State* ls, const void* ptr, TypeId typeId) {
-	auto context = getContext(ls);
-	auto key = std::make_pair(ptr, typeId);
-	context->pointerMap.erase(std::remove(context->pointerMap.begin(), context->pointerMap.end(), key));
 }
 
 void registerTemporaryPointer(lua_State* ls, const void* ptr, TypeId typeId) {
@@ -68,7 +49,12 @@ void registerTemporaryPointer(lua_State* ls, const void* ptr, TypeId typeId) {
 void* makePointerKey(const void* ptr, TypeId typeId) {
 	// Last three bits of ptr are 0 since pointers are 8 bytes aligned
 	// TypeId.impl does not have this constraint
-	return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(ptr) | (reinterpret_cast<uintptr_t>(typeId.impl) & ~0b111));
+	return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(ptr) | (reinterpret_cast<uintptr_t>(typeId.impl) & 0b111));
+}
+
+bool compatibleTypes(lua_State* ls, TypeId first, TypeId second) {
+	auto context = getContext(ls);
+	return compatibleTypes(*context, first, second);
 }
 
 } // namespace Typhoon::LuaBind::detail

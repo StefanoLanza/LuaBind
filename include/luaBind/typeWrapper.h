@@ -63,31 +63,19 @@ public:
 		T* ptr = new (mem) T { value };
 
 		// Embed ptr into full user data
-		void* const userData = lua_newuserdatauv(ls, sizeof ptr, 0);
+		void* const userData = lua_newuserdatauv(ls, sizeof ptr, 1);
 		// Copy C++ pointer to Lua userdata
 		std::memcpy(userData, &ptr, sizeof ptr);
 		const int userDataIndex = lua_gettop(ls);
 
-		luaL_getmetatable(ls, typeName);
-		if (! lua_istable(ls, -1)) {
-			lua_pushnil(ls);
-			luaL_error(ls, "Cannot get metatable for type %s", typeName);
-			return; // class metatable not registered
-		}
 		// Set metatable of user data at index idx
+		luaL_getmetatable(ls, typeName);
+		assert(lua_istable(ls, -1));
 		lua_setmetatable(ls, userDataIndex);
 
-#if 0
-			// Cache association ptr -> user data in registry
-			// registry[ptr] = userData
-			lua_pushlightuserdata(ls, ptr);
-			lua_pushvalue(ls, userDataIndex);
-			lua_rawset(ls, LUA_REGISTRYINDEX);
-#endif
+		lua_pushinteger(ls, getTypeId<T>().value());
+		lua_setiuservalue(ls, userDataIndex, 1); // ud.userValue[1] = typeId
 
-#if TY_LUABIND_TYPE_SAFE
-		detail::registerTemporaryPointer(ls, ptr, getTypeId<T>());
-#endif
 		// userData left on stack, return it
 	}
 
@@ -96,11 +84,17 @@ public:
 		assert(userData);
 		T* ptr = nullptr;
 		std::memcpy(&ptr, userData, sizeof ptr);
-#if TY_LUABIND_TYPE_SAFE
-		if (! detail::checkPointerType(ls, ptr, getTypeId<T>())) {
+
+		// Check type
+		lua_getiuservalue(ls, idx, 1);
+		assert(! lua_isnil(ls, -1));
+		TypeId ptrTypeId;
+		ptrTypeId.impl = reinterpret_cast<const void*>(lua_tointeger(ls, -1));
+		if (! detail::compatibleTypes(ls, ptrTypeId, getTypeId<T>())) {
 			luaL_argerror(ls, idx, "Invalid pointer type");
+			ptr = nullptr;
 		}
-#endif
+
 		return *ptr;
 	}
 };
@@ -332,7 +326,7 @@ public:
 			// lightweight type, push ptr as light user data
 			lua_pushlightuserdata(ls, ptr);
 #if TY_LUABIND_TYPE_SAFE
-			detail::registerPointer(ls, ptr);
+			detail::registerTemporaryPointer(ls, ptr);
 #endif
 		}
 		else {
@@ -356,29 +350,24 @@ public:
 					return; // class not registered in C++
 				}
 
-				void* const userData = lua_newuserdatauv(ls, sizeof ptr, 0);
+				void* const userData = lua_newuserdatauv(ls, sizeof ptr, 1);
 				// Copy C++ pointer to Lua userdata
 				std::memcpy(userData, &ptr, sizeof ptr);
 				const int userDataIndex = lua_gettop(ls);
 
-				luaL_getmetatable(ls, typeName);
-				if (! lua_istable(ls, -1)) {
-					lua_pushnil(ls);
-					luaL_error(ls, "Cannot get metatable for type %s", typeName);
-					return; // class metatable not registered
-				}
 				// Set metatable of user data at index idx
+				luaL_getmetatable(ls, typeName);
+				assert(lua_istable(ls, -1));
 				lua_setmetatable(ls, userDataIndex);
+
+				lua_pushinteger(ls, typeId.value());
+				lua_setiuservalue(ls, userDataIndex, 1); // ud.userValue[1] = typeId
 
 				// Cache association ptr -> user data in registry
 				// registry[ptr] = userData
 				lua_pushlightuserdata(ls, ptrKey);
 				lua_pushvalue(ls, userDataIndex);
 				lua_rawset(ls, LUA_REGISTRYINDEX);
-
-#if TY_LUABIND_TYPE_SAFE
-				detail::registerPointer(ls, ptr, getTypeId<T>());
-#endif
 			}
 			else {
 				// The ptr has been registered. Return it
@@ -390,11 +379,19 @@ public:
 		T*        ptr = nullptr;
 		const int luaType = lua_type(ls, idx);
 		if (luaType == LUA_TLIGHTUSERDATA) {
-			// Light user data
 			ptr = static_cast<T*>(lua_touserdata(ls, idx));
+			// TODO Type checking
 		}
 		else if (luaType == LUA_TUSERDATA) {
 			std::memcpy(&ptr, lua_touserdata(ls, idx), sizeof ptr);
+			lua_getiuservalue(ls, idx, 1);
+			assert(! lua_isnil(ls, -1));
+			TypeId ptrTypeId;
+			ptrTypeId.impl = reinterpret_cast<const void*>(lua_tointeger(ls, -1));
+			if (! detail::compatibleTypes(ls, ptrTypeId, getTypeId<T>())) {
+				luaL_argerror(ls, idx, "invalid pointer type");
+				ptr = nullptr;
+			}
 		}
 		else if (luaType == LUA_TTABLE) {
 			// Pointer as _ptr field of a table
@@ -409,13 +406,6 @@ public:
 		else if (luaType == LUA_TNIL) {
 			ptr = nullptr;
 		}
-
-#if TY_LUABIND_TYPE_SAFE
-		if (ptr && ! detail::checkPointerType(ls, ptr, getTypeId<T>())) {
-			luaL_argerror(ls, idx, "invalid pointer type");
-			ptr = nullptr;
-		}
-#endif
 		return ptr;
 	}
 

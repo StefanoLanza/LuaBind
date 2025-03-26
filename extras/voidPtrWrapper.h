@@ -25,8 +25,8 @@ public:
 			return;
 		}
 
+		// Try getting userdata associated with the pointer from registry
 		void* const ptrKey = detail::makePointerKey(voidPtr.ptr, voidPtr.typeId);
-		// Get userdata/table associated with the pointer from registry
 		lua_pushlightuserdata(ls, ptrKey);
 		lua_rawget(ls, LUA_REGISTRYINDEX);
 		if (lua_isnil(ls, -1)) {
@@ -38,7 +38,7 @@ public:
 
 			// Copy C++ pointer to Lua userdata
 			void* const ptr = voidPtr.ptr;
-			void* const userData = lua_newuserdatauv(ls, sizeof ptr, 0);
+			void* const userData = lua_newuserdatauv(ls, sizeof ptr, 1);
 			std::memcpy(userData, &ptr, sizeof ptr);
 			const int userDataIndex = lua_gettop(ls);
 
@@ -48,14 +48,13 @@ public:
 			// Set metatable of user data at index idx
 			lua_setmetatable(ls, userDataIndex);
 
-			// Cache association ptr -> user data in registry
+			lua_pushinteger(ls, voidPtr.typeId.value());
+			lua_setiuservalue(ls, -2, 1); // ud.userValue[1] = typeId
+
+			// Cache user data in registry
 			lua_pushlightuserdata(ls, ptrKey);
 			lua_pushvalue(ls, userDataIndex);
 			lua_rawset(ls, LUA_REGISTRYINDEX);
-
-#if TY_LUABIND_TYPE_SAFE
-			detail::registerPointer(ls, voidPtr.ptr, voidPtr.typeId);
-#endif
 		}
 		else {
 			// The ptr has been registered. Return it

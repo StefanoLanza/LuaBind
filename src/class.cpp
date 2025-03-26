@@ -150,7 +150,7 @@ bool isAllocatedByLua(lua_State* ls, int userDataStackIndex) {
 	if (! lua_isuserdata(ls, userDataStackIndex)) {
 		return 0; // object registered as table
 	}
-	if (lua_getiuservalue(ls, userDataStackIndex, 1) != LUA_TNONE) {
+	if (lua_getiuservalue(ls, userDataStackIndex, 2) != LUA_TNONE) {
 		assert(lua_tointeger(ls, -1) == kLuaAllocated);
 		res = true;
 	}

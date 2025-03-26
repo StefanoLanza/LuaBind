@@ -18,7 +18,6 @@ struct Context {
 #if TY_LUABIND_TYPE_SAFE
 	// FIXME Allocators
 	std::unordered_map<TypeId, TypeId>          baseClassMap;
-	std::vector<std::pair<const void*, TypeId>> pointerMap;
 	std::vector<std::pair<const void*, TypeId>> tempPointerMap;
 #endif
 };

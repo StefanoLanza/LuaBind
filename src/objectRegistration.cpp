@@ -37,9 +37,7 @@ Reference registerObjectAsTable(lua_State* ls, void* objectPtr, TypeId typeId) {
 	lua_pushvalue(ls, tableStackIndex);
 	lua_rawset(ls, LUA_REGISTRYINDEX);
 
-#if TY_LUABIND_TYPE_SAFE
-	detail::registerPointer(ls, objectPtr, typeId);
-#endif
+	// TODO Type safefy
 
 	// Create reference to table and save it in the registry
 	lua_pushvalue(ls, tableStackIndex);
@@ -56,7 +54,7 @@ Reference registerObjectAsUserData(lua_State* ls, void* objectPtr, TypeId typeId
 		return Reference {}; // class not registered in C++
 	}
 
-	void* const userData = lua_newuserdatauv(ls, sizeof objectPtr, 0);
+	void* const userData = lua_newuserdatauv(ls, sizeof objectPtr, 1);
 	// Copy C++ pointer to Lua userdata
 	std::memcpy(userData, &objectPtr, sizeof objectPtr);
 	const int userDataIndex = lua_gettop(ls);
@@ -69,17 +67,15 @@ Reference registerObjectAsUserData(lua_State* ls, void* objectPtr, TypeId typeId
 	// Set metatable of user data at index idx
 	lua_setmetatable(ls, userDataIndex);
 
+	lua_pushinteger(ls, typeId.value());
+	lua_setiuservalue(ls, userDataIndex, 1); // ud.userValue[1] = typeId
+
 	// Save association objectPtr -> user data in registry, used when pushing C++ pointers on the Lua stack
 	// registry[{objectPtr, typeId}] = userData
 	void* const ptrKey = detail::makePointerKey(objectPtr, typeId);
 	lua_pushlightuserdata(ls, ptrKey);
 	lua_pushvalue(ls, userDataIndex);
 	lua_rawset(ls, LUA_REGISTRYINDEX);
-
-	// TODO in the userdata instead?
-#if TY_LUABIND_TYPE_SAFE
-	detail::registerPointer(ls, objectPtr, typeId);
-#endif
 
 	// Create reference to user data
 	lua_pushvalue(ls, userDataIndex);
@@ -90,7 +86,7 @@ Reference registerObjectAsLightUserData(lua_State* ls, void* objectPtr, [[maybe_
 	assert(objectPtr);
 
 #if TY_LUABIND_TYPE_SAFE
-	detail::registerPointer(ls, objectPtr, typeId);
+	//TODO detail::registerPointer(ls, objectPtr, typeId);
 #endif
 
 	AutoBlock autoBlock(ls);
@@ -174,7 +170,7 @@ void unregisterObject(lua_State* ls, Reference ref) {
 		lua_pushnil(ls);
 		lua_rawset(ls, LUA_REGISTRYINDEX);
 #if TY_LUABIND_TYPE_SAFE
-		//FIXME detail::unregisterPointer(ls, objectPtr);
+		// FIXME detail::unregisterPointer(ls, objectPtr);
 #endif
 	}
 
@@ -188,7 +184,7 @@ void unregisterObject(lua_State* ls, void* objectPtr, TypeId typeId) {
 	}
 	AutoBlock autoBlock(ls);
 
-	void* const  ptrKey = detail::makePointerKey(objectPtr, typeId);
+	void* const ptrKey = detail::makePointerKey(objectPtr, typeId);
 
 	lua_pushlightuserdata(ls, ptrKey);
 	lua_rawget(ls, LUA_REGISTRYINDEX);
@@ -209,7 +205,7 @@ void unregisterObject(lua_State* ls, void* objectPtr, TypeId typeId) {
 	lua_rawset(ls, LUA_REGISTRYINDEX);
 
 #if TY_LUABIND_TYPE_SAFE
-	detail::unregisterPointer(ls, objectPtr, typeId);
+//	detail::unregisterPointer(ls, objectPtr, typeId);
 #endif
 }
 

@@ -48,8 +48,8 @@ int wrapNewImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 	else {
 		static_assert(std::is_same_v<classType*, retType>, "new function must return a pointer");
 
-		// Allocate full user data and store the object pointer in it
-		void* const ud = lua_newuserdatauv(ls, sizeof obj, 1);
+		// Allocate full user data and embed the object pointer in it
+		void* const ud = lua_newuserdatauv(ls, sizeof obj, 2);
 		std::memcpy(ud, &obj, sizeof obj);
 
 		// Associate metatable
@@ -58,13 +58,12 @@ int wrapNewImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 		luaL_getmetatable(ls, className);
 		lua_setmetatable(ls, -2);
 
+		lua_pushinteger(ls, getTypeId<classType>().value());
+		lua_setiuservalue(ls, -2, 1); // ud.userValue[1] = typeId
+	
 		// Mark as heap allocated by Lua. This user value is queried in wrapDefaultDelete<T>
 		lua_pushinteger(ls, kLuaAllocated);
-		lua_setiuservalue(ls, -2, 1); // ud.userValue[1] = kLuaAllocated
-
-#if TY_LUABIND_TYPE_SAFE
-		registerPointer(ls, obj, getTypeId<retType>());
-#endif
+		lua_setiuservalue(ls, -2, 2); // ud.userValue[2] = kLuaAllocated
 	}
 	return 1;
 }

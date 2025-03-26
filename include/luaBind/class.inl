@@ -53,7 +53,7 @@ int wrapNewImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 		std::memcpy(ud, &obj, sizeof obj);
 
 		// Associate metatable
-		const auto className = typeName<std::remove_pointer_t<retType>>();
+		const auto className = typeName<classType>();
 		assert(className);
 		luaL_getmetatable(ls, className);
 		lua_setmetatable(ls, -2);
@@ -63,7 +63,7 @@ int wrapNewImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 		lua_setiuservalue(ls, -2, 1); // ud.userValue[1] = kLuaAllocated
 
 #if TY_LUABIND_TYPE_SAFE
-		registerPointer(ls, obj);
+		registerPointer(ls, obj, getTypeId<retType>());
 #endif
 	}
 	return 1;

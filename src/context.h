@@ -9,21 +9,21 @@
 namespace Typhoon::LuaBind {
 
 struct Context {
-	lua_State* ls;
-	Allocator* allocator;
+	lua_State*       ls;
+	Allocator*       allocator;
 	LinearAllocator* tempAllocator;
-	MemoryStats memoryStats;
-	WarningFunction warningFunction;
+	MemoryStats      memoryStats;
+	WarningFunction  warningFunction;
 
 #if TY_LUABIND_TYPE_SAFE
 	// FIXME Allocators
-	std::unordered_map<TypeId, TypeId> baseClassMap;
-	std::unordered_map<const void*, TypeId> pointerMap;
-	std::unordered_map<const void*, TypeId> tempPointerMap;
+	std::unordered_map<TypeId, TypeId>          baseClassMap;
+	std::vector<std::pair<const void*, TypeId>> pointerMap;
+	std::vector<std::pair<const void*, TypeId>> tempPointerMap;
 #endif
 };
 
-}
+} // namespace Typhoon::LuaBind
 
 namespace Typhoon::LuaBind::detail {
 

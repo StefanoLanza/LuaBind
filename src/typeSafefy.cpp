@@ -4,7 +4,6 @@
 
 #include "autoBlock.h"
 #include "context.h"
-#include <unordered_map>
 
 namespace Typhoon::LuaBind::detail {
 
@@ -31,29 +30,45 @@ void registerBaseClass(lua_State* ls, TypeId super, TypeId base) {
 
 bool checkPointerType(lua_State* ls, const void* ptr, TypeId typeId) {
 	auto context = getContext(ls);
-	auto it = context->pointerMap.find(ptr);
-	if (it == context->pointerMap.end()) {
-		it = context->tempPointerMap.find(ptr);
-		if (it == context->tempPointerMap.end()) {
-			return false;
+	for (const auto& key : context->pointerMap) {
+		if (key.first == ptr) {
+			if (compatibleTypes(*context, key.second, typeId)) {
+				return true;
+			}
 		}
 	}
-	return compatibleTypes(*context, it->second, typeId);
+	for (const auto& key : context->tempPointerMap) {
+		if (key.first == ptr) {
+			if (compatibleTypes(*context, key.second, typeId)) {
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 void registerPointer(lua_State* ls, const void* ptr, TypeId typeId) {
 	auto context = getContext(ls);
-	context->pointerMap.insert_or_assign(ptr, typeId);
+	auto key = std::make_pair(ptr, typeId);
+	context->pointerMap.push_back(key);
 }
 
-void unregisterPointer(lua_State* ls, const void* ptr) {
+void unregisterPointer(lua_State* ls, const void* ptr, TypeId typeId) {
 	auto context = getContext(ls);
-	context->pointerMap.erase(ptr);
+	auto key = std::make_pair(ptr, typeId);
+	context->pointerMap.erase(std::remove(context->pointerMap.begin(), context->pointerMap.end(), key));
 }
 
 void registerTemporaryPointer(lua_State* ls, const void* ptr, TypeId typeId) {
 	auto context = getContext(ls);
-	context->tempPointerMap.insert_or_assign(ptr, typeId);
+	auto key = std::make_pair(ptr, typeId);
+	context->tempPointerMap.push_back(key);
+}
+
+void* makePointerKey(const void* ptr, TypeId typeId) {
+	// Last three bits of ptr are 0 since pointers are 8 bytes aligned
+	// TypeId.impl does not have this constraint
+	return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(ptr) | (reinterpret_cast<uintptr_t>(typeId.impl) & ~0b111));
 }
 
 } // namespace Typhoon::LuaBind::detail

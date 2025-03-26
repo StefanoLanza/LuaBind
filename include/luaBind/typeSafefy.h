@@ -2,38 +2,21 @@
 
 #include "config.h"
 
-struct lua_State;
-
 #if TY_LUABIND_TYPE_SAFE
+
+struct lua_State;
 
 #include <cassert>
 #include <core/typeId.h>
 
 namespace Typhoon::LuaBind::detail {
 
-void registerBaseClass(lua_State* ls, TypeId super, TypeId base);
-bool checkPointerType(lua_State* ls, const void* ptr, TypeId typeId);
-void registerPointer(lua_State* ls, const void* ptr, TypeId typeId);
-void unregisterPointer(lua_State* ls, const void* ptr);
-void registerTemporaryPointer(lua_State* ls, const void* ptr, TypeId typeId);
-
-// Helpers
-template <class T>
-inline void registerPointer(lua_State* ls, const T* ptr) {
-	static_assert(! std::is_void<T>(), "invalid const void* ptr");
-	registerPointer(ls, ptr, getTypeId<T>());
-}
-
-template <class T>
-inline void registerTemporaryPointer(lua_State* ls, const T* ptr) {
-	static_assert(! std::is_void<T>(), "invalid const void* ptr");
-	registerTemporaryPointer(ls, ptr, getTypeId<T>());
-}
-
-template <class T>
-inline bool checkPointerType(lua_State* ls, const void* ptr) {
-	return checkPointerType(ls, ptr, getTypeId<T>());
-}
+void  registerBaseClass(lua_State* ls, TypeId super, TypeId base);
+bool  checkPointerType(lua_State* ls, const void* ptr, TypeId typeId);
+void  registerPointer(lua_State* ls, const void* ptr, TypeId typeId);
+void  unregisterPointer(lua_State* ls, const void* ptr, TypeId typeId);
+void  registerTemporaryPointer(lua_State* ls, const void* ptr, TypeId typeId);
+void* makePointerKey(const void* ptr, TypeId typeId);
 
 } // namespace Typhoon::LuaBind::detail
 

@@ -40,39 +40,42 @@ public:
 	static constexpr int getStackSize() {
 		return 1;
 	}
+
 	static int match(lua_State* ls, int idx) {
 		return lua_type(ls, idx) == LUA_TUSERDATA;
 	}
+
 	static void push(lua_State* ls, const T& value) {
+		// Lookup class metatable in registry
+		const auto     typeId = getTypeId<T>();
+		const TypeName typeName = typeIdToName(typeId);
+		if (! typeName) {
+			lua_pushnil(ls);
+			luaL_error(ls, "Unregistered type");
+			return; // class not registered in C++
+		}
+
+		// Alloc and construct a copy of value
 		void* const mem = detail::allocTemporary<T>(ls);
-		if (mem) {
+		if (! mem) {
+			lua_pushnil(ls);
+		}
+		T* ptr = new (mem) T { value };
 
-			// Embed ptr into full user data
+		// Embed ptr into full user data
+		void* const userData = lua_newuserdatauv(ls, sizeof ptr, 0);
+		// Copy C++ pointer to Lua userdata
+		std::memcpy(userData, &ptr, sizeof ptr);
+		const int userDataIndex = lua_gettop(ls);
 
-			// Lookup class metatable in registry
-			const auto     typeId = getTypeId<T>();
-			const TypeName typeName = typeIdToName(typeId);
-			if (! typeName) {
-				lua_pushnil(ls);
-				luaL_error(ls, "Unregistered type");
-				return; // class not registered in C++
-			}
-
-			T* ptr = new (mem) T { value };
-
-			void* const userData = lua_newuserdatauv(ls, sizeof ptr, 0);
-			// Copy C++ pointer to Lua userdata
-			std::memcpy(userData, &ptr, sizeof ptr);
-			const int userDataIndex = lua_gettop(ls);
-
-			luaL_getmetatable(ls, typeName);
-			if (! lua_istable(ls, -1)) {
-				lua_pushnil(ls);
-				luaL_error(ls, "Cannot get metatable for type %s", typeName);
-				return; // class metatable not registered
-			}
-			// Set metatable of user data at index idx
-			lua_setmetatable(ls, userDataIndex);
+		luaL_getmetatable(ls, typeName);
+		if (! lua_istable(ls, -1)) {
+			lua_pushnil(ls);
+			luaL_error(ls, "Cannot get metatable for type %s", typeName);
+			return; // class metatable not registered
+		}
+		// Set metatable of user data at index idx
+		lua_setmetatable(ls, userDataIndex);
 
 #if 0
 			// Cache association ptr -> user data in registry
@@ -83,23 +86,18 @@ public:
 #endif
 
 #if TY_LUABIND_TYPE_SAFE
-			detail::registerTemporaryPointer(ls, ptr);
+		detail::registerTemporaryPointer(ls, ptr, getTypeId<T>());
 #endif
-			// userData left on stack, return it
-		}
-		else {
-			lua_pushnil(ls);
-		}
+		// userData left on stack, return it
 	}
 
-	// FIXME Do not copy
 	static const T& pop(lua_State* ls, int idx) {
 		void* userData = lua_touserdata(ls, idx);
 		assert(userData);
 		T* ptr = nullptr;
 		std::memcpy(&ptr, userData, sizeof ptr);
 #if TY_LUABIND_TYPE_SAFE
-		if (! detail::checkPointerType<T>(ls, ptr)) {
+		if (! detail::checkPointerType(ls, ptr, getTypeId<T>())) {
 			luaL_argerror(ls, idx, "Invalid pointer type");
 		}
 #endif
@@ -122,10 +120,10 @@ struct Lightweight {
 		void* const mem = detail::allocTemporary<T>(ls);
 		if (mem) {
 			T* ud = new (mem) T { value };
-#if TY_LUABIND_TYPE_SAFE
-			detail::registerTemporaryPointer(ls, ud);
-#endif
 			lua_pushlightuserdata(ls, ud);
+#if TY_LUABIND_TYPE_SAFE
+			detail::registerTemporaryPointer(ls, ud, getTypeId<T>());
+#endif
 		}
 		else {
 			lua_pushnil(ls);
@@ -136,13 +134,12 @@ struct Lightweight {
 		push(ls, value);
 	}
 
-	// FIXME Do not copy
-	static T pop(lua_State* ls, int idx) {
+	static const T& pop(lua_State* ls, int idx) {
 		void* userData = lua_touserdata(ls, idx);
 		assert(userData);
 #if TY_LUABIND_TYPE_SAFE
-		if (! detail::checkPointerType<T>(ls, userData)) {
-			luaL_argerror(ls, idx, "Invalid pointer type"); // TODO better message
+		if (! detail::checkPointerType(ls, userData, getTypeId<T>())) {
+			luaL_argerror(ls, idx, "Invalid pointer type");
 		}
 #endif
 		return *static_cast<const T*>(userData);
@@ -327,15 +324,13 @@ public:
 			return;
 		}
 
-		void* const ud = const_cast<non_const_ptr>(ptr);
-
 		if constexpr (std::is_void_v<T>) {
 			// void*, push ptr as light user data
-			lua_pushlightuserdata(ls, ud);
+			lua_pushlightuserdata(ls, ptr);
 		}
 		else if constexpr (isLightweight<T>) {
 			// lightweight type, push ptr as light user data
-			lua_pushlightuserdata(ls, ud);
+			lua_pushlightuserdata(ls, ptr);
 #if TY_LUABIND_TYPE_SAFE
 			detail::registerPointer(ls, ptr);
 #endif
@@ -343,15 +338,17 @@ public:
 		else {
 			// Embed ptr into full user data
 
+			const TypeId typeId = getTypeId<T>();
+			void* const  ptrKey = detail::makePointerKey(ptr, typeId);
+
 			// Get userdata/table associated with the pointer from registry
-			lua_pushlightuserdata(ls, ud);
+			lua_pushlightuserdata(ls, ptrKey);
 			lua_rawget(ls, LUA_REGISTRYINDEX);
 			if (lua_isnil(ls, -1)) {
 				// The ptr is not registered
 				lua_pop(ls, 1);
 
 				// Lookup class metatable in registry
-				const auto     typeId = getTypeId<T>();
 				const TypeName typeName = typeIdToName(typeId);
 				if (! typeName) {
 					lua_pushnil(ls);
@@ -375,12 +372,12 @@ public:
 
 				// Cache association ptr -> user data in registry
 				// registry[ptr] = userData
-				lua_pushlightuserdata(ls, const_cast<non_const_ptr>(ptr));
+				lua_pushlightuserdata(ls, ptrKey);
 				lua_pushvalue(ls, userDataIndex);
 				lua_rawset(ls, LUA_REGISTRYINDEX);
 
 #if TY_LUABIND_TYPE_SAFE
-				detail::registerPointer(ls, ptr);
+				detail::registerPointer(ls, ptr, getTypeId<T>());
 #endif
 			}
 			else {
@@ -486,6 +483,7 @@ public:
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, ref.getValue());
 	}
 	// pop is forbidden. The user should register references manually
+	static Reference pop(lua_State* ls, int index) = delete;
 };
 
 template <>
@@ -531,25 +529,9 @@ public:
 };
 
 //! Const reference wrapper
+// Treat as value
 template <class T>
-class Wrapper<const T&> {
-public:
-	static constexpr int getStackSize() {
-		return Wrapper<T>::getStackSize();
-	}
-	static int match(lua_State* ls, int idx) {
-		return Wrapper<T>::match(ls, idx);
-	}
-	static auto pop(lua_State* ls, int idx) {
-		return Wrapper<T>::pop(ls, idx);
-	}
-	static void push(lua_State* ls, const T& ref) {
-		Wrapper<T>::push(ls, ref);
-	}
-	static void pushAsKey(lua_State* ls, const T& ref) {
-		Wrapper<T>::pushAsKey(ls, ref);
-	}
-};
+class Wrapper<const T&> : public Wrapper<T> {};
 
 //! Reference wrapper
 template <class T>

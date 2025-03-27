@@ -1,6 +1,8 @@
 #pragma once
 
+#include <core/uncopyable.h>
 #include <cstddef>
+#include <cstring>
 #include <type_traits>
 #include <utility>
 
@@ -20,24 +22,40 @@ public:
 	virtual void* realloc(void* ptr, size_t bytes, size_t alignment) = 0;
 
 	// Helpers
-	template <class T>
+	template <class T, bool zero = false>
 	T* alloc() {
+		static_assert(std::is_trivially_default_constructible_v<T>, "Use construct");
 		void* ptr = alloc(sizeof(T), alignof(T));
-		if constexpr (std::is_trivially_default_constructible_v<T>) {
-			return static_cast<T*>(ptr);
+		if (! ptr) {
+			return nullptr;
 		}
-		else {
-			return new (ptr) T;
+		if constexpr (zero) {
+			std::memset(ptr, 0, sizeof(T));
 		}
+		return static_cast<T*>(ptr);
 	}
 
-	template <class T>
+	template <class T, bool zeroPOD = false>
 	T* allocArray(size_t count) {
+		static_assert(std::is_trivially_default_constructible_v<T>, "Use constructArray");
 		void* ptr = alloc(sizeof(T) * count, alignof(T));
-		if constexpr (! std::is_trivially_default_constructible_v<T>) {
-			for (size_t i = 0; i < count; ++i) {
-				new (static_cast<std::byte*>(ptr) + sizeof(T) * i) T;
-			}
+		if (! ptr) {
+			return nullptr;
+		}
+		if constexpr (zeroPOD) {
+			std::memset(ptr, 0, sizeof(T) * count);
+		}
+		return static_cast<T*>(ptr);
+	}
+
+	template <class T, class... ArgTypes>
+	T* constructArray(size_t count, ArgTypes&&... args) {
+		void* ptr = alloc(sizeof(T) * count, alignof(T));
+		if (!ptr) {
+			return nullptr;
+		}
+		for (size_t i = 0; i < count; ++i) {
+			new (static_cast<std::byte*>(ptr) + sizeof(T) * i) T { std::forward<ArgTypes>(args)... } ;
 		}
 		return static_cast<T*>(ptr);
 	}
@@ -45,7 +63,7 @@ public:
 	template <class T, class... ArgTypes>
 	T* construct(ArgTypes&&... args) {
 		void* ptr = alloc(sizeof(T), alignof(T));
-		return ptr ? new (ptr) T{std::forward<ArgTypes>(args)...} : nullptr;
+		return ptr ? new (ptr) T { std::forward<ArgTypes>(args)... } : nullptr;
 	}
 
 	template <class T>
@@ -72,6 +90,8 @@ public:
  */
 class LinearAllocator : public Allocator {
 public:
+	using Allocator::alloc;
+
 	void          free(void* ptr, size_t size) override;
 	void*         realloc(void* ptr, size_t bytes, size_t alignment) override;
 	virtual void  rewind() = 0;
@@ -82,10 +102,13 @@ public:
 /**
  * @brief Buffer allocator
  */
-class BufferAllocator : public LinearAllocator {
+class BufferAllocator final : public LinearAllocator, Uncopyable {
 public:
 	BufferAllocator(void* buffer, size_t bufferSize);
 	BufferAllocator(Allocator& parentAllocator, size_t bufferSize);
+	~BufferAllocator();
+
+	using Allocator::alloc;
 
 	void* alloc(size_t size, size_t alignment) override;
 	void  rewind() override;
@@ -113,10 +136,12 @@ inline void* BufferAllocator::getBuffer() const {
  * @brief Paged allocator
  */
 
-class PagedAllocator : public LinearAllocator {
+class PagedAllocator final : public LinearAllocator {
 public:
 	PagedAllocator(Allocator& parentAllocator, size_t pageSize = defaultPageSize, size_t maxPages = 0);
 	~PagedAllocator();
+
+	using Allocator::alloc;
 
 	void* alloc(size_t size, size_t alignment) override;
 	void  rewind() override;

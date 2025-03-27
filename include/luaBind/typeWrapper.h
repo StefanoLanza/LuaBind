@@ -17,6 +17,9 @@
 
 namespace Typhoon::LuaBind {
 
+template <class T, class... ArgTypes>
+T* allocTemporary(lua_State* ls, ArgTypes&&... args);
+
 namespace detail {
 
 constexpr int kLuaAllocated = 0;

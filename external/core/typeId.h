@@ -9,8 +9,11 @@ namespace Typhoon {
 struct TypeId {
 	const void* impl;
 
-	operator bool() const {
+	constexpr operator bool() const {
 		return impl != nullptr;
+	}
+	uint64_t value() const {
+		return reinterpret_cast<uint64_t>(impl);
 	}
 };
 

@@ -55,6 +55,10 @@ BufferAllocator::BufferAllocator(Allocator& parentAllocator, size_t bufferSize)
     , freeSize(bufferSize) {
 }
 
+BufferAllocator::~BufferAllocator() {
+	parentAllocator->free(buffer, bufferSize);
+}
+
 void* BufferAllocator::alloc(size_t size, size_t alignment) {
 	void* result = std::align(alignment, size, offset, freeSize);
 	if (result) {

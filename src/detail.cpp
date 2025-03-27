@@ -4,7 +4,7 @@
 #include "table.h"
 #include <cassert>
 #include <core/scopedAllocator.h>
-#include <core/string/hash.h>
+#include <core/hash.h>
 #include <memory>
 
 namespace Typhoon::LuaBind::detail {

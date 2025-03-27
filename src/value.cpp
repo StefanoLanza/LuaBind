@@ -119,25 +119,37 @@ bool Value::cast(Table& table) const {
 }
 
 bool Value::cast(void*& userData, [[maybe_unused]] TypeId typeId) const {
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	bool res = false;
 	userData = nullptr;
+	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	const int luaType = lua_type(ls, -1);
 	if (luaType == LUA_TLIGHTUSERDATA) {
 		userData = lua_touserdata(ls, -1);
+#if TY_LUABIND_TYPE_SAFE
+	// TODO Type check
+#endif
 	}
 	else if (luaType == LUA_TUSERDATA) {
 		std::memcpy(&userData, lua_touserdata(ls, -1), sizeof userData);
+#if TY_LUABIND_TYPE_SAFE
+		lua_getiuservalue(ls, -1, 1);
+		assert(! lua_isnil(ls, -1));
+		TypeId ptrTypeId;
+		ptrTypeId.impl = reinterpret_cast<const void*>(lua_tointeger(ls, -1));
+		if (! detail::compatibleTypes(ls, ptrTypeId, typeId)) {
+			userData = nullptr;
+			res = false;
+		}
+		lua_pop(ls, 1);
+#endif
+	}
+	else if (luaType == LUA_TTABLE) {
+		// TODO
+		assert(false);
 	}
 	lua_pop(ls, 1);
 	if (userData) {
 		res = true;
-#if TY_LUABIND_TYPE_SAFE
-		if (! detail::checkPointerType(ls, userData, typeId)) {
-			userData = nullptr;
-			res = false;
-		}
-#endif
 	}
 	return res;
 }

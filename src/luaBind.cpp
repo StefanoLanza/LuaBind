@@ -90,9 +90,12 @@ lua_State* createState(Allocator& allocator) {
 void closeState(lua_State* ls) {
 	auto context = detail::getContext(ls);
 	lua_close(ls);
-	context->allocator->destroy(context->scopedAllocator);
-	context->allocator->destroy(context->tempAllocator);
-	context->allocator->destroy(context);
+	if (context->allocator) {
+		context->allocator->destroy(context->scopedAllocator);
+		context->allocator->destroy(context->tempAllocator);
+		context->allocator->destroy(context);
+		context->allocator = nullptr;
+	}
 }
 
 void setWarningFunction(lua_State* ls, WarningFunction warningFunction) {
@@ -210,13 +213,13 @@ Result doBuffer(lua_State* ls, const char* buffer, size_t size, const char* name
 
 Scope::Scope(lua_State* ls)
     : context { detail::getContext(ls) }
-    , allocator {*context->tempAllocator } {
+    , allocator { *context->tempAllocator } {
 	prevAllocator = context->currScopedAllocator;
-//FIXME	context->currScopedAllocator = &allocator;
+	context->currScopedAllocator = &allocator;
 }
 
 Scope::~Scope() {
-//FIXME	context->currScopedAllocator = prevAllocator;
+	context->currScopedAllocator = prevAllocator;
 }
 
 ScopedAllocator* getTemporaryAllocator(lua_State* ls) {

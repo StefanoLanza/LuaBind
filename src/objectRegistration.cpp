@@ -38,8 +38,9 @@ Reference registerObjectAsTable(lua_State* ls, void* objectPtr, TypeId typeId) {
 	lua_rawset(ls, tableStackIndex);
 
 	// Cache association in registry
+	const lua_Integer ptrKey = detail::makePointerKey(objectPtr, typeId);
 	// registry[objectPtr] = table
-	lua_pushlightuserdata(ls, objectPtr);
+	lua_pushinteger(ls, ptrKey);
 	lua_pushvalue(ls, tableStackIndex);
 	lua_rawset(ls, LUA_REGISTRYINDEX);
 

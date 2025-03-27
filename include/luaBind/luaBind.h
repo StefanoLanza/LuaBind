@@ -15,9 +15,9 @@
 #include <core/uncopyable.h>
 
 namespace Typhoon {
-	class Allocator;
-	class LinearAllocator;
-}
+class Allocator;
+class LinearAllocator;
+} // namespace Typhoon
 
 namespace Typhoon::LuaBind {
 
@@ -51,24 +51,25 @@ class Scope : Uncopyable {
 public:
 	Scope(lua_State* ls);
 	~Scope();
-private:
-	LinearAllocator* tempAllocator;
-	void* offs;
-};
 
-template <class T, class... ArgTypes>
-inline T* newTemporary(lua_State* ls, ArgTypes... args) {
-	if (void* mem = detail::allocTemporary(ls, sizeof(T), alignof(T)); mem) {
-		// Construct
-		return new (mem) T { std::forward<ArgTypes>(args)... };
-	}
-	return nullptr;
-}
+private:
+	Context*         context;
+	ScopedAllocator  allocator;
+	ScopedAllocator* prevAllocator;
+};
 
 template <class T>
 inline Reference makeRef(lua_State* ls, const T& obj) {
 	push(ls, obj);
 	return Reference { luaL_ref(ls, LUA_REGISTRYINDEX) };
+}
+
+Typhoon::ScopedAllocator* getTemporaryAllocator(lua_State* ls);
+
+// Helper
+template <class T, class... ArgTypes>
+T* allocTemporary(lua_State* ls, ArgTypes&&... args) {
+	return getTemporaryAllocator(ls)->make<T>(std::forward<ArgTypes>(args)...);
 }
 
 } // namespace Typhoon::LuaBind

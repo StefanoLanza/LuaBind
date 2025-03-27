@@ -22,13 +22,7 @@ namespace detail {
 constexpr int kLuaAllocated = 0;
 constexpr int kCppAllocated = 1;
 
-template <class T>
-T* allocTemporary(lua_State* ls);
-
-template <typename...>
-struct always_false {
-	static constexpr bool value = false;
-};
+lua_Integer makePointerKey(const void* ptr, TypeId typeId);
 
 } // namespace detail
 
@@ -46,37 +40,9 @@ public:
 	}
 
 	static void push(lua_State* ls, const T& value) {
-		// Lookup class metatable in registry
-		const auto     typeId = getTypeId<T>();
-		const TypeName typeName = typeIdToName(typeId);
-		if (! typeName) {
-			lua_pushnil(ls);
-			luaL_error(ls, "Unregistered type");
-			return; // class not registered in C++
-		}
-
 		// Alloc and construct a copy of value
-		void* const mem = detail::allocTemporary<T>(ls);
-		if (! mem) {
-			lua_pushnil(ls);
-		}
-		T* ptr = new (mem) T { value };
-
-		// Embed ptr into full user data
-		void* const userData = lua_newuserdatauv(ls, sizeof ptr, 1);
-		// Copy C++ pointer to Lua userdata
-		std::memcpy(userData, &ptr, sizeof ptr);
-		const int userDataIndex = lua_gettop(ls);
-
-		// Set metatable of user data at index idx
-		luaL_getmetatable(ls, typeName);
-		assert(lua_istable(ls, -1));
-		lua_setmetatable(ls, userDataIndex);
-
-		lua_pushinteger(ls, getTypeId<T>().value());
-		lua_setiuservalue(ls, userDataIndex, 1); // ud.userValue[1] = typeId
-
-		// userData left on stack, return it
+		T* const ptr = allocTemporary<T>(ls, value);
+		Wrapper<T*>::push(ls, ptr);
 	}
 
 	static const T& pop(lua_State* ls, int idx) {
@@ -85,6 +51,7 @@ public:
 		T* ptr = nullptr;
 		std::memcpy(&ptr, userData, sizeof ptr);
 
+#if TY_LUABIND_TYPE_SAFE
 		// Check type
 		lua_getiuservalue(ls, idx, 1);
 		assert(! lua_isnil(ls, -1));
@@ -94,6 +61,7 @@ public:
 			luaL_argerror(ls, idx, "Invalid pointer type");
 			ptr = nullptr;
 		}
+#endif
 
 		return *ptr;
 	}
@@ -111,9 +79,8 @@ struct Lightweight {
 		return lua_isuserdata(ls, idx);
 	}
 	static void push(lua_State* ls, const T& value) {
-		void* const mem = detail::allocTemporary<T>(ls);
-		if (mem) {
-			T* ud = new (mem) T { value };
+		T* const ud = allocTemporary<T>(ls, value);
+		if (ud) {
 			lua_pushlightuserdata(ls, ud);
 #if TY_LUABIND_TYPE_SAFE
 			detail::registerTemporaryPointer(ls, ud, getTypeId<T>());
@@ -333,10 +300,10 @@ public:
 			// Embed ptr into full user data
 
 			const TypeId typeId = getTypeId<T>();
-			void* const  ptrKey = detail::makePointerKey(ptr, typeId);
+			const lua_Integer ptrKey = detail::makePointerKey(ptr, typeId);
 
 			// Get userdata/table associated with the pointer from registry
-			lua_pushlightuserdata(ls, ptrKey);
+			lua_pushinteger(ls, ptrKey);
 			lua_rawget(ls, LUA_REGISTRYINDEX);
 			if (lua_isnil(ls, -1)) {
 				// The ptr is not registered
@@ -365,12 +332,12 @@ public:
 
 				// Cache association ptr -> user data in registry
 				// registry[ptr] = userData
-				lua_pushlightuserdata(ls, ptrKey);
+				lua_pushinteger(ls, ptrKey);
 				lua_pushvalue(ls, userDataIndex);
 				lua_rawset(ls, LUA_REGISTRYINDEX);
 			}
 			else {
-				// The ptr has been registered. Return it
+				// The ptr has been cached. Return it
 			}
 		}
 	}

@@ -3,18 +3,11 @@
 #include "class.h"
 #include "table.h"
 #include <cassert>
-#include <core/allocator.h>
+#include <core/scopedAllocator.h>
+#include <core/string/hash.h>
 #include <memory>
 
 namespace Typhoon::LuaBind::detail {
-
-LinearAllocator* getTemporaryAllocator(lua_State* ls);
-
-void* allocTemporary(lua_State* ls, size_t size, size_t alignment) {
-	void* ptr = getTemporaryAllocator(ls)->alloc(size, alignment);
-	assert(ptr != nullptr);
-	return ptr;
-}
 
 void* retrievePointerFromTable(lua_State* ls, int idx) {
 	void* ptr = nullptr;
@@ -39,6 +32,21 @@ void pushFunctionAsUpvalue(lua_State* ls, lua_CFunction closure, const void* fun
 	void* buffer = lua_newuserdatauv(ls, functionPtrSize, 0);
 	std::memcpy(buffer, functionPtr, functionPtrSize);
 	lua_pushcclosure(ls, closure, 1);
+}
+
+/* 
+Pointers can alias
+e.g.
+class A;
+class B {
+	A a;
+};
+B b;
+&b == &b.a;
+As they are cached in the registry, we need a key that also depends on their actual type
+*/
+lua_Integer makePointerKey(const void* ptr, TypeId typeId) {
+	return computeHash(std::make_pair(ptr, typeId));
 }
 
 } // namespace Typhoon::LuaBind::detail

@@ -6,16 +6,14 @@
 #include <cstdint>
 #include <utility>
 #include <type_traits>
+#include <core/scopedAllocator.h>
+
+namespace Typhoon
+{
+	class ScopedAllocator;
+}
 
 namespace Typhoon::LuaBind::detail {
-
-void* allocTemporary(lua_State* ls, size_t size, size_t alignment);
-
-// Helper
-template <class T>
-T* allocTemporary(lua_State* ls) {
-	return static_cast<T*>(allocTemporary(ls, sizeof(T), alignof(T)));
-}
 
 // Extract a raw pointer from a table.
 // Returns nullptr on error
@@ -108,5 +106,7 @@ inline T serializePOD(const void* ptr) {
 	std::memcpy(&obj, ptr, sizeof obj);
 	return obj;
 }
+
+long long makePointerKey(const void* ptr, TypeId typeId);
 
 } // namespace Typhoon::LuaBind::detail

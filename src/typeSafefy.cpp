@@ -46,12 +46,6 @@ void registerTemporaryPointer(lua_State* ls, const void* ptr, TypeId typeId) {
 	context->tempPointerMap.push_back(key);
 }
 
-void* makePointerKey(const void* ptr, TypeId typeId) {
-	// Last three bits of ptr are 0 since pointers are 8 bytes aligned
-	// TypeId.impl does not have this constraint
-	return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(ptr) | (reinterpret_cast<uintptr_t>(typeId.impl) & 0b111));
-}
-
 bool compatibleTypes(lua_State* ls, TypeId first, TypeId second) {
 	auto context = getContext(ls);
 	return compatibleTypes(*context, first, second);

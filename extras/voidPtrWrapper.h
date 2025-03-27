@@ -26,8 +26,8 @@ public:
 		}
 
 		// Try getting userdata associated with the pointer from registry
-		void* const ptrKey = detail::makePointerKey(voidPtr.ptr, voidPtr.typeId);
-		lua_pushlightuserdata(ls, ptrKey);
+		const lua_Integer ptrKey = detail::makePointerKey(voidPtr.ptr, voidPtr.typeId);
+		lua_pushinteger(ls, ptrKey);
 		lua_rawget(ls, LUA_REGISTRYINDEX);
 		if (lua_isnil(ls, -1)) {
 
@@ -52,7 +52,7 @@ public:
 			lua_setiuservalue(ls, -2, 1); // ud.userValue[1] = typeId
 
 			// Cache user data in registry
-			lua_pushlightuserdata(ls, ptrKey);
+			lua_pushinteger(ls, ptrKey);
 			lua_pushvalue(ls, userDataIndex);
 			lua_rawset(ls, LUA_REGISTRYINDEX);
 		}

@@ -32,12 +32,16 @@ Reference registerObjectAsTable(lua_State* ls, void* objectPtr, TypeId typeId) {
 	lua_pushlightuserdata(ls, objectPtr);
 	lua_rawset(ls, tableStackIndex);
 
+	// table["_typeId"] = typeId
+	lua_pushstring(ls, "_typeid");
+	lua_pushlightuserdata(ls, const_cast<void*>(typeId.impl));
+	lua_rawset(ls, tableStackIndex);
+
+	// Cache association in registry
 	// registry[objectPtr] = table
 	lua_pushlightuserdata(ls, objectPtr);
 	lua_pushvalue(ls, tableStackIndex);
 	lua_rawset(ls, LUA_REGISTRYINDEX);
-
-	// TODO Type safefy
 
 	// Create reference to table and save it in the registry
 	lua_pushvalue(ls, tableStackIndex);
@@ -72,8 +76,8 @@ Reference registerObjectAsUserData(lua_State* ls, void* objectPtr, TypeId typeId
 
 	// Save association objectPtr -> user data in registry, used when pushing C++ pointers on the Lua stack
 	// registry[{objectPtr, typeId}] = userData
-	void* const ptrKey = detail::makePointerKey(objectPtr, typeId);
-	lua_pushlightuserdata(ls, ptrKey);
+	const lua_Integer ptrKey = detail::makePointerKey(objectPtr, typeId);
+	lua_pushinteger(ls, ptrKey);
 	lua_pushvalue(ls, userDataIndex);
 	lua_rawset(ls, LUA_REGISTRYINDEX);
 
@@ -184,9 +188,9 @@ void unregisterObject(lua_State* ls, void* objectPtr, TypeId typeId) {
 	}
 	AutoBlock autoBlock(ls);
 
-	void* const ptrKey = detail::makePointerKey(objectPtr, typeId);
+	const lua_Integer ptrKey = detail::makePointerKey(objectPtr, typeId);
 
-	lua_pushlightuserdata(ls, ptrKey);
+	lua_pushinteger(ls, ptrKey);
 	lua_rawget(ls, LUA_REGISTRYINDEX);
 	const int objectIndex = lua_gettop(ls);
 	const int luaType = lua_type(ls, objectIndex);
@@ -200,7 +204,7 @@ void unregisterObject(lua_State* ls, void* objectPtr, TypeId typeId) {
 	}
 
 	// registry[{objectPtr, typeId}] = nil
-	lua_pushlightuserdata(ls, ptrKey);
+	lua_pushinteger(ls, ptrKey);
 	lua_pushnil(ls);
 	lua_rawset(ls, LUA_REGISTRYINDEX);
 

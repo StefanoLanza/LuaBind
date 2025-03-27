@@ -91,7 +91,7 @@ Reference registerObjectAsLightUserData(lua_State* ls, void* objectPtr, [[maybe_
 	assert(objectPtr);
 
 #if TY_LUABIND_TYPE_SAFE
-	//TODO detail::registerPointer(ls, objectPtr, typeId);
+	detail::registerTemporaryPointer(ls, objectPtr, typeId);
 #endif
 
 	AutoBlock autoBlock(ls);

@@ -10,6 +10,8 @@
 
 namespace Typhoon::LuaBind::detail {
 
+constexpr int kLuaAllocated = 0;
+
 template <typename T, typename... argType>
 T* defaultNew(argType... args) {
 	return new T { std::forward<argType>(args)... };

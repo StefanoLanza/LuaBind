@@ -30,14 +30,16 @@ void registerBaseClass(lua_State* ls, TypeId super, TypeId base) {
 
 bool checkPointerType(lua_State* ls, const void* ptr, TypeId typeId) {
 	auto context = getContext(ls);
+	bool checked = false;
 	for (const auto& key : context->tempPointerMap) {
 		if (key.first == ptr) {
+			checked = true;
 			if (compatibleTypes(*context, key.second, typeId)) {
 				return true;
 			}
 		}
 	}
-	return false;
+	return !checked;
 }
 
 void registerTemporaryPointer(lua_State* ls, const void* ptr, TypeId typeId) {

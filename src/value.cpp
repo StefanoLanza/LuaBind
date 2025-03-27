@@ -119,14 +119,15 @@ bool Value::cast(Table& table) const {
 }
 
 bool Value::cast(void*& userData, [[maybe_unused]] TypeId typeId) const {
-	bool res = false;
 	userData = nullptr;
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	const int luaType = lua_type(ls, -1);
 	if (luaType == LUA_TLIGHTUSERDATA) {
 		userData = lua_touserdata(ls, -1);
 #if TY_LUABIND_TYPE_SAFE
-	// TODO Type check
+		if (! detail::checkPointerType(ls, userData, typeId)) {
+			userData = nullptr;
+		}
 #endif
 	}
 	else if (luaType == LUA_TUSERDATA) {
@@ -138,20 +139,31 @@ bool Value::cast(void*& userData, [[maybe_unused]] TypeId typeId) const {
 		ptrTypeId.impl = reinterpret_cast<const void*>(lua_tointeger(ls, -1));
 		if (! detail::compatibleTypes(ls, ptrTypeId, typeId)) {
 			userData = nullptr;
-			res = false;
 		}
 		lua_pop(ls, 1);
 #endif
 	}
 	else if (luaType == LUA_TTABLE) {
-		// TODO
-		assert(false);
+		// Pointer as _ptr field of a table
+		lua_getfield(ls, -1, "_ptr");
+		userData = lua_touserdata(ls, -1);
+		lua_pop(ls, 1); // _ptr
+		if (userData) {
+#if TY_LUABIND_TYPE_SAFE
+			lua_getfield(ls, -1, "_typeid");
+			assert(lua_islightuserdata(ls, -1));
+			TypeId ptrTypeId;
+			ptrTypeId.impl = lua_touserdata(ls, -1);
+			lua_pop(ls, 1);
+			if (! detail::compatibleTypes(ls, ptrTypeId, typeId)) {
+				userData = nullptr;
+			}
+#endif
+		}
 	}
 	lua_pop(ls, 1);
-	if (userData) {
-		res = true;
-	}
-	return res;
+
+	return (userData != nullptr);
 }
 
 } // namespace Typhoon::LuaBind

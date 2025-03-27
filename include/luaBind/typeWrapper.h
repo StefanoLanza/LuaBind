@@ -22,9 +22,6 @@ T* allocTemporary(lua_State* ls, ArgTypes&&... args);
 
 namespace detail {
 
-constexpr int kLuaAllocated = 0;
-constexpr int kCppAllocated = 1;
-
 lua_Integer makePointerKey(const void* ptr, TypeId typeId);
 
 } // namespace detail
@@ -261,7 +258,7 @@ public:
 template <size_t Size>
 class Wrapper<const char (&)[Size]> : public Wrapper<const char*> {};
 
-//! Raw pointer wrapper
+// Raw pointer wrapper
 template <class T>
 class Wrapper<T*> {
 public:
@@ -302,14 +299,14 @@ public:
 		else {
 			// Embed ptr into full user data
 
-			const TypeId typeId = getTypeId<T>();
+			const TypeId      typeId = getTypeId<T>();
 			const lua_Integer ptrKey = detail::makePointerKey(ptr, typeId);
 
 			// Get userdata/table associated with the pointer from registry
 			lua_pushinteger(ls, ptrKey);
 			lua_rawget(ls, LUA_REGISTRYINDEX);
 			if (lua_isnil(ls, -1)) {
-				// The ptr is not registered
+				// The ptr is not cached
 				lua_pop(ls, 1);
 
 				// Lookup class metatable in registry
@@ -325,22 +322,22 @@ public:
 				std::memcpy(userData, &ptr, sizeof ptr);
 				const int userDataIndex = lua_gettop(ls);
 
-				// Set metatable of user data at index idx
+				// Set metatable of user data
 				luaL_getmetatable(ls, typeName);
 				assert(lua_istable(ls, -1));
 				lua_setmetatable(ls, userDataIndex);
 
+				// Save typeId, for type checking
 				lua_pushinteger(ls, typeId.value());
 				lua_setiuservalue(ls, userDataIndex, 1); // ud.userValue[1] = typeId
 
 				// Cache association ptr -> user data in registry
-				// registry[ptr] = userData
 				lua_pushinteger(ls, ptrKey);
 				lua_pushvalue(ls, userDataIndex);
 				lua_rawset(ls, LUA_REGISTRYINDEX);
 			}
 			else {
-				// The ptr has been cached. Return it
+				// Cached ptr, return its associated userdata
 			}
 		}
 	}
@@ -350,28 +347,45 @@ public:
 		const int luaType = lua_type(ls, idx);
 		if (luaType == LUA_TLIGHTUSERDATA) {
 			ptr = static_cast<T*>(lua_touserdata(ls, idx));
-			// TODO Type checking
+#if TY_LUABIND_TYPE_SAFE
+			if (! detail::checkPointerType(ls, ptr, getTypeId<T>())) {
+				ptr = nullptr;
+				luaL_argerror(ls, idx, "Invalid pointer type");
+			}
+#endif
 		}
 		else if (luaType == LUA_TUSERDATA) {
 			std::memcpy(&ptr, lua_touserdata(ls, idx), sizeof ptr);
+#if TY_LUABIND_TYPE_SAFE
 			lua_getiuservalue(ls, idx, 1);
 			assert(! lua_isnil(ls, -1));
 			TypeId ptrTypeId;
 			ptrTypeId.impl = reinterpret_cast<const void*>(lua_tointeger(ls, -1));
 			if (! detail::compatibleTypes(ls, ptrTypeId, getTypeId<T>())) {
-				luaL_argerror(ls, idx, "invalid pointer type");
 				ptr = nullptr;
+				luaL_argerror(ls, idx, "invalid pointer type");
 			}
+#endif
 		}
 		else if (luaType == LUA_TTABLE) {
 			// Pointer as _ptr field of a table
 			lua_getfield(ls, idx, "_ptr");
-			if (! lua_isuserdata(ls, -1)) {
-				lua_pop(ls, 1);
-				luaL_error(ls, "cannot retrieve raw pointer to C++ object: invalid _ptr field");
-			}
 			ptr = static_cast<T*>(lua_touserdata(ls, -1));
 			lua_pop(ls, 1);
+			if (! ptr) {
+				luaL_error(ls, "cannot retrieve raw pointer to C++ object: invalid _ptr field");
+			}
+#if TY_LUABIND_TYPE_SAFE
+			lua_getfield(ls, idx, "_typeid");
+			assert(lua_islightuserdata(ls, -1));
+			TypeId ptrTypeId;
+			ptrTypeId.impl = lua_touserdata(ls, -1);
+			lua_pop(ls, 1);
+			if (! detail::compatibleTypes(ls, ptrTypeId, getTypeId<T>())) {
+				ptr = nullptr;
+				luaL_argerror(ls, idx, "invalid pointer type");
+			}
+#endif
 		}
 		else if (luaType == LUA_TNIL) {
 			ptr = nullptr;
@@ -488,12 +502,11 @@ public:
 	}
 };
 
-//! Const reference wrapper
-// Treat as value
+// Const reference wrapper. Treat as value
 template <class T>
 class Wrapper<const T&> : public Wrapper<T> {};
 
-//! Reference wrapper
+// Reference wrapper. Treat as pointer
 template <class T>
 class Wrapper<T&> {
 public:

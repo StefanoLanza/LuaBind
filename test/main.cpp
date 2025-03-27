@@ -444,7 +444,7 @@ TEST_CASE("Root") {
 				CHECK(v2ptr->y == 5.);
 				CHECK(v2ptr->z == 7.);
 			}
-#if TY_LUABIND_TYPE_SAFE && 0
+#if TY_LUABIND_TYPE_SAFE
 			const Vec3* v = static_cast<const Vec3*>(globals["vec0"]);
 			CHECK(v);
 			CHECK(! doCommand(ls, "Quat.setIdentity(vec0)"));

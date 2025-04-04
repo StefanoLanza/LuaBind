@@ -46,7 +46,7 @@ B b;
 As they are cached in the registry, we need a key that also depends on their actual type
 */
 lua_Integer makePointerKey(const void* ptr, TypeId typeId) {
-	return computeHash(std::make_pair(ptr, typeId));
+	return hash64(std::make_pair(ptr, typeId));
 }
 
 } // namespace Typhoon::LuaBind::detail

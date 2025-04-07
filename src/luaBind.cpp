@@ -7,7 +7,7 @@
 #include "table.h"
 
 #include <algorithm>
-#include <core/allocator.h>
+#include <core/scopedAllocator.h>
 
 namespace Typhoon::LuaBind {
 

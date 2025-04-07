@@ -8,11 +8,11 @@
 #include "registration.h"
 #include "table.h"
 #include "tableIterator.h"
-#include "typeSafefy.h"
 #include "uniqueRef.h"
 #include "value.h"
 
 #include <core/uncopyable.h>
+#include <core/scopedAllocator.h>
 
 namespace Typhoon {
 class Allocator;
@@ -49,7 +49,7 @@ const MemoryStats& getMemoryStats(const Context* context);
 
 class Scope : Uncopyable {
 public:
-	Scope(lua_State* ls);
+	explicit Scope(lua_State* ls);
 	~Scope();
 
 private:

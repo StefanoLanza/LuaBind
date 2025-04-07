@@ -3,12 +3,11 @@
 #include "nil.h"
 #include "reference.h"
 #include "stackIndex.h"
-#include "typeSafefy.h"
+#include "detail.h"
 
 #include <cassert>
 #include <cstring>
 #include <limits>
-#include <lua/src/lua.hpp>
 #include <string>
 
 #if __cplusplus >= 202002L
@@ -19,12 +18,6 @@ namespace Typhoon::LuaBind {
 
 template <class T, class... ArgTypes>
 T* allocTemporary(lua_State* ls, ArgTypes&&... args);
-
-namespace detail {
-
-lua_Integer makePointerKey(const void* ptr, TypeId typeId);
-
-} // namespace detail
 
 // typename = void is used for specializations based on std::enable_if. See the enum specialization
 // Generic wrapper

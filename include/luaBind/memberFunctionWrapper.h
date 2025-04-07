@@ -67,4 +67,66 @@ inline void registerMemberFunction(lua_State* ls, retType (objType::*func)(argTy
 	lua_settable(ls, tableStackIndex);
 }
 
+template <class obj_type, class ret_type>
+class MemberVariableGetter {
+public:
+	static int closure(lua_State* ls) {
+		const size_t offset = static_cast<size_t>(lua_tonumber(ls, lua_upvalueindex(1)));
+
+		// Get self
+		const obj_type* self = Wrapper<const obj_type*>::pop(ls, 1);
+		if (! self) {
+			return luaL_argerror(ls, 1, "nil self");
+		}
+
+		// Get pointer to member var
+		const ret_type* memberVar = reinterpret_cast<const ret_type*>(reinterpret_cast<uintptr_t>(self) + offset);
+
+		Wrapper<ret_type>::push(ls, *memberVar);
+		return Wrapper<ret_type>::getStackSize();
+	}
+};
+
+template <class obj_type, class ret_type>
+class MemberVariableSetter {
+public:
+	static int closure(lua_State* ls) {
+		const size_t offset = static_cast<size_t>(lua_tonumber(ls, lua_upvalueindex(1)));
+
+		// Get self
+		obj_type* self = Wrapper<obj_type*>::pop(ls, 1);
+		if (! self) {
+			return luaL_argerror(ls, 1, "nil self");
+		}
+
+		// Get pointer to member var
+		ret_type* memberVar = reinterpret_cast<ret_type*>(reinterpret_cast<uintptr_t>(self) + offset);
+
+		// Get value
+		*memberVar = Wrapper<ret_type>::pop(ls, 2);
+
+		return 0;
+	}
+};
+
+template <typename OBJECT_TYPE, typename MEMBER_TYPE>
+void registerGetter(lua_State* ls, MEMBER_TYPE OBJECT_TYPE::*field, size_t offset, const char* functionName, int tableStackIndex) {
+	(void)field;
+	lua_pushstring(ls, functionName);
+	lua_CFunction closure = MemberVariableGetter<OBJECT_TYPE, MEMBER_TYPE>::closure;
+	lua_pushnumber(ls, static_cast<lua_Number>(offset));
+	lua_pushcclosure(ls, closure, 1);
+	lua_settable(ls, tableStackIndex);
+}
+
+template <typename OBJECT_TYPE, typename MEMBER_TYPE>
+void registerSetter(lua_State* ls, MEMBER_TYPE OBJECT_TYPE::*field, size_t offset, const char* functionName, int tableStackIndex) {
+	(void)field;
+	lua_pushstring(ls, functionName);
+	lua_CFunction closure = MemberVariableSetter<OBJECT_TYPE, MEMBER_TYPE>::closure;
+	lua_pushnumber(ls, static_cast<lua_Number>(offset));
+	lua_pushcclosure(ls, closure, 1);
+	lua_settable(ls, tableStackIndex);
+}
+
 } // namespace Typhoon::LuaBind::detail

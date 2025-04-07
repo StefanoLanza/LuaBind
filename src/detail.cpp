@@ -3,7 +3,6 @@
 #include "class.h"
 #include "table.h"
 #include <cassert>
-#include <core/scopedAllocator.h>
 #include <core/hash.h>
 #include <memory>
 
@@ -34,12 +33,12 @@ void pushFunctionAsUpvalue(lua_State* ls, lua_CFunction closure, const void* fun
 	lua_pushcclosure(ls, closure, 1);
 }
 
-/* 
+/*
 Pointers can alias
 e.g.
 class A;
 class B {
-	A a;
+    A a;
 };
 B b;
 &b == &b.a;
@@ -48,5 +47,55 @@ As they are cached in the registry, we need a key that also depends on their act
 lua_Integer makePointerKey(const void* ptr, TypeId typeId) {
 	return hash64(std::make_pair(ptr, typeId));
 }
+
+#if TY_LUABIND_TYPE_SAFE
+
+namespace {
+
+bool compatibleTypes(const Context& context, TypeId first, TypeId second) {
+	while (first != second) {
+		// Query base class
+		auto it = context.baseClassMap.find(first);
+		if (it == context.baseClassMap.end()) {
+			return false;
+		}
+		first = it->second;
+	}
+	return true;
+}
+
+} // namespace
+
+void registerBaseClass(lua_State* ls, TypeId super, TypeId base) {
+	auto context = getContext(ls);
+	context->baseClassMap.emplace(super, base);
+}
+
+bool checkPointerType(lua_State* ls, const void* ptr, TypeId typeId) {
+	auto context = getContext(ls);
+	bool checked = false;
+	for (const auto& key : context->tempPointerMap) {
+		if (key.first == ptr) {
+			checked = true;
+			if (compatibleTypes(*context, key.second, typeId)) {
+				return true;
+			}
+		}
+	}
+	return ! checked;
+}
+
+void registerTemporaryPointer(lua_State* ls, const void* ptr, TypeId typeId) {
+	auto context = getContext(ls);
+	auto key = std::make_pair(ptr, typeId);
+	context->tempPointerMap.push_back(key);
+}
+
+bool compatibleTypes(lua_State* ls, TypeId first, TypeId second) {
+	auto context = getContext(ls);
+	return compatibleTypes(*context, first, second);
+}
+
+#endif
 
 } // namespace Typhoon::LuaBind::detail

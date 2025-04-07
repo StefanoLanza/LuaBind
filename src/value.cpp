@@ -2,7 +2,6 @@
 #include "context.h"
 #include "stackUtils.h"
 #include "table.h"
-#include "typeSafefy.h"
 #include <cassert>
 
 namespace Typhoon::LuaBind {

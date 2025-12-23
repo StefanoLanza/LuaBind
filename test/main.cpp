@@ -383,11 +383,11 @@ TEST_CASE("Root") {
 			const Biped* tmp2 = static_cast<const Biped*>(globals["subobj"]);
 			REQUIRE(tmp2);
 			CHECK(globals["subobj"].getType() == LUA_TUSERDATA);
-			doCommand(ls, "subobj:setLives(20)");
+			CHECK(doCommand(ls, "subobj:setLives(20)"));
 			CHECK(biped->getLives() == 20);
-			doCommand(ls, "subobj:setSpeed(30)");
+			CHECK(doCommand(ls, "subobj:setSpeed(30)"));
 			CHECK(biped->getSpeed() == 30.f);
-			doCommand(ls, "subobj:setName('Homer')");
+			CHECK(doCommand(ls, "subobj:setName('Homer')"));
 			CHECK(biped->getNameRef() == "Homer");
 
 			unregisterObject(ls, ref);
@@ -408,15 +408,15 @@ TEST_CASE("Root") {
 			CHECK(doCommand(ls, "human:setName('Rocky')"));
 			CHECK(human.getName() == "Rocky");
 
-			doCommand(ls, "energy = human:getEnergy()");
+			CHECK(doCommand(ls, "energy = human:getEnergy()"));
 			const float energy = (float)globals["energy"];
 			CHECK(energy == human.energy);
 
-			doCommand(ls, "energy = human:setEnergy(20)");
+			CHECK(doCommand(ls, "energy = human:setEnergy(20)"));
 			CHECK(20 == human.energy);
 
 			// C API
-			doCommand(ls, "Human.addEnergy(human, 10.)");
+			CHECK(doCommand(ls, "Human.addEnergy(human, 10.)"));
 		}
 
 		SECTION("temporaries") {

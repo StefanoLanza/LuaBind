@@ -6,13 +6,14 @@
 #include "object.h"
 #include "objectRegistration.h"
 #include "registration.h"
+#include "result.h"
 #include "table.h"
 #include "tableIterator.h"
 #include "uniqueRef.h"
 #include "value.h"
 
-#include <core/uncopyable.h>
 #include <core/scopedAllocator.h>
+#include <core/uncopyable.h>
 
 namespace Typhoon {
 class Allocator;
@@ -30,7 +31,6 @@ struct MemoryStats {
 };
 
 struct Context;
-class Result;
 
 using WarningFunction = std::function<void(const char*)>;
 

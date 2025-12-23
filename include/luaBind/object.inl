@@ -8,12 +8,12 @@
 namespace Typhoon::LuaBind {
 
 template <typename RetType, typename... ArgTypes>
-Result Object::callMethodRet(const char* func, RetType& ret, const ArgTypes&... args) const {
+ResultT<RetType> Object::callMethodRet(const char* func, const ArgTypes&... args) const {
 	AutoBlock autoBlock(ls);
 
 	const auto [validCall, resStackIndex] = beginCall(func);
 	if (! validCall) {
-		return Result { false };
+		return UNEXPECTED("Invalid call");
 	}
 
 	constexpr int argStackSize[] = { Wrapper<const ArgTypes&>::getStackSize()..., 0 };
@@ -30,11 +30,11 @@ Result Object::callMethodRet(const char* func, RetType& ret, const ArgTypes&... 
 	}
 
 	constexpr int nres = Wrapper<RetType>::getStackSize();
-	const Result  res = callMethodImpl(narg, nres);
-	if (res) {
-		ret = Wrapper<RetType>::pop(ls, resStackIndex);
+	if (const auto res = callMethodImpl(narg, nres); ! res) {
+		return UNEXPECTED(res.error());
 	}
-	return res;
+
+	return Wrapper<RetType>::pop(ls, resStackIndex);
 }
 
 template <typename... ArgTypes>
@@ -43,7 +43,7 @@ Result Object::callMethod(const char* func, const ArgTypes&... args) const {
 
 	const auto [validCall, resStackIndex] = beginCall(func);
 	if (! validCall) {
-		return Result { false };
+		return UNEXPECTED("invalid call");
 	}
 
 	constexpr int argStackSize[] = { Wrapper<const ArgTypes&>::getStackSize()..., 0 };

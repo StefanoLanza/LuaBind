@@ -1,29 +1,28 @@
 #pragma once
 
-#include <cstdarg>
+#if __has_include(<expected>) && _HAS_CXX23
+#include <expected>
 
-namespace Typhoon::LuaBind {
+template <typename T, typename E>
+using expected_t = std::expected<T, E>;
 
-class Result {
-public:
-	explicit Result(bool result);
-	explicit Result(const char* errorMessage);
-	bool getResult() const {
-		return result;
-	}
-	const char* getErrorMessage() const {
-		return errorMessage;
-	}
-	explicit operator bool() const {
-		return result;
-	}
+#define UNEXPECTED std::unexpected
 
-private:
-	void setErrorMessage(const char* msg, va_list args);
+using Result = std::expected<void, const char*>;
 
-private:
-	bool        result;
-	const char* errorMessage;
-};
+template <typename T>
+using ResultT = std::expected<T, const char*>;
 
-} // namespace Typhoon::LuaBind
+#else
+
+#include <expected/include/tl/expected.hpp>
+
+template <typename T, typename E>
+using expected_t = tl::expected<T, E>;
+#define UNEXPECTED tl::make_unexpected
+using Result = tl::expected<void, const char*>;
+
+template <typename T>
+using ResultT = tl::expected<T, const char*>;
+
+#endif

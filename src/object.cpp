@@ -29,7 +29,7 @@ Result Object::callMethod(const char* func) const {
 
 	const auto [validCall, resStackIndex] = beginCall(func);
 	if (! validCall) {
-		return Result { false };
+		return UNEXPECTED("Invalid call");
 	}
 	return callMethodImpl(0, 0);
 }
@@ -66,12 +66,11 @@ Result Object::callMethodImpl(int narg, int nres) const {
 	// argn     (-1)
 
 	const int lres = lua_pcall(ls, 1 + narg, nres, 0);
-	Result    res(true);
 	if (0 != lres) {
-		res = Result { lua_tostring(ls, -1) };
+		return UNEXPECTED(lua_tostring(ls, -1));
 	}
 
-	return res;
+	return {};
 }
 
 } // namespace Typhoon::LuaBind

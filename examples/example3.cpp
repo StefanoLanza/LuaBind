@@ -170,7 +170,7 @@ void runExample(lua_State* ls) {
 	getGlobals(ls).rawSet("cppMonster", ref1);
 
 	if (Result res = doCommand(ls, script); ! res) {
-		std::cout << res.getErrorMessage() << std::endl;
+		std::cout << res.error() << std::endl;
 	}
 
 	// Unregister objects

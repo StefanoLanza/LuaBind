@@ -76,7 +76,7 @@ void runExample(lua_State* ls) {
 
 	// Initialize simulation
 	if (Result res = doCommand(ls, initScript); ! res) {
-		std::cout << res.getErrorMessage() << std::endl;
+		std::cout << res.error() << std::endl;
 		return;
 	}
 
@@ -87,7 +87,7 @@ void runExample(lua_State* ls) {
 
 		// Simulate a frame
 		if (Result res = doCommand(ls, updateScript); ! res) {
-			std::cout << res.getErrorMessage() << std::endl;
+			std::cout << res.error() << std::endl;
 		}
 	}
 }

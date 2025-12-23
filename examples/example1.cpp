@@ -33,7 +33,7 @@ void runExample(lua_State* ls) {
 	using namespace LuaBind;
 
 	if (Result res = doCommand(ls, script); ! res) {
-		std::cout << res.getErrorMessage() << std::endl;
+		std::cout << res.error() << std::endl;
 		return;
 	}
 

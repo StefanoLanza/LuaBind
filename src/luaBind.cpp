@@ -200,14 +200,13 @@ Result doBuffer(lua_State* ls, const char* buffer, size_t size, const char* name
 	const auto error = luaL_loadbuffer(ls, buffer, size, name);
 
 	if (const char* errMsg = getErrorMessage(ls, error); errMsg) {
-		return Result(errMsg);
+		return UNEXPECTED(errMsg);
 	}
 	else if (0 != lua_pcall(ls, 0, 0, errfunc_index)) {
-		errMsg = lua_tostring(ls, -1);
-		return Result(errMsg);
+		return UNEXPECTED(lua_tostring(ls, -1));
 	}
 	else {
-		return Result(true);
+		return {};
 	}
 }
 

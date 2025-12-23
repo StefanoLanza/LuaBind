@@ -9,6 +9,7 @@
 #include <cstring>
 #include <limits>
 #include <string>
+#include <type_traits>
 
 #if __cplusplus >= 202002L
 #include <concepts>
@@ -62,6 +63,9 @@ public:
 
 // Helper to push and pop temporary objects as light user data
 template <class T>
+#if defined(__cpp_concepts) && __cpp_concepts >= 201907L
+requires std::is_trivially_destructible_v<T>
+#endif
 struct Lightweight {
 	static_assert(std::is_trivially_destructible_v<T>, "Lightweight trait requires a trivially destructible class");
 
@@ -125,7 +129,7 @@ public:
 };
 
 template <class I>
-#if __cplusplus >= 202002L
+#if defined(__cpp_concepts) && __cpp_concepts >= 201907L
 requires std::integral<I>
 #endif
     class IntegerWrapper {
@@ -152,10 +156,10 @@ public:
 };
 
 template <class F>
-#if __cplusplus >= 202002L
+#if defined(__cpp_concepts) && __cpp_concepts >= 201907L
 requires std::floating_point<F>
 #endif
-    class FloatWrapper {
+class FloatWrapper {
 public:
 	static constexpr int getStackSize() {
 		return 1;
@@ -391,8 +395,14 @@ private:
 };
 
 // enum specialization
+#if defined(__cpp_concepts) && __cpp_concepts >= 201907L
+template <typename T>
+requires std::is_enum_v<T>
+class Wrapper<T> {
+#else
 template <typename T>
 class Wrapper<T, typename std::enable_if_t<std::is_enum_v<T>>> {
+#endif
 public:
 	static constexpr int getStackSize() {
 		return 1;

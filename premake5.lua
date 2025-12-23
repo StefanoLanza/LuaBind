@@ -34,7 +34,7 @@ flags   { "MultiProcessorCompile", }
 startproject "UnitTest"
 exceptionhandling "Off"
 defines { "TY_LUABIND_TYPE_SAFE=1", }
-cppdialect "c++17"
+cppdialect "c++20"
 rtti "Off"
 
 filter { filter_msvc }
@@ -42,6 +42,7 @@ filter { filter_msvc }
 	{
 		"/permissive-",
 		"/Zc:preprocessor",  -- support for __VA_OPT__ in C++20
+		"/Zc:__cplusplus",   -- __cplusplus will now report 202002L (for C++20)
 	}
 	system "Windows"
 	defines {
@@ -104,7 +105,7 @@ filter { filter_release }
 	runtime "Release"
 	linktimeoptimization "On"
 
-filter {}
+filter {} -- clear filters
 
 project("Lua")
 	kind "StaticLib"

@@ -24,7 +24,7 @@ void HeapAllocator::free(void* ptr, [[maybe_unused]] size_t size) {
 #endif
 }
 
-void* HeapAllocator::realloc(void* ptr, size_t currSize, size_t newSize, size_t alignment) {
+void* HeapAllocator::realloc(void* ptr, [[maybe_unused]] size_t currSize, size_t newSize, size_t alignment) {
 #ifdef _MSC_VER
 	return _aligned_realloc(ptr, newSize, alignment);
 #else

@@ -47,74 +47,90 @@ bool Value::isNil() const {
 	return isNil;
 }
 
-bool Value::cast(int& value) const {
+std::optional<bool> Value::asBool() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = toInteger(ls, -1, value);
-	lua_pop(ls, 1);
-	return res;
-}
-
-bool Value::cast(double& value) const {
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = toDouble(ls, -1, value);
-	lua_pop(ls, 1);
-	return res;
-}
-
-bool Value::cast(float& value) const {
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = toFloat(ls, -1, value);
-	lua_pop(ls, 1);
-	return res;
-}
-
-bool Value::cast(std::string& str) const {
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = toString(ls, -1, str);
-	lua_pop(ls, 1);
-	return res;
-}
-
-bool Value::cast(const char*& str) const {
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = toString(ls, -1, str);
-	lua_pop(ls, 1);
-	return res;
-}
-
-bool Value::cast(bool& value) const {
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
+	bool value = false;
 	bool res = toBool(ls, -1, value);
 	lua_pop(ls, 1);
-	return res;
+	if (! res) {
+		return std::nullopt;
+	}
+	return value;
 }
 
-bool Value::cast(void*& ptr) const {
+std::optional<int> Value::asInt() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = false;
-	ptr = nullptr;
+	int  value = 0;
+	bool res = toInteger(ls, -1, value);
+	lua_pop(ls, 1);
+	if (! res) {
+		return std::nullopt;
+	}
+	return value;
+}
+
+std::optional<float> Value::asFloat() const {
+	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
+	float value = 0.0f;
+	bool  res = toFloat(ls, -1, value);
+	lua_pop(ls, 1);
+	if (! res) {
+		return std::nullopt;
+	}
+	return value;
+}
+
+std::optional<double> Value::asDouble() const {
+	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
+	double value = 0.0;
+	bool   res = toDouble(ls, -1, value);
+	lua_pop(ls, 1);
+	if (! res) {
+		return std::nullopt;
+	}
+	return value;
+}
+
+std::optional<const char*> Value::asString() const {
+	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
+	const char* str = nullptr;
+	bool        res = toString(ls, -1, str);
+	lua_pop(ls, 1);
+	if (! res) {
+		return std::nullopt;
+	}
+	return str;
+}
+
+std::optional<void*> Value::asPtr() const {
+	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	const int luaType = lua_type(ls, -1);
 	if (luaType == LUA_TLIGHTUSERDATA) {
-		ptr = lua_touserdata(ls, -1);
-		res = true;
+		void* ptr = lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+		return ptr;
 	}
 	else if (luaType == LUA_TUSERDATA) {
+		void* ptr = nullptr;
 		std::memcpy(&ptr, lua_touserdata(ls, -1), sizeof ptr);
-		res = true;
+		lua_pop(ls, 1);
+		return ptr;
 	}
+	// Not a pointer
 	lua_pop(ls, 1);
-	return res;
+	return std::nullopt;
 }
 
-bool Value::cast(Table& table) const {
+std::optional<Table> Value::asTable() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = false;
 	if (lua_istable(ls, -1)) {
-		table = Table(ls, topStackIndex);
-		res = true;
+		Table table = Table(ls, topStackIndex);
+		lua_pop(ls, 1);
+		return table;
 	}
+	// Not a table
 	lua_pop(ls, 1);
-	return res;
+	return std::nullopt;
 }
 
 bool Value::cast(void*& userData, [[maybe_unused]] TypeId typeId) const {

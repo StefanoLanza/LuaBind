@@ -83,7 +83,7 @@ void runExample(lua_State* ls) {
 		return;
 	}
 
-	Table test = static_cast<Table>(getGlobals(ls)["testObject"]);
+	Table test = getGlobals(ls)["testObject"].asTable().value();;
 	if (! test) {
 		return;
 	}
@@ -106,14 +106,14 @@ void runExample(lua_State* ls) {
 		std::cout << r.error() << std::endl;
 	}
 
-	if (ResultT<std::string> r = obj.callMethodRet<std::string>("getName"); r) {
+	if (auto r = obj.callMethodRet<std::string>("getName"); r) {
 		std::cout << "New name: " << r.value() << std::endl;
 	}
 	else {
 		std::cout << r.error() << std::endl;
 	}
 
-	if (ResultT<float> r = obj.callMethodRet<float>("getSpeed"); r) {
+	if (auto r = obj.callMethodRet<float>("getSpeed"); r) {
 		std::cout << "Speed: " << r.value() << std::endl;
 	}
 	else {
@@ -124,14 +124,14 @@ void runExample(lua_State* ls) {
 		std::cout << r.error() << std::endl;
 	}
 
-	if (ResultT<float> r = obj.callMethodRet<float>("getSpeed"); r) {
+	if (auto r = obj.callMethodRet<float>("getSpeed"); r) {
 		std::cout << "New speed: " << r.value() << std::endl;
 	}
 	else {
 		std::cout << r.error() << std::endl;
 	}
 
-	if (ResultT<bool> r = obj.callMethodRet<bool>("canFly"); r) {
+	if (auto r = obj.callMethodRet<bool>("canFly"); r) {
 		std::cout << "Can fly?: " << r.value() << std::endl;
 	}
 	else {

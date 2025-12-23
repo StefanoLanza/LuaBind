@@ -14,7 +14,7 @@ const char* script = R"(
 	testTable = {
 		name = "Stefano",
 		surName = "Lanza",
-		age = 41,
+		age = 46,
 		male = true,
 	}
 )";
@@ -22,7 +22,7 @@ const char* script = R"(
 int main(int /*argc*/, char* /*argv*/[]) {
 	std::cout << "LuaBind version: " << LuaBind::getVersionString() << std::endl;
 	Typhoon::HeapAllocator heapAllocator;
-	lua_State* const ls = LuaBind::createState(heapAllocator);
+	lua_State* const       ls = LuaBind::createState(heapAllocator);
 	runExample(ls);
 	LuaBind::closeState(ls);
 
@@ -37,18 +37,15 @@ void runExample(lua_State* ls) {
 		return;
 	}
 
-	Table testTable = static_cast<Table>(getGlobals(ls)["testTable"]);
+	Table testTable = getGlobals(ls)["testTable"].asTable().value();
 	if (! testTable) {
 		return;
 	}
 
-	std::string name, surName, city;
-	int         age;
-	bool        male;
-	testTable["name"].cast(name);
-	testTable["surName"].cast(surName);
-	testTable["age"].cast(age);
-	testTable["male"].cast(male);
+	const char* name = testTable["name"].asString().value_or("");
+	const char* surName = testTable["surName"].asString().value_or("");
+	int  age = testTable["age"].asInt().value_or(0);
+	bool male = testTable["male"].asBool().value_or(true);
 
 	std::cout << std::boolalpha;
 	std::cout << "Name:" << name << std::endl;
@@ -58,7 +55,7 @@ void runExample(lua_State* ls) {
 
 	// Insert element
 	testTable.rawSet("city", "Mantova");
-	testTable["city"].cast(city);
+	const char* city = testTable["city"].asString().value_or("");
 	std::cout << "City:" << city << std::endl;
 
 	std::cout << std::endl;
@@ -68,21 +65,15 @@ void runExample(lua_State* ls) {
 void printValue(const LuaBind::Value& value) {
 	switch (value.getType()) {
 	case LUA_TSTRING: {
-		const char* str;
-		value.cast(str);
-		std::cout << str << "[string]";
+		std::cout << value.asString().value() << "[string]";
 		break;
 	}
 	case LUA_TNUMBER: {
-		int n;
-		value.cast(n);
-		std::cout << n << "[number]";
+		std::cout << value.asInt().value() << "[number]";
 		break;
 	}
 	case LUA_TBOOLEAN: {
-		bool b;
-		value.cast(b);
-		std::cout << b << "[boolean]";
+		std::cout << value.asBool().value() << "[boolean]";
 		break;
 	}
 	case LUA_TNIL:

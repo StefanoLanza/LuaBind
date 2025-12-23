@@ -5,6 +5,8 @@
 #include "typeWrapper.h"
 #include <core/typeId.h>
 #include <core/uncopyable.h>
+
+#include <optional>
 #include <string>
 
 namespace Typhoon::LuaBind {
@@ -14,10 +16,12 @@ class Table;
 class Value : Uncopyable {
 public:
 	Value(lua_State* ls, StackIndex stackIndex);
+	Value(const Value& value) = delete;
 	Value(Value&& value) noexcept;
 	~Value();
 
-	Value& operator=(Value&& value) noexcept;
+	Value&       operator=(Value&& value) noexcept;
+	const Value& operator=(const Value& value) = delete;
 
 	explicit operator bool() const {
 		return ! isNil();
@@ -25,52 +29,64 @@ public:
 	Reference getReference() const {
 		return Reference { ref };
 	}
-	int  getType() const;
-	bool isNil() const;
-	bool cast(int& value) const;
-	bool cast(float& value) const;
-	bool cast(double& value) const;
-	bool cast(bool& value) const;
-	bool cast(std::string& value) const;
-	bool cast(const char*& value) const;
-	bool cast(void*& ptr) const;
-	bool cast(Table& table) const;
+	int                        getType() const;
+	bool                       isNil() const;
+	std::optional<bool>        asBool() const;
+	std::optional<int>         asInt() const;
+	std::optional<float>       asFloat() const;
+	std::optional<double>      asDouble() const;
+	std::optional<const char*> asString() const;
+	std::optional<void*>       asPtr() const;
+	std::optional<Table>       asTable() const;
 
 	template <class T>
-	explicit operator T() const {
-		T v {};
-		cast(v);
-		return v;
-	}
+	std::optional<T*> asPtr() const;
 
-	// Type safe cast to pointer
 	template <class T>
-	explicit operator T*() const {
-		void* userData = nullptr;
-		cast(userData, getTypeId<T>());
-		return static_cast<T*>(userData);
-	}
-
-	// Not type safe
-	explicit operator void*() const {
-		void* userData = nullptr;
-		cast(userData);
-		return userData;
-	}
-
-	explicit operator const char*() const {
-		const char* str = nullptr;
-		cast(str);
-		return str;
-	}
+	std::optional<T> as() const;
 
 private:
-	bool cast(void*& userData, TypeId typeId) const;
+	bool cast(void*& userData, TypeId typeId) const; // FIXME optional, nullptr is valid
 
 private:
 	lua_State* ls;
 	int        ref;
 };
+
+template <class T>
+std::optional<T*> Value::asPtr() const {
+	void* userData = nullptr;
+	if (! cast(userData, getTypeId<T>())) {
+		return std::nullopt;
+	}
+	return static_cast<T*>(userData);
+}
+
+template <class T>
+std::optional<T> Value::as() const {
+	if constexpr (std::is_same_v<T, bool>) {
+		return asBool();
+	}
+	else if constexpr (std::is_integral_v<T>) {
+		return asInt();
+	}
+	else if constexpr (std::is_floating_point_v<T>) {
+		return asDouble();
+	}
+	else if constexpr (std::is_constructible_v<T, const char*>) {
+		return asString();
+	}
+	else if constexpr (std::is_same_v<std::remove_cv_t<T>, void*>) { // const void* or void*
+		return asPtr();
+	}
+	else if constexpr (std::is_pointer_v<T>) { // typed pointer
+		return asPtr<T>();
+	}
+	else {
+		static_assert("Unsupported");
+		return std::nullopt;
+	}
+}
 
 // Value wrapper
 template <>

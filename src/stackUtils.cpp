@@ -38,7 +38,7 @@ bool toBool(lua_State* ls, int numArg, bool& b) {
 
 bool toInteger(lua_State* ls, int numArg, int& i) {
 	lua_Integer d = lua_tointeger(ls, numArg);
-	if (d == 0 && ! lua_isnumber(ls, numArg)) { /* avoid extra test when d is not 0 */
+	if (d == 0 && ! lua_isinteger(ls, numArg)) { /* avoid extra test when d is not 0 */
 		return false;
 	}
 	i = static_cast<int>(d);

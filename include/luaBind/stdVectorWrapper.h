@@ -43,9 +43,8 @@ public:
 		for (;;) {
 			Value value = table[i];
 			if (value) {
-				T elm;
-				if (value.cast(elm)) {
-					v.insert(v.end(), elm);
+				if (auto element = value.as<T>(); element) {
+					v.insert(v.end(), std::move(element.value()));
 				}
 			}
 			else {

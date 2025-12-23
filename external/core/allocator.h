@@ -19,7 +19,7 @@ public:
 
 	virtual void* alloc(size_t size, size_t alignment) = 0;
 	virtual void  free(void* ptr, size_t size) = 0;
-	virtual void* realloc(void* ptr, size_t bytes, size_t alignment) = 0;
+	virtual void* realloc(void* ptr, size_t currSize, size_t newSize, size_t alignment) = 0;
 
 	// Helpers
 	template <class T, bool zero = false>
@@ -51,11 +51,11 @@ public:
 	template <class T, class... ArgTypes>
 	T* constructArray(size_t count, ArgTypes&&... args) {
 		void* ptr = alloc(sizeof(T) * count, alignof(T));
-		if (!ptr) {
+		if (! ptr) {
 			return nullptr;
 		}
 		for (size_t i = 0; i < count; ++i) {
-			new (static_cast<std::byte*>(ptr) + sizeof(T) * i) T { std::forward<ArgTypes>(args)... } ;
+			new (static_cast<std::byte*>(ptr) + sizeof(T) * i) T { std::forward<ArgTypes>(args)... };
 		}
 		return static_cast<T*>(ptr);
 	}
@@ -82,7 +82,7 @@ class HeapAllocator final : public Allocator {
 public:
 	void* alloc(size_t size, size_t alignment) override;
 	void  free(void* ptr, size_t size) override;
-	void* realloc(void* ptr, size_t bytes, size_t alignment) override;
+	void* realloc(void* ptr,  size_t currSize, size_t newSize, size_t alignment) override;
 };
 
 /**
@@ -93,7 +93,6 @@ public:
 	using Allocator::alloc;
 
 	void          free(void* ptr, size_t size) override;
-	void*         realloc(void* ptr, size_t bytes, size_t alignment) override;
 	virtual void  rewind() = 0;
 	virtual void  rewind(void* ptr) = 0;
 	virtual void* getOffset() const = 0;
@@ -111,6 +110,7 @@ public:
 	using Allocator::alloc;
 
 	void* alloc(size_t size, size_t alignment) override;
+	void* realloc(void* ptr, size_t oldSize, size_t newSize, size_t alignment) override;
 	void  rewind() override;
 	void  rewind(void* ptr) override;
 	void* getOffset() const override;
@@ -121,7 +121,7 @@ private:
 	Allocator* parentAllocator;
 	void*      offset;
 	size_t     bufferSize;
-	size_t     freeSize;
+	void*      lastAlloc;
 };
 
 inline void* BufferAllocator::getOffset() const {
@@ -144,6 +144,7 @@ public:
 	using Allocator::alloc;
 
 	void* alloc(size_t size, size_t alignment) override;
+	void* realloc(void* ptr, size_t oldSize, size_t newSize, size_t alignment) override;
 	void  rewind() override;
 	void  rewind(void* ptr) override;
 	void* getOffset() const override;

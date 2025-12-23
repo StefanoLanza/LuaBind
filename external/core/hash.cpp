@@ -4,7 +4,7 @@
 
 namespace Typhoon {
 
-uint32_t computeHash(const char* data, size_t len) {
+uint32_t hash32(const char* data, size_t len) {
 #define get16bits(d) (*((const uint16_t*)(d)))
 
 	uint32_t  hash = static_cast<uint32_t>(len);
@@ -54,28 +54,17 @@ uint32_t computeHash(const char* data, size_t len) {
 	return hash;
 }
 
-uint32_t computeHash(const char* str) {
-	assert(str);
-	return computeHash(str, std::strlen(str));
-}
-
 uint32_t hash32(const char* str) {
-	return computeHash(str);
-#if 0
 	assert(str);
-	uint32_t    hash = 2166136261u;
-	const char* s = str;
-	while (*s) {
-		hash ^= *s;
-		hash *= 16777619u;
-		++s;
-	}
-	return hash;
-#endif
+	return hash32(str, std::strlen(str));
 }
 
-uint32_t computeHash(std::string_view str) {
-	return computeHash(str.data(), str.length());
+uint32_t hash32(std::string_view str) {
+	return hash32(str.data(), str.length());
+}
+
+uint64_t hash64(const char* data, size_t len) {
+	return std::hash<std::string_view>{}(std::string_view{data, len});
 }
 
 } // namespace Typhoon

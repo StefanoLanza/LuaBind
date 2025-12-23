@@ -2,6 +2,7 @@
 #include "autoBlock.h"
 #include "class.h"
 #include "table.h"
+#include "context.h"
 #include <cassert>
 #include <core/hash.h>
 #include <memory>

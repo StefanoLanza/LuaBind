@@ -6,15 +6,19 @@
 
 namespace Typhoon {
 
-uint32_t computeHash(const char* str, size_t len);
-uint32_t computeHash(const char* str);
+uint32_t hash32(const char* data, size_t len);
 uint32_t hash32(const char* str);
-uint32_t computeHash(std::string_view str);
+uint32_t hash32(std::string_view str);
+uint64_t hash64(const char* data, size_t len);
 
 template <class T>
-uint32_t computeHash(const T& obj) {
-	return computeHash(reinterpret_cast<const char*>(&obj), sizeof(obj));
+uint32_t hash32(const T& obj) {
+	return hash32(reinterpret_cast<const char*>(&obj), sizeof(obj));
 }
 
+template <class T>
+uint64_t hash64(const T& obj) {
+	return hash64(reinterpret_cast<const char*>(&obj), sizeof(obj));
+}
 
 } // namespace Typhoon

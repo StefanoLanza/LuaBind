@@ -5,6 +5,7 @@
 #include "boxing.h"
 #include "detail.h"
 #include "reference.h"
+#include "stackUtils.h"
 #include <core/typeId.h>
 #include <type_traits>
 

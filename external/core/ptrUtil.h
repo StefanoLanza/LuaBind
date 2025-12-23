@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 
@@ -19,6 +20,10 @@ inline size_t alignSize(uintptr_t size, size_t alignment) {
 
 inline void* advancePointer(void* ptr, ptrdiff_t offset) {
 	return static_cast<std::byte*>(ptr) + offset;
+}
+
+inline bool isAligned(const void* ptr, size_t alignment) {
+	return reinterpret_cast<uintptr_t>(ptr) % alignment == 0;
 }
 
 inline const void* advancePointer(const void* ptr, ptrdiff_t offset) {

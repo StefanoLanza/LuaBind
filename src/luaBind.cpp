@@ -28,7 +28,7 @@ void* allocFunction(void* ud, void* ptr, size_t osize, size_t nsize) {
 		++stats.allocationCount;
 		stats.allocatedMemory += nsize;
 		stats.maxAllocatedSize = std::max(stats.maxAllocatedSize, nsize);
-		pret = allocator->realloc(ptr, nsize, Allocator::defaultAlignment);
+		pret = allocator->realloc(ptr, osize, nsize, Allocator::defaultAlignment);
 	}
 	return pret;
 }

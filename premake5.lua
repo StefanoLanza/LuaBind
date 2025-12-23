@@ -10,13 +10,14 @@ newoption {
 }
 
 -- Global settings
-local workspacePath = path.join("build/", _ACTION)  -- e.g. build/vs2019
+local workspacePath = path.join("build/", _ACTION)  -- e.g. build/vs2022
 
 -- Filters
-local filter_vs = "action:vs*"
 local filter_gcc = "toolset:gcc"
 local filter_clang = "toolset:clang"
 local filter_xcode = "action:xcode*"
+local filter_windows = "system:windows"
+local filter_msvc = "toolset:msc*"
 local filter_gmake = "action:gmake*"
 local filter_x86 = "platforms:x86"
 local filter_x64 = "platforms:x86_64"
@@ -36,7 +37,7 @@ defines { "TY_LUABIND_TYPE_SAFE=1", }
 cppdialect "c++17"
 rtti "Off"
 
-filter { filter_vs }
+filter { filter_msvc }
 	buildoptions
 	{
 		"/permissive-",
@@ -60,12 +61,10 @@ filter { filter_x86 }
 filter { filter_x64 }
 	architecture "x86_64"
 	
-filter { filter_vs }
-
-filter { filter_vs, filter_x86, }
+filter { filter_windows, filter_x86, }
 	defines { "WIN32", "_WIN32", }
 
-filter { filter_vs, filter_x64, }
+filter { filter_windows, filter_x64, }
 	defines { "WIN64", "_WIN64", }
 
 filter { filter_clang, filter_debug, }
@@ -79,7 +78,7 @@ filter { filter_clang, filter_debug, }
 	flags { "NoIncrementalLink", "NoRuntimeChecks", }
 	editAndContinue "Off"
 
-filter { filter_vs, filter_release, }
+filter { filter_msvc, filter_release, }
 	defines { "_ITERATOR_DEBUG_LEVEL=0", "_SECURE_SCL=0", }
 
 filter { filter_gcc }
@@ -97,19 +96,21 @@ filter { filter_debug }
 
 filter { filter_release }
 	defines { "NDEBUG", }
-	flags   { "NoManifest", "LinkTimeOptimization", "NoBufferSecurityCheck", "NoRuntimeChecks", }
+	flags   { "NoManifest", "NoBufferSecurityCheck", "NoRuntimeChecks", }
 	optimize("Full")
 	inlining "Auto"
 	warnings "Extra"
 	symbols "Off"
 	runtime "Release"
+	linktimeoptimization "On"
 
 filter {}
 
 project("Lua")
 	kind "StaticLib"
 	files { "external/lua/src/*.c", "external/lua/src/*.h", }
-	excludes { "external/lua/src/luac.c", "external/lua/src/lua.c", } 
+	excludes { "external/lua/src/luac.c", "external/lua/src/lua.c", }
+	warnings "Off"
 
 project("Core")
 	kind "StaticLib"

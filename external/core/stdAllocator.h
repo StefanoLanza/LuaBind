@@ -1,43 +1,35 @@
 #pragma once
 
 #include <core/allocator.h>
+#include <vector>
 
 namespace Typhoon {
-
-class Allocator;
 
 template <typename T>
 class stdAllocator {
 public:
-	typedef T*       pointer;
-	typedef const T* const_pointer;
-	typedef T&       reference;
-	typedef const T& const_reference;
-	typedef T        value_type;
+	using value_type = T;
+	using size_type = std::size_t;
+	using difference_type = std::ptrdiff_t;
 
-	template <typename U>
-	struct rebind {
-		typedef stdAllocator<U> other;
-	};
-
-	explicit stdAllocator(Allocator& allocator)
-	    : allocator(allocator) {
+	constexpr explicit stdAllocator(Allocator& allocator) noexcept
+	    : allocator { allocator } {
 	}
 
 	~stdAllocator() = default;
-	stdAllocator(const stdAllocator& rhs) = default;
+	constexpr stdAllocator(const stdAllocator& rhs) noexcept = default;
 	template <typename U>
-	stdAllocator(const stdAllocator<U>& rhs)
-	    : allocator(rhs.allocator) {
+	constexpr stdAllocator(const stdAllocator<U>& other)
+	    : allocator(other.allocator) {
 	}
 	stdAllocator& operator=(const stdAllocator&) = delete;
 
-	pointer allocate(size_t size) {
-		return static_cast<pointer>(allocator.alloc(size * sizeof(T), alignof(T)));
+	[[nodiscard]] constexpr T* allocate(std::size_t n) {
+		return static_cast<T*>(allocator.alloc(n * sizeof(T), alignof(T)));
 	}
 
-	void deallocate(pointer p, size_t count) {
-		allocator.free(p, count * sizeof(T));
+	constexpr void deallocate(T* p, std::size_t n) {
+		allocator.free(p, n * sizeof(T));
 	}
 
 	bool operator==(const stdAllocator& rhs) {
@@ -64,5 +56,8 @@ template <typename T1, typename T2>
 bool operator!=(const stdAllocator<T1>& a1, const stdAllocator<T2>& a2) {
 	return ! (a1 == a2);
 }
+
+template <class T>
+using stdVector = std::vector<T, stdAllocator<T>>;
 
 } // namespace Typhoon

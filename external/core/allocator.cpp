@@ -24,19 +24,16 @@ void HeapAllocator::free(void* ptr, [[maybe_unused]] size_t size) {
 #endif
 }
 
-void* HeapAllocator::realloc(void* ptr, size_t bytes, [[maybe_unused]] size_t alignment) {
+void* HeapAllocator::realloc(void* ptr, size_t currSize, size_t newSize, size_t alignment) {
 #ifdef _MSC_VER
-	return _aligned_realloc(ptr, bytes, alignment);
+	return _aligned_realloc(ptr, newSize, alignment);
 #else
-	return ::realloc(ptr, bytes);
+	(void)alignment;
+	return ::realloc(ptr, newSize);
 #endif
 }
 
 void LinearAllocator::free([[maybe_unused]] void* ptr, [[maybe_unused]] size_t size) {
-}
-
-void* LinearAllocator::realloc([[maybe_unused]] void* ptr, size_t bytes, size_t alignment) {
-	return alloc(bytes, alignment);
 }
 
 BufferAllocator::BufferAllocator(void* buffer, size_t bufferSize)
@@ -44,7 +41,7 @@ BufferAllocator::BufferAllocator(void* buffer, size_t bufferSize)
     , parentAllocator(nullptr)
     , offset(buffer)
     , bufferSize(bufferSize)
-    , freeSize(bufferSize) {
+    , lastAlloc { nullptr } {
 }
 
 BufferAllocator::BufferAllocator(Allocator& parentAllocator, size_t bufferSize)
@@ -52,7 +49,7 @@ BufferAllocator::BufferAllocator(Allocator& parentAllocator, size_t bufferSize)
     , parentAllocator(&parentAllocator)
     , offset(buffer)
     , bufferSize(bufferSize)
-    , freeSize(bufferSize) {
+    , lastAlloc { nullptr } {
 }
 
 BufferAllocator::~BufferAllocator() {
@@ -60,26 +57,44 @@ BufferAllocator::~BufferAllocator() {
 }
 
 void* BufferAllocator::alloc(size_t size, size_t alignment) {
-	void* result = std::align(alignment, size, offset, freeSize);
+	size_t freeSize = reinterpret_cast<uintptr_t>(buffer) + bufferSize - reinterpret_cast<uintptr_t>(offset);
+	void*  result = std::align(alignment, size, offset, freeSize);
 	if (result) {
 		offset = advancePointer(result, size);
-		freeSize = reinterpret_cast<uintptr_t>(buffer) + bufferSize - reinterpret_cast<uintptr_t>(offset);
+		lastAlloc = result;
 	}
 	return result;
 }
 
+void* BufferAllocator::realloc(void* ptr, size_t currSize, size_t newSize, size_t alignment) {
+	if (! ptr || (lastAlloc != ptr)) {
+		void* res = alloc(newSize, alignment);
+		if (ptr) {
+			std::memcpy(res, ptr, currSize);
+		}
+		return res;
+	}
+	else {
+		// Extend last allocation
+		if (reinterpret_cast<uintptr_t>(ptr) + newSize > reinterpret_cast<uintptr_t>(buffer) + bufferSize) {
+			return nullptr; // out of memory
+		}
+		assert(isAligned(ptr, alignment));
+		offset = advancePointer(ptr, newSize);
+		return ptr;
+	}
+}
+
 void BufferAllocator::rewind() {
 	offset = buffer;
-	freeSize = bufferSize;
+	lastAlloc = nullptr;
 }
 
 void BufferAllocator::rewind(void* ptr) {
 	if (ptr) {
-		if (ptr >= buffer && ptr < static_cast<const char*>(buffer) + bufferSize) {
-			offset = ptr;
-			freeSize = reinterpret_cast<uintptr_t>(buffer) + bufferSize - reinterpret_cast<uintptr_t>(ptr);
-			assert(freeSize <= bufferSize);
-		}
+		assert(ptr >= buffer && ptr < static_cast<const char*>(buffer) + bufferSize);
+		offset = ptr;
+		lastAlloc = nullptr; //FIXME CHECK ptr;
 	}
 }
 
@@ -130,6 +145,15 @@ void* PagedAllocator::alloc(size_t size, size_t alignment) {
 		}
 	}
 	return nullptr;
+}
+
+void* PagedAllocator::realloc(void* ptr, size_t currSize, size_t newSize, size_t alignment) {
+	// TODO Improve
+	void* res = alloc(newSize, alignment);
+	if (ptr) {
+		std::memcpy(res, ptr, currSize);
+	}
+	return res;
 }
 
 void PagedAllocator::rewind() {

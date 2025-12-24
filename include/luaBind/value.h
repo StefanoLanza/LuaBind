@@ -7,7 +7,6 @@
 #include <core/uncopyable.h>
 
 #include <optional>
-#include <string>
 
 namespace Typhoon::LuaBind {
 
@@ -31,12 +30,12 @@ public:
 	}
 	int                        getType() const;
 	bool                       isNil() const;
+	std::optional<Nil>         asNil() const;
 	std::optional<bool>        asBool() const;
-	std::optional<int>         asInt() const;
-	std::optional<float>       asFloat() const;
-	std::optional<double>      asDouble() const;
+	std::optional<lua_Integer> asInteger() const;
+	std::optional<lua_Number>  asNumber() const;
 	std::optional<const char*> asString() const;
-	std::optional<void*>       asPtr() const;
+	std::optional<void*>       asUserData() const;
 	std::optional<Table>       asTable() const;
 
 	template <class T>
@@ -46,7 +45,7 @@ public:
 	std::optional<T> as() const;
 
 private:
-	bool cast(void*& userData, TypeId typeId) const; // FIXME optional, nullptr is valid
+	std::optional<void*> toPtr(TypeId typeId) const;
 
 private:
 	lua_State* ls;
@@ -55,32 +54,43 @@ private:
 
 template <class T>
 std::optional<T*> Value::asPtr() const {
-	void* userData = nullptr;
-	if (! cast(userData, getTypeId<T>())) {
-		return std::nullopt;
+	if (auto res = toPtr(getTypeId<T>())) {
+		return static_cast<T*>(res.value());
 	}
-	return static_cast<T*>(userData);
+	return std::nullopt;
 }
 
 template <class T>
 std::optional<T> Value::as() const {
-	if constexpr (std::is_same_v<T, bool>) {
+	if constexpr (std::is_same_v<T, Nil>) { 
+		return asNil();
+	}
+	else if constexpr (std::is_same_v<T, bool>) {
 		return asBool();
 	}
 	else if constexpr (std::is_integral_v<T>) {
-		return asInt();
+		if (auto res = asInteger(); res) {
+			return static_cast<T>(res.value());
+		}
+		return std::nullopt;
 	}
 	else if constexpr (std::is_floating_point_v<T>) {
-		return asDouble();
+		if (auto res = asNumber(); res) {
+			return static_cast<T>(res.value());
+		}
+		return std::nullopt;
 	}
 	else if constexpr (std::is_constructible_v<T, const char*>) {
 		return asString();
 	}
 	else if constexpr (std::is_same_v<std::remove_cv_t<T>, void*>) { // const void* or void*
-		return asPtr();
+		return asUserData();
 	}
 	else if constexpr (std::is_pointer_v<T>) { // typed pointer
 		return asPtr<T>();
+	}
+	else if constexpr (std::is_same_v<T, Table>) { 
+		return asTable();
 	}
 	else {
 		static_assert("Unsupported");

@@ -43,9 +43,9 @@ void runExample(lua_State* ls) {
 	}
 
 	const char* name = testTable["name"].asString().value_or("");
-	const char* surName = testTable["surName"].asString().value_or("");
-	int  age = testTable["age"].asInt().value_or(0);
-	bool male = testTable["male"].asBool().value_or(true);
+	std::string surName = testTable["age"].as<std::string>().value_or("");
+	int  age = testTable["age"].as<int>().value_or(0);
+	bool male = testTable["male"].as<bool>().value_or(true);
 
 	std::cout << std::boolalpha;
 	std::cout << "Name:" << name << std::endl;
@@ -69,7 +69,7 @@ void printValue(const LuaBind::Value& value) {
 		break;
 	}
 	case LUA_TNUMBER: {
-		std::cout << value.asInt().value() << "[number]";
+		std::cout << value.asInteger().value() << "[number]";
 		break;
 	}
 	case LUA_TBOOLEAN: {

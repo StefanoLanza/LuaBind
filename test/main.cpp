@@ -122,7 +122,7 @@ TEST_CASE("Root") {
 			CHECK(lua_gettop(ls) == 0);
 			CHECK_FALSE(table[key].isNil());
 			CHECK(table[key].getType() == LUA_TNUMBER);
-			CHECK(table[key].asInt() == value);
+			CHECK(table[key].as<int>() == value);
 			CHECK(lua_gettop(ls) == 0);
 		}
 
@@ -133,7 +133,7 @@ TEST_CASE("Root") {
 			CHECK(lua_gettop(ls) == 0);
 			CHECK_FALSE(table[key].isNil());
 			CHECK(table[key].getType() == LUA_TNUMBER);
-			CHECK(table[key].asDouble() == value);
+			CHECK(table[key].as<double>() == value);
 			CHECK(lua_gettop(ls) == 0);
 		}
 
@@ -145,7 +145,7 @@ TEST_CASE("Root") {
 			CHECK(lua_gettop(ls) == 0);
 			CHECK_FALSE(table[key].isNil());
 			CHECK(table[key].getType() == LUA_TLIGHTUSERDATA);
-			CHECK(table[key].asPtr() == value);
+			CHECK(table[key].asUserData() == value);
 			CHECK(lua_gettop(ls) == 0);
 		}
 
@@ -167,7 +167,7 @@ TEST_CASE("Root") {
 			CHECK(lua_gettop(ls) == 0);
 			CHECK_FALSE(table[key].isNil());
 			CHECK(table[key].getType() == LUA_TNUMBER);
-			CHECK(table[key].asInt() == value);
+			CHECK(table[key].as<int>() == value);
 			CHECK(lua_gettop(ls) == 0);
 		}
 
@@ -178,7 +178,7 @@ TEST_CASE("Root") {
 			CHECK(lua_gettop(ls) == 0);
 			CHECK_FALSE(table[key].isNil());
 			CHECK(table[key].getType() == LUA_TNUMBER);
-			CHECK(table[key].asFloat() == value);
+			CHECK(table[key].as<float>() == value);
 			CHECK(lua_gettop(ls) == 0);
 		}
 
@@ -408,7 +408,7 @@ TEST_CASE("Root") {
 			CHECK(human.getName() == "Rocky");
 
 			CHECK(doCommand(ls, "energy = human:getEnergy()"));
-			CHECK(globals["energy"].asFloat() == human.energy);
+			CHECK(globals["energy"].as<float>() == human.energy);
 
 			CHECK(doCommand(ls, "energy = human:setEnergy(20)"));
 			CHECK(20 == human.energy);

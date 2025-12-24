@@ -7,15 +7,15 @@
 namespace Typhoon::LuaBind {
 
 Value::Value(lua_State* ls, StackIndex stackIndex)
-    : ls(ls) {
+    : ls { ls } {
 	// Create and store a reference to the value on the stack
 	lua_pushvalue(ls, stackIndex.getIndex());
 	ref = luaL_ref(ls, LUA_REGISTRYINDEX);
 }
 
 Value::Value(Value&& value) noexcept
-    : ls(value.ls)
-    , ref(value.ref) {
+    : ls { value.ls }
+    , ref { value.ref } {
 	value.ref = LUA_NOREF;
 }
 
@@ -41,68 +41,68 @@ int Value::getType() const {
 }
 
 bool Value::isNil() const {
+	return getType() == LUA_TNIL;
+}
+
+std::optional<Nil> Value::asNil() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	const bool isNil = lua_isnil(ls, -1);
+	if (! lua_isnil(ls, -1)) {
+		lua_pop(ls, 1);
+		return std::nullopt;
+	}
 	lua_pop(ls, 1);
-	return isNil;
+	return Nil {};
 }
 
 std::optional<bool> Value::asBool() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool value = false;
-	bool res = toBool(ls, -1, value);
-	lua_pop(ls, 1);
-	if (! res) {
-		return std::nullopt;
+	if (lua_isboolean(ls, -1)) {
+		bool b = lua_toboolean(ls, -1) ? true : false;
+		lua_pop(ls, 1);
+		return b;
 	}
-	return value;
+	lua_pop(ls, 1);
+	return std::nullopt;
 }
 
-std::optional<int> Value::asInt() const {
+std::optional<lua_Integer> Value::asInteger() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	int  value = 0;
-	bool res = toInteger(ls, -1, value);
-	lua_pop(ls, 1);
-	if (! res) {
-		return std::nullopt;
+	lua_Integer i = lua_tointeger(ls, -1);
+	if (i != 0 || lua_isinteger(ls, -1)) { /* avoid extra test when d is not 0 */
+		lua_pop(ls, 1);
+		return i;
 	}
-	return value;
+	lua_pop(ls, 1);
+	return std::nullopt;
 }
 
-std::optional<float> Value::asFloat() const {
+std::optional<lua_Number> Value::asNumber() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	float value = 0.0f;
-	bool  res = toFloat(ls, -1, value);
-	lua_pop(ls, 1);
-	if (! res) {
-		return std::nullopt;
+	// Note: lua_isnumber returns true for strings that can be converted to a number
+	if (lua_isnumber(ls, -1)) {
+	//if (lua_type(ls, -1) == LUA_TNUMBER) {
+		lua_Number d = lua_tonumber(ls, -1);
+		lua_pop(ls, 1);
+		return d;
 	}
-	return value;
-}
-
-std::optional<double> Value::asDouble() const {
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	double value = 0.0;
-	bool   res = toDouble(ls, -1, value);
 	lua_pop(ls, 1);
-	if (! res) {
-		return std::nullopt;
-	}
-	return value;
+	return std::nullopt;
 }
 
 std::optional<const char*> Value::asString() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	const char* str = nullptr;
-	bool        res = toString(ls, -1, str);
-	lua_pop(ls, 1);
-	if (! res) {
-		return std::nullopt;
+	// Note: lua_isstring returns true for numbers that can be converted to a string
+	if (lua_isstring(ls, -1)) {
+	//if (lua_type(ls, -1) == LUA_TSTRING) {
+		const char* str = lua_tostring(ls, -1);
+		lua_pop(ls, 1);
+		return str;
 	}
-	return str;
+	lua_pop(ls, 1);
+	return std::nullopt;
 }
 
-std::optional<void*> Value::asPtr() const {
+std::optional<void*> Value::asUserData() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	const int luaType = lua_type(ls, -1);
 	if (luaType == LUA_TLIGHTUSERDATA) {
@@ -116,7 +116,7 @@ std::optional<void*> Value::asPtr() const {
 		lua_pop(ls, 1);
 		return ptr;
 	}
-	// Not a pointer
+	// Not a userdata
 	lua_pop(ls, 1);
 	return std::nullopt;
 }
@@ -133,52 +133,61 @@ std::optional<Table> Value::asTable() const {
 	return std::nullopt;
 }
 
-bool Value::cast(void*& userData, [[maybe_unused]] TypeId typeId) const {
-	userData = nullptr;
+std::optional<void*> Value::toPtr([[maybe_unused]] TypeId typeId) const {
+	void* ud = nullptr;
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	const int luaType = lua_type(ls, -1);
-	if (luaType == LUA_TLIGHTUSERDATA) {
-		userData = lua_touserdata(ls, -1);
+	bool      res = false;
+	if (luaType == LUA_TNIL) {
+		// Nil represents a null ptr
+	}
+	else if (luaType == LUA_TLIGHTUSERDATA) {
+		ud = lua_touserdata(ls, -1);
 #if TY_LUABIND_TYPE_SAFE
-		if (! detail::checkPointerType(ls, userData, typeId)) {
-			userData = nullptr;
-		}
+		res = detail::checkPointerType(ls, ud, typeId);
 #endif
 	}
 	else if (luaType == LUA_TUSERDATA) {
-		std::memcpy(&userData, lua_touserdata(ls, -1), sizeof userData);
+		std::memcpy(&ud, lua_touserdata(ls, -1), sizeof ud);
 #if TY_LUABIND_TYPE_SAFE
 		lua_getiuservalue(ls, -1, 1);
 		assert(! lua_isnil(ls, -1));
 		TypeId ptrTypeId;
 		ptrTypeId.impl = reinterpret_cast<const void*>(lua_tointeger(ls, -1));
-		if (! detail::compatibleTypes(ls, ptrTypeId, typeId)) {
-			userData = nullptr;
-		}
+		res = detail::compatibleTypes(ls, ptrTypeId, typeId);
 		lua_pop(ls, 1);
+#else
+		res = true;
 #endif
 	}
 	else if (luaType == LUA_TTABLE) {
 		// Pointer as _ptr field of a table
 		lua_getfield(ls, -1, "_ptr");
-		userData = lua_touserdata(ls, -1);
+		ud = lua_touserdata(ls, -1);
 		lua_pop(ls, 1); // _ptr
-		if (userData) {
+		if (ud) {
 #if TY_LUABIND_TYPE_SAFE
 			lua_getfield(ls, -1, "_typeid");
 			assert(lua_islightuserdata(ls, -1));
 			TypeId ptrTypeId;
 			ptrTypeId.impl = lua_touserdata(ls, -1);
 			lua_pop(ls, 1);
-			if (! detail::compatibleTypes(ls, ptrTypeId, typeId)) {
-				userData = nullptr;
-			}
+			res = detail::compatibleTypes(ls, ptrTypeId, typeId);
+#else
+			res = true;
 #endif
 		}
+		else {
+			res = false; // table does not represent a pointer
+		}
 	}
-	lua_pop(ls, 1);
+	// else invalid Lua type
 
-	return (userData != nullptr);
+	lua_pop(ls, 1); // lua_rawgeti
+	if (res) {
+		return ud;
+	}
+	return std::nullopt;
 }
 
 } // namespace Typhoon::LuaBind

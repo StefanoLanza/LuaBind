@@ -83,7 +83,7 @@ void runExample(lua_State* ls) {
 		return;
 	}
 
-	Table test = getGlobals(ls)["testObject"].asTable().value();;
+	Table test = getGlobals(ls)["testObject"].asTable().value();
 	if (! test) {
 		return;
 	}

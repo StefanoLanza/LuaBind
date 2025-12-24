@@ -44,7 +44,10 @@ public:
 			Value value = table[i];
 			if (value) {
 				if (auto element = value.as<T>(); element) {
-					v.insert(v.end(), std::move(element.value()));
+					v.push_back(std::move(element.value()));
+				}
+				else {
+					v.push_back(T {});
 				}
 			}
 			else {

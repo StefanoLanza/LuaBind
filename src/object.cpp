@@ -5,8 +5,8 @@
 namespace Typhoon::LuaBind {
 
 Object::Object(lua_State* ls, Reference ref)
-    : ls(ls)
-    , ref(ref.getValue()) {
+    : ls { ls }
+    , ref { ref.getValue() } {
 	assert(ref.isValid());
 }
 
@@ -64,13 +64,13 @@ Result Object::callMethodImpl(int narg, int nres) const {
 	// arg1
 	// ..
 	// argn     (-1)
-
 	const int lres = lua_pcall(ls, 1 + narg, nres, 0);
-	if (0 != lres) {
+	if (lres == 0) {
+		return {};
+	}
+	else {
 		return UNEXPECTED(lua_tostring(ls, -1));
 	}
-
-	return {};
 }
 
 } // namespace Typhoon::LuaBind

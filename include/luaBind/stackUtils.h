@@ -33,8 +33,7 @@ inline int checkArg(lua_State* ls, int stackIndex) {
 template <typename... argTypes, std::size_t... argIndices>
 inline void checkArgs(lua_State* ls, const int stackIndices[], std::integer_sequence<std::size_t, argIndices...>) {
 	// Call CheckArg for each function argument
-	const int foo[] = { checkArg<argTypes>(ls, stackIndices[argIndices])..., 0 };
-	(void)foo;
+	(checkArg<argTypes>(ls, stackIndices[argIndices]), ...);
 }
 
 } // namespace Typhoon::LuaBind

@@ -16,8 +16,9 @@
 #include <core/uncopyable.h>
 
 namespace Typhoon {
+
 class Allocator;
-class LinearAllocator;
+
 } // namespace Typhoon
 
 namespace Typhoon::LuaBind {

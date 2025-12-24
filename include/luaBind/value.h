@@ -45,7 +45,7 @@ public:
 	std::optional<T> as() const;
 
 private:
-	std::optional<void*> toPtr(TypeId typeId) const;
+	std::optional<void*> toPtrChecked(TypeId typeId) const;
 
 private:
 	lua_State* ls;
@@ -54,7 +54,7 @@ private:
 
 template <class T>
 std::optional<T*> Value::asPtr() const {
-	if (auto res = toPtr(getTypeId<T>())) {
+	if (auto res = toPtrChecked(getTypeId<T>())) {
 		return static_cast<T*>(res.value());
 	}
 	return std::nullopt;
@@ -89,11 +89,14 @@ std::optional<T> Value::as() const {
 	else if constexpr (std::is_pointer_v<T>) { // typed pointer
 		return asPtr<T>();
 	}
+#if 0
+	// clang requires the full definition of Table
 	else if constexpr (std::is_same_v<T, Table>) { 
 		return asTable();
 	}
+#endif
 	else {
-		static_assert("Unsupported");
+		static_assert("Unsupported type");
 		return std::nullopt;
 	}
 }

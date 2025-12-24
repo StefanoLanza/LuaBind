@@ -2,6 +2,7 @@
 
 #include "reference.h"
 #include "result.h"
+
 #include <cassert>
 #include <utility>
 

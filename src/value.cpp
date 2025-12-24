@@ -133,7 +133,7 @@ std::optional<Table> Value::asTable() const {
 	return std::nullopt;
 }
 
-std::optional<void*> Value::toPtr([[maybe_unused]] TypeId typeId) const {
+std::optional<void*> Value::toPtrChecked([[maybe_unused]] TypeId typeId) const {
 	void* ud = nullptr;
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	const int luaType = lua_type(ls, -1);

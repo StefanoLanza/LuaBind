@@ -1,5 +1,9 @@
 #pragma once
 
+#if __cplusplus < 201703L
+#error "LuaBind requires C++ 17 or above"
+#endif
+
 // Set to 1 to check pointer types at runtime
 #ifndef TY_LUABIND_TYPE_SAFE
 #define TY_LUABIND_TYPE_SAFE 0

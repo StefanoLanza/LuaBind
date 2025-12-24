@@ -34,7 +34,7 @@ flags   { "MultiProcessorCompile", }
 startproject "UnitTest"
 exceptionhandling "Off"
 defines { "TY_LUABIND_TYPE_SAFE=1", }
-cppdialect "c++20"
+cppdialect "c++23"
 rtti "Off"
 
 filter { filter_msvc }

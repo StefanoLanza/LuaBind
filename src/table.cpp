@@ -73,9 +73,9 @@ bool Table::isValid() const {
 
 size_t Table::getLength() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	const size_t len = lua_rawlen(ls, -1);
+	const lua_Unsigned len = lua_rawlen(ls, -1);
 	lua_pop(ls, 1);
-	return len;
+	return static_cast<size_t>(len);
 }
 
 int Table::getCount() const {

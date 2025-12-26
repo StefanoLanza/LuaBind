@@ -3,6 +3,7 @@
 #include <lua/src/lua.hpp>
 
 #include <cassert>
+#include <cstring>
 #include <cstdint>
 #include <utility>
 #include <type_traits>

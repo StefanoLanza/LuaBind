@@ -27,6 +27,7 @@ jobs:
         #os: [ubuntu-latest, windows-latest]
         os: [ubuntu-latest]
         configuration: [Debug, Release]
+        arch: [_x64, _x86]
         compiler: [gcc, msvc] #TODO clang
         # We need to exclude combinations that don't make sense
         exclude:
@@ -36,6 +37,11 @@ jobs:
             compiler: gcc
           - os: windows-latest
             compiler: clang
+        include:
+        - arch: x86
+          platform: Win32
+        - arch: x64
+          platform: x64
 
     env:
       # Path to the unit test executable relative to the root of the project.
@@ -101,11 +107,11 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: msbuild /m /p:Configuration=${{ matrix.configuration }} ${{env.VS_SLN_FILE_PATH}}
+      run: msbuild /m /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} ${{env.VS_SLN_FILE_PATH}}
 
     - name: Build gmake
       if: runner.os == 'Linux'
-      run: make build/gmake config=${{ matrix.configuration }}_x86
+      run: make -C build/gmake config=${{ toLower(matrix.configuration) }}${{ matrix.arch }}
 
     - name: Run unit test
       if: matrix.configuration == 'Release'

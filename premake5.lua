@@ -18,14 +18,14 @@ local filter_clang = "toolset:clang"
 local filter_windows = "system:windows"
 local filter_msvc = "toolset:msc*"
 local filter_gmake = "action:gmake*"
-local filter_x86 = "platforms:x86"
-local filter_x64 = "platforms:x86_64"
+local filter_x32 = "platforms:x32"
+local filter_x64 = "platforms:x64"
 local filter_debug =  "configurations:Debug*"
 local filter_release =  "configurations:Release*"
 
 workspace ("LuaBind")
 configurations { "Debug", "Release" }
-platforms { "x86", "x86_64" }
+platforms { "x32", "x64" }
 language "C++"
 location (workspacePath)
 characterset "MBCS"
@@ -35,6 +35,17 @@ exceptionhandling "Off"
 defines { "TY_LUABIND_TYPE_SAFE=1", }
 cppdialect "c++20"
 rtti "Off"
+
+-- A small helper to rename x86_64 to x64
+function get_arch()
+    return "%{cfg.architecture == 'x86_64' and 'x64' or cfg.architecture}"
+end
+
+-- Binaries e.g. build/vs2022/bin/x64/Release/UnitTest.exe
+targetdir (workspacePath .. "/bin/" .. get_arch() .. "/%{cfg.buildcfg}")
+
+-- Objects: e.g. build/vs2022/obj/x64/Release/main.obj
+objdir (workspacePath .. "/obj/" .. get_arch() .. "/%{cfg.buildcfg}")
 
 filter { filter_msvc }
 	buildoptions
@@ -51,13 +62,13 @@ filter { filter_msvc }
 		"_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1", 
 	}
 
-filter { filter_x86 }
+filter { filter_x32 }
 	architecture "x86"
 	  
 filter { filter_x64 }
-	architecture "x86_64"
+	architecture "x64"
 	
-filter { filter_windows, filter_x86, }
+filter { filter_windows, filter_x32, }
 	defines { "WIN32", "_WIN32", }
 
 filter { filter_windows, filter_x64, }

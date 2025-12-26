@@ -38,8 +38,8 @@ jobs:
             compiler: clang
 
     env:
-      # Path to the solution file relative to the root of the project.
-      UNIT_TEST_PATH: ${{ runner.os == 'Windows' && 'build/vs2022/bin/x86/Release/UnitTest.exe' || 'bin/UnitTest' }}
+      # Path to the unit test executable relative to the root of the project.
+      UNIT_TEST_PATH: ${{ contains(matrix.os, 'windows') && 'build/vs2022/bin/x86/Release/UnitTest.exe' || 'bin/UnitTest' }}
             
     steps:
     - name: Checkout repository

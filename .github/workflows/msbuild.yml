@@ -38,14 +38,14 @@ jobs:
           - os: windows-latest
             compiler: clang
         include:
-        - arch: x86
-          platform: Win32
-        - arch: x64
-          platform: x64
-        - configuration: Release
-          lower_configuration: release
-        - configuration: Debug
-          lower_configuration: debug
+          - arch: x86
+            platform: Win32
+          - arch: x64
+            platform: x64
+          - configuration: Release
+            lower_configuration: release
+          - configuration: Debug
+            lower_configuration: debug
     env:
       # Path to the unit test executable relative to the root of the project.
       UNIT_TEST_PATH: ${{ contains(matrix.os, 'windows') && 'build/vs2022/bin/x86/Release/UnitTest.exe' || 'bin/UnitTest' }}
@@ -114,7 +114,7 @@ jobs:
 
     - name: Build gmake
       if: runner.os == 'Linux'
-      run: make -C build/gmake config=${{ matrix.lower_configuration }}${{ matrix.arch }}
+      run: make -C build/gmake config=${{ matrix.lower_configuration }}${{ matrix.arch }} # e.g. release_x64
 
     - name: Run unit test
       if: matrix.configuration == 'Release'

@@ -15,7 +15,6 @@ local workspacePath = path.join("build/", _ACTION)  -- e.g. build/vs2022
 -- Filters
 local filter_gcc = "toolset:gcc"
 local filter_clang = "toolset:clang"
-local filter_xcode = "action:xcode*"
 local filter_windows = "system:windows"
 local filter_msvc = "toolset:msc*"
 local filter_gmake = "action:gmake*"
@@ -24,7 +23,7 @@ local filter_x64 = "platforms:x86_64"
 local filter_debug =  "configurations:Debug*"
 local filter_release =  "configurations:Release*"
 
-workspace ("Typhoon-LuaBind")
+workspace ("LuaBind")
 configurations { "Debug", "Release" }
 platforms { "x86", "x86_64" }
 language "C++"
@@ -34,7 +33,7 @@ flags   { "MultiProcessorCompile", }
 startproject "UnitTest"
 exceptionhandling "Off"
 defines { "TY_LUABIND_TYPE_SAFE=1", }
-cppdialect "c++23"
+cppdialect "c++20"
 rtti "Off"
 
 filter { filter_msvc }
@@ -51,10 +50,6 @@ filter { filter_msvc }
 		"_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1", 
 		"_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1", 
 	}
-
-filter { filter_xcode }
-	system "macosx"
-	systemversion("10.12") -- MACOSX_DEPLOYMENT_TARGET
 
 filter { filter_x86 }
 	architecture "x86"

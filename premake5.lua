@@ -18,14 +18,14 @@ local filter_clang = "toolset:clang"
 local filter_windows = "system:windows"
 local filter_msvc = "toolset:msc*"
 local filter_gmake = "action:gmake*"
-local filter_x32 = "platforms:x32"
+local filter_x86 = "platforms:x86"
 local filter_x64 = "platforms:x64"
 local filter_debug =  "configurations:Debug*"
 local filter_release =  "configurations:Release*"
 
 workspace ("LuaBind")
 configurations { "Debug", "Release" }
-platforms { "x32", "x64" }
+platforms { "x86", "x64" }
 language "C++"
 location (workspacePath)
 characterset "MBCS"
@@ -44,9 +44,6 @@ end
 -- Binaries e.g. build/vs2022/bin/x64/Release/UnitTest.exe
 targetdir (workspacePath .. "/bin/" .. get_arch() .. "/%{cfg.buildcfg}")
 
--- Objects: e.g. build/vs2022/obj/x64/Release/main.obj
-objdir (workspacePath .. "/obj/" .. get_arch() .. "/%{cfg.buildcfg}")
-
 filter { filter_msvc }
 	buildoptions
 	{
@@ -62,13 +59,13 @@ filter { filter_msvc }
 		"_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1", 
 	}
 
-filter { filter_x32 }
+filter { filter_x86 }
 	architecture "x86"
 	  
 filter { filter_x64 }
-	architecture "x64"
+	architecture "x86_64"
 	
-filter { filter_windows, filter_x32, }
+filter { filter_windows, filter_x86, }
 	defines { "WIN32", "_WIN32", }
 
 filter { filter_windows, filter_x64, }
@@ -169,11 +166,16 @@ if _OPTIONS["with-examples"] then
 end
 
 if _OPTIONS["with-tests"] then
-	project("UnitTest")
+		project("Catch")
+		kind "StaticLib"
+		files { "external/Catch/*.cpp", "external/Catch/*.hpp", } 
+		includedirs { "external/Catch", }
+	
+		project("UnitTest")
 		kind "ConsoleApp"
 		files "test/*.*"
 		externalincludedirs { "./", "external", "include", }
-		links({"LuaBind", })
+		links({"LuaBind", "Catch",})
 		filter { filter_gmake }
 			links({"Core", "Lua"})
 		filter {}

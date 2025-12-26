@@ -50,7 +50,7 @@ jobs:
       # Path to the unit test executable relative to the root of the project
       UNIT_TEST_PATH: ${{ contains(matrix.os, 'windows') 
         && format('build/vs2022/bin/{0}/{1}/UnitTest.exe', matrix.arch, matrix.configuration) 
-        || format('build/gmake/bin/{0}/{1}/UnitTest', matrix.arch, matrix.lower_configuration) 
+        || format('build/gmake/bin/{0}/{1}/UnitTest', matrix.arch, matrix.configuration) 
        }}          
 
     steps:
@@ -123,7 +123,7 @@ jobs:
 
     - name: Build gmake
       if: runner.os == 'Linux'
-      run: make -C build/gmake config=${{ matrix.lower_configuration }}_${{ matrix.arch }} # e.g. release_x64
+      run: make -C build/gmake config=${{ matrix.lower_configuration }}_${{ matrix.arch }} # e.g. release_x64 Note: lower case configuration
 
     - name: Run unit test
       if: matrix.configuration == 'Release'

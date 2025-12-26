@@ -8,8 +8,7 @@
 #include <string>
 #include <vector>
 
-#define CATCH_CONFIG_RUNNER
-#include <Catch-master/single_include/catch2/catch.hpp>
+#include <Catch/catch_amalgamated.hpp>
 
 // VISUAL LEAK DETECTOR
 #ifdef _DEBUG
@@ -34,10 +33,6 @@ template <>
 class LuaBind::Wrapper<Vec3> : public LuaBind::Lightweight<Vec3> {};
 
 void bindTestClasses(lua_State* ls);
-
-int main(int argc, char* argv[]) {
-	return Catch::Session().run(argc, argv);
-}
 
 TEST_CASE("Root") {
 	using namespace LuaBind;

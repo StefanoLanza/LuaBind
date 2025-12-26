@@ -105,10 +105,9 @@ jobs:
 
     - name: Build gmake
       if: runner.os == 'Linux'
-      run: make build/gmake config=${{ matrix.build_type }}_x86
+      run: make build/gmake config=${{ matrix.configuration }}_x86
 
-      # TODO Run on Linux too
     - name: Run unit test
-      if: matrix.configuration == 'Release' && runner.os == 'Windows'
+      if: matrix.configuration == 'Release'
       run: |
         ${{env.UNIT_TEST_PATH}}

@@ -13,20 +13,30 @@ on:
   
 env:
   # Path to the solution file relative to the root of the project.
-  SOLUTION_FILE_PATH: build/vs2022/Typhoon-LuaBind.sln
-  UNIT_TEST_PATH: build/vs2022/bin/x86/Release/UnitTest.exe
+  VS_SLN_FILE_PATH: build/vs2022/Typhoon-LuaBind.sln
+  UNIT_TEST_PATH: ${{ runner.os == 'Windows' && 'build/vs2022/bin/x86/Release/UnitTest.exe' || 'bin/UnitTest' }}
 
 permissions:
   contents: read
 
 jobs:
   build:
-    runs-on: windows-latest
-
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        #os: [ubuntu-latest, windows-latest]
+        os: [windows-latest]
         configuration: [Debug, Release]
-
+        compiler: [gcc, msvc] #TODO clang
+        # We need to exclude combinations that don't make sense
+        exclude:
+          - os: ubuntu-latest
+            compiler: msvc
+          - os: windows-latest
+            compiler: gcc
+          - os: windows-latest
+            compiler: clang
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -35,10 +45,10 @@ jobs:
       uses: actions/cache@v4
       with:
         path: premake
-        key: premake-5.0.0-beta7-windows
+        key: premake-5.0.0-beta7
     
-    - name: Download Premake5 if not cached
-      if: steps.cache-premake.outputs.cache-hit != 'true'
+    - name: Download Premake (Windows)
+      if: runner.os == 'Windows' && steps.cache-premake.outputs.cache-hit != 'true'
       shell: powershell
       run: |
         Invoke-WebRequest `
@@ -47,8 +57,29 @@ jobs:
         Expand-Archive premake.zip -Force -DestinationPath premake
         echo "$PWD\premake" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+    - name: Download Premake (Linux)
+      if: runner.os == 'Linux' && steps.cache-premake.outputs.cache-hit != 'true'
+      run: |
+        curl -L -o premake.tar.gz https://github.com/premake/premake-core/releases/download/v5.0.0-beta7/premake-5.0.0-beta7-linux.tar.gz
+        tar -xvf premake.tar.gz
+    
+    - name: Set up Dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        if [ "${{ matrix.compiler }}" = "clang" ]; then
+          sudo apt-get install -y clang
+        else
+          sudo apt-get install -y g++
+        fi
+        
     - name: Generate Visual Studio solution
+      if: runner.os == 'Windows'
       run: premake5 vs2022 --with-tests --with-examples        
+
+    - name: Generate makefiles
+      if: runner.os == 'Linux'
+      run: premake5 gmake -cc=gcc --with-tests --with-examples        
     
     - name: Add MSBuild to PATH    
       uses: microsoft/setup-msbuild@v1.0.2
@@ -61,12 +92,18 @@ jobs:
         key: windows-msvc-${{ matrix.configuration }}-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h') }}
     
     - name: Build solution
+      if: runner.os == 'Windows'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: msbuild /m /p:Configuration=${{ matrix.configuration }} ${{env.SOLUTION_FILE_PATH}}
+      run: msbuild /m /p:Configuration=${{ matrix.configuration }} ${{env.VS_SLN_FILE_PATH}}
 
+    - name: Build gmake
+      if: runner.os == 'Linux'
+      run: make build/gmake config=${{ matrix.build_type }}_x86
+
+      # TODO Run on Linux too
     - name: Run unit test
-      if: ${{ matrix.configuration == 'Release' }}
+      if: matrix.configuration == 'Release' && runner.os == 'Windows'
       run: |
         ${{env.UNIT_TEST_PATH}}

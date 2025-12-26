@@ -12,7 +12,7 @@ on:
     branches: [ "main" ]
   
 env:
-  # Path to the solution file relative to the root of the project.
+  # Path to the Visual Studio solution file relative to the root of the project.
   VS_SLN_FILE_PATH: build/vs2022/Typhoon-LuaBind.sln
 
 permissions:
@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         #os: [ubuntu-latest, windows-latest]
-        os: [windows-latest]
+        os: [ubuntu-latest]
         configuration: [Debug, Release]
         compiler: [gcc, msvc] #TODO clang
         # We need to exclude combinations that don't make sense

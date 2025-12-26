@@ -14,7 +14,6 @@ on:
 env:
   # Path to the solution file relative to the root of the project.
   VS_SLN_FILE_PATH: build/vs2022/Typhoon-LuaBind.sln
-  UNIT_TEST_PATH: ${{ runner.os == 'Windows' && 'build/vs2022/bin/x86/Release/UnitTest.exe' || 'bin/UnitTest' }}
 
 permissions:
   contents: read
@@ -37,6 +36,11 @@ jobs:
             compiler: gcc
           - os: windows-latest
             compiler: clang
+
+    env:
+      # Path to the solution file relative to the root of the project.
+      UNIT_TEST_PATH: ${{ runner.os == 'Windows' && 'build/vs2022/bin/x86/Release/UnitTest.exe' || 'bin/UnitTest' }}
+            
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4

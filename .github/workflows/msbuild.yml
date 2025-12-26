@@ -38,9 +38,9 @@ jobs:
           - os: windows-latest
             compiler: clang
         include:
-          - arch: x86
+          - arch: _x86
             platform: Win32
-          - arch: x64
+          - arch: _x64
             platform: x64
           - configuration: Release
             lower_configuration: release

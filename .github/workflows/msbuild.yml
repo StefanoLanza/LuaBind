@@ -83,9 +83,10 @@ jobs:
 
     - name: Generate makefiles
       if: runner.os == 'Linux'
-      run: premake5 gmake -cc=gcc --with-tests --with-examples        
+      run: ./premake5 gmake -cc=gcc --with-tests --with-examples        
     
     - name: Add MSBuild to PATH    
+      if: runner.os == 'Windows'
       uses: microsoft/setup-msbuild@v1.0.2
 
     - name: Cache build outputs
@@ -93,7 +94,7 @@ jobs:
       with:
         path: |
           build
-        key: windows-msvc-${{ matrix.configuration }}-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h') }}
+        key: build-${{ matrix.configuration }}-${{ hashFiles('**/*.cpp', '**/*.c', '**/*.h') }}
     
     - name: Build solution
       if: runner.os == 'Windows'

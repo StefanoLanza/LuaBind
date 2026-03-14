@@ -56,6 +56,11 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+          # 'recursive' ensures submodules within submodules are also fetched
+        submodules: recursive
+        # Fetch all history so submodules can find their specific commits
+        fetch-depth: 0
 
     - name: Cache Premake5
       uses: actions/cache@v4

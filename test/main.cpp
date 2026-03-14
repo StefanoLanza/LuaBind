@@ -283,7 +283,7 @@ TEST_CASE("Root") {
 	SECTION("VoidPtr") {
 		Biped biped { 10.f };
 		biped.setName("Biped");
-		const Typhoon::VoidPtr voidPtr = Typhoon::MakeVoidPtr(&biped);
+		const Typhoon::VoidPtr voidPtr = Typhoon::makeVoidPtr(&biped);
 		push(ls, voidPtr);
 	}
 

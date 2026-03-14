@@ -119,19 +119,19 @@ project("Lua")
 project("Core")
 	kind "StaticLib"
 	files { "external/core/**.cpp", "external/core/**.h", }
-	externalincludedirs { "./", "external", }
+	externalincludedirs { "./", "external/core/include", "external/core/include/core", }
 
 project("LuaBind")
 	kind "StaticLib"
 	files { "src/**.cpp", "src/**.h", "src/**.inl", "include/luaBind/**.h", "include/luaBind/**.inl", }
-	externalincludedirs { "./", "external", "include/luaBind", }
+	externalincludedirs { "./", "external", "external/core/include", "include/luaBind", }
 	links({"Core", "Lua"})
 
 if _OPTIONS["with-examples"] then
 	project("Example1")
 		kind "ConsoleApp"
 		files "examples/example1.cpp"
-		externalincludedirs { "./", "external", "include", }
+		externalincludedirs { "./", "external","external/core/include", "include", }
 		links({"LuaBind", })
 		filter { filter_gmake }
 			links({"Core", "Lua"})
@@ -140,7 +140,7 @@ if _OPTIONS["with-examples"] then
 	project("Example2")
 		kind "ConsoleApp"
 		files "examples/example2.cpp"
-		externalincludedirs { "./", "external", "include", }
+		externalincludedirs { "./", "external", "external/core/include", "include", }
 		links({"LuaBind", })
 		filter { filter_gmake }
 			links({"Core", "Lua"})
@@ -149,7 +149,7 @@ if _OPTIONS["with-examples"] then
 	project("Example3")
 		kind "ConsoleApp"
 		files "examples/example3.cpp"
-		externalincludedirs { "./", "external", "include", }
+		externalincludedirs { "./", "external", "external/core/include", "include", }
 		links({"LuaBind", })
 		filter { filter_gmake }
 			links({"Core", "Lua"})
@@ -158,7 +158,7 @@ if _OPTIONS["with-examples"] then
 	project("Example4")
 		kind "ConsoleApp"
 		files "examples/example4.cpp"
-		externalincludedirs { "./", "external", "include", }
+		externalincludedirs { "./", "external", "external/core/include", "include", }
 		links({"LuaBind", })
 		filter { filter_gmake }
 			links({"Core", "Lua"})
@@ -168,13 +168,13 @@ end
 if _OPTIONS["with-tests"] then
 		project("Catch")
 		kind "StaticLib"
-		files { "external/Catch/*.cpp", "external/Catch/*.hpp", } 
+		files { "external/Catch/*.cpp", "external", "external/Catch/*.hpp", } 
 		includedirs { "external/Catch", }
 	
 		project("UnitTest")
 		kind "ConsoleApp"
 		files "test/*.*"
-		externalincludedirs { "./", "external", "include", }
+		externalincludedirs { "./", "external", "external/core/include", "include", }
 		links({"LuaBind", "Catch",})
 		filter { filter_gmake }
 			links({"Core", "Lua"})

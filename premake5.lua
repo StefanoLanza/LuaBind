@@ -27,14 +27,16 @@ workspace ("LuaBind")
 configurations { "Debug", "Release" }
 platforms { "x86", "x64" }
 language "C++"
+cppdialect "c++20"
 location (workspacePath)
 characterset "MBCS"
-flags   { "MultiProcessorCompile", }
-startproject "UnitTest"
+enablepch "Off"
+multiprocessorcompile("on")
+manifest("off")
 exceptionhandling "Off"
-defines { "TY_LUABIND_TYPE_SAFE=1", }
-cppdialect "c++20"
 rtti "Off"
+startproject "UnitTest"
+defines { "TY_LUABIND_TYPE_SAFE=1", }
 
 -- A small helper to rename x86_64 to x64
 function get_arch()
@@ -79,7 +81,8 @@ filter { filter_clang, filter_debug, }
 		"/fsanitize=address",
 	}
 	-- Turn off incompatible options
-	flags { "NoIncrementalLink", "NoRuntimeChecks", }
+	incrementallink "Off"
+	runtimechecks "Off"
 	editAndContinue "Off"
 
 filter { filter_msvc, filter_release, }
@@ -91,7 +94,6 @@ filter { filter_gcc }
 
 filter { filter_debug }
 	defines { "_DEBUG", "DEBUG", }
-	flags   { "NoManifest", }
 	optimize("Off")
 	inlining "Default"
 	warnings "Extra"
@@ -100,7 +102,8 @@ filter { filter_debug }
 
 filter { filter_release }
 	defines { "NDEBUG", }
-	flags   { "NoManifest", "NoBufferSecurityCheck", "NoRuntimeChecks", }
+	buffersecuritycheck "off"
+	runtimechecks "Off"
 	optimize("Full")
 	inlining "Auto"
 	warnings "Extra"
@@ -110,56 +113,55 @@ filter { filter_release }
 
 filter {} -- clear filters
 
-project("Lua")
+project "Lua"
 	kind "StaticLib"
 	files { "external/lua/src/*.c", "external/lua/src/*.h", }
 	excludes { "external/lua/src/luac.c", "external/lua/src/lua.c", }
 	warnings "Off"
 
-project("Core")
-	kind "StaticLib"
-	files { "external/core/**.cpp", "external/core/**.h", }
-	externalincludedirs { "./", "external/core/include", "external/core/include/core", }
+require "external/core/core"
 
-project("LuaBind")
+project "LuaBind"
 	kind "StaticLib"
 	files { "src/**.cpp", "src/**.h", "src/**.inl", "include/luaBind/**.h", "include/luaBind/**.inl", }
-	externalincludedirs { "./", "external", "external/core/include", "include/luaBind", }
-	links({"Core", "Lua"})
+	includedirs { "./", "external", "include/luaBind", }
+	uses({"Core", })
+	links {"Lua", }
+	usage "INTERFACE"
+		uses {"Core" } -- propagate to customers
+		includedirs { "include" }
+		includedirs { "external" } -- Lua
+		links {"LuaBind" }
 
 if _OPTIONS["with-examples"] then
-	project("Example1")
+	project "Example1"
 		kind "ConsoleApp"
 		files "examples/example1.cpp"
-		externalincludedirs { "./", "external","external/core/include", "include", }
-		links({"LuaBind", })
+		uses {"LuaBind", }
 		filter { filter_gmake }
 			links({"Core", "Lua"})
 		filter {}
 
-	project("Example2")
+	project "Example2"
 		kind "ConsoleApp"
 		files "examples/example2.cpp"
-		externalincludedirs { "./", "external", "external/core/include", "include", }
-		links({"LuaBind", })
+		uses {"LuaBind", }
 		filter { filter_gmake }
 			links({"Core", "Lua"})
 		filter {}
 
-	project("Example3")
+	project "Example3"
 		kind "ConsoleApp"
 		files "examples/example3.cpp"
-		externalincludedirs { "./", "external", "external/core/include", "include", }
-		links({"LuaBind", })
+		uses {"LuaBind", }
 		filter { filter_gmake }
 			links({"Core", "Lua"})
 		filter {}
 
-	project("Example4")
+	project "Example4"
 		kind "ConsoleApp"
 		files "examples/example4.cpp"
-		externalincludedirs { "./", "external", "external/core/include", "include", }
-		links({"LuaBind", })
+		uses {"LuaBind", }
 		filter { filter_gmake }
 			links({"Core", "Lua"})
 		filter {}
@@ -169,13 +171,12 @@ if _OPTIONS["with-tests"] then
 		project("Catch")
 		kind "StaticLib"
 		files { "external/Catch/*.cpp", "external", "external/Catch/*.hpp", } 
-		includedirs { "external/Catch", }
-	
+		includedirs { "external/Catch", }	
 		project("UnitTest")
 		kind "ConsoleApp"
 		files "test/*.*"
-		externalincludedirs { "./", "external", "external/core/include", "include", }
-		links({"LuaBind", "Catch",})
+		links({"Catch",})
+		uses({"LuaBind", })
 		filter { filter_gmake }
 			links({"Core", "Lua"})
 		filter {}

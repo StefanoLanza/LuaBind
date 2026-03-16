@@ -1,7 +1,7 @@
 #include "testClass.h"
 #include <core/allocator.h>
 #include <core/typedVoidPtr.h>
-#include <extras/voidPtrWrapper.h>
+#include <luaBind/extras/voidPtrWrapper.h>
 #include <luaBind/luaBind.h>
 
 #include <array>

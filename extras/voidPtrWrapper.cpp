@@ -1,1 +1,1 @@
-#include "voidPtrWrapper.h"
+#include <luaBind/extras/voidPtrWrapper.h>

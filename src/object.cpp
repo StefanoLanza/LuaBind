@@ -16,8 +16,8 @@ bool Object::hasMethod(const char* func) const {
 
 	// Push self
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
+	assert(lua_isuserdata(ls, -1) || lua_istable(ls, -1));
 	const int stackIndex = lua_gettop(ls);
-	assert(lua_isuserdata(ls, stackIndex) || lua_istable(ls, stackIndex));
 
 	// Get function from the object's table
 	lua_getfield(ls, stackIndex, func);

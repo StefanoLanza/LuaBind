@@ -15,14 +15,21 @@ struct Vec3 {
 	double x, y, z;
 };
 
-// Treat Vec3 as a temporary lightweight object in Lua
-// This means that Vec3 objects created by Lua are are allocated in C++ from a temporary memory buffer and treated as light user data pointers.
-// This buffer is reset every frame. For permanent storage, you have to manually box and unbox Vec3 objects. See the example scripts
+// Treat Vec3 as a lightweight object in Lua
+// This means that Vec3 objects created by value in C++ are pushed as light user data pointers.
 template <>
-class LuaBind::Wrapper<Vec3> : public LuaBind::Lightweight<Vec3> {};
+constexpr bool Typhoon::LuaBind::isLightweight<Vec3> = true;
 
 // Custom new
-Vec3 newVec3(float x, float y, float z) {
+Vec3* vec3New(const Vec3& v) {
+	return new Vec3 { v };
+}
+
+void vec3Delete(Vec3* v) {
+	delete v;
+}
+
+Vec3 vec3Set(float x, float y, float z) {
 	return Vec3 { x, y, z };
 }
 
@@ -30,24 +37,28 @@ Vec3 vec3Madd(const Vec3& v0, const Vec3& v1, float t) {
 	return { v0.x + v1.x * t, v0.y + v1.y * t, v0.z + v1.z * t };
 }
 
+void vec3Store(Vec3* dst, const Vec3* src) {
+	*dst = *src;
+}
+
 const char* initScript = R"(
 	print ("Init")
-	local pos = Vec3.new(0., 0., 0.)
-	local vel = Vec3.new(1., 2., 3.)
+	local pos = Vec3.set(0., 0., 0.)
+	local vel = Vec3.set(1., 2., 3.)
+	-- TODO global gameObj =
 	gameObj = {
-		pos = Vec3.box(pos),
-		vel = Vec3.box(vel),
+		pos = Vec3.new(pos),
+		vel = Vec3.new(vel),
 	}
 )";
 
 const char* updateScript = R"(
 	print ("Update")
 
-	-- Unbox position and vel
-	local pos = Vec3.retrieve(gameObj.pos)
-	local vel = Vec3.retrieve(gameObj.vel)
+	local pos = gameObj.pos
+	local vel = gameObj.vel
 
-	local accel = Vec3.new(0., 8.91, 0.)
+	local accel = Vec3.set(0., 8.91, 0.)
 	local dt = 0.1 -- elapsed time in seconds
 	-- Euler integration
 	local newVel = Vec3.madd(vel, accel, dt * dt)
@@ -96,7 +107,10 @@ void bindClasses(lua_State* ls) {
 	LUA_BEGIN_BINDING(ls);
 
 	LUA_BEGIN_CLASS(Vec3);
-	LUA_NEW_OPERATOR(newVec3);
+	LUA_NEW_OPERATOR(vec3New);
+	LUA_DELETE_OPERATOR(vec3Delete);
+	LUA_FUNCTION_RENAMED(vec3Set, set);
+	LUA_FUNCTION_RENAMED(vec3Store, store);
 	LUA_FUNCTION_RENAMED(vec3Madd, madd);
 	LUA_GETTER(x, getX);
 	LUA_GETTER(y, getY);

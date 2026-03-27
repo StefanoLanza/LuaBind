@@ -26,11 +26,9 @@ void foo2(const std::string& str) {
 
 // Treat Vec2 as a temporary, lightweight object in Lua
 template <>
-class LuaBind::Wrapper<Vec2> : public LuaBind::Lightweight<Vec2> {};
-
-// Treat Vec3 as a temporary, lightweight object in Lua
+constexpr bool Typhoon::LuaBind::isLightweight<Vec2> = true;
 template <>
-class LuaBind::Wrapper<Vec3> : public LuaBind::Lightweight<Vec3> {};
+constexpr bool Typhoon::LuaBind::isLightweight<Vec3> = true;
 
 void bindTestClasses(lua_State* ls);
 
@@ -516,7 +514,7 @@ void bindTestClasses(lua_State* ls) {
 	LUA_END_NAMESPACE();
 
 	LUA_BEGIN_CLASS(GameObject);
-	LUA_DEFAULT_NEW_OPERATOR();
+	LUA_OBJ_ALLOCATOR(newGameObject, deleteGameObject);
 	LUA_METHOD(setName);
 	LUA_METHOD(getNameRef);
 	LUA_METHOD(getName);
@@ -530,13 +528,13 @@ void bindTestClasses(lua_State* ls) {
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Biped, GameObject);
-	LUA_DEFAULT_NEW_OPERATOR(float);
+	LUA_OBJ_ALLOCATOR(newBiped, deleteGameObject);
 	LUA_METHOD(getSpeed);
 	LUA_METHOD(setSpeed);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Human, Biped);
-	LUA_DEFAULT_NEW_OPERATOR(float, float);
+	LUA_OBJ_ALLOCATOR(newHuman, deleteGameObject);
 	LUA_SETTER_GETTER(energy, setEnergy, getEnergy);
 	// C API
 	LUA_FUNCTION(addEnergy);

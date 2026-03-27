@@ -1,9 +1,9 @@
 #pragma once
 
+#include "detail.h"
 #include "nil.h"
 #include "reference.h"
 #include "stackIndex.h"
-#include "detail.h"
 
 #include <cassert>
 #include <cstring>
@@ -20,6 +20,10 @@ namespace Typhoon::LuaBind {
 template <class T, class... ArgTypes>
 T* allocTemporary(lua_State* ls, ArgTypes&&... args);
 
+// Traits
+template <class T>
+inline constexpr bool isLightweight = false;
+
 // typename = void is used for specializations based on std::enable_if. See the enum specialization
 // Generic wrapper
 template <class T, typename = void>
@@ -30,83 +34,49 @@ public:
 	}
 
 	static int match(lua_State* ls, int idx) {
-		return lua_type(ls, idx) == LUA_TUSERDATA;
+		// TODO Check isLightweight<T> ?
+		return lua_isuserdata(ls, idx);
 	}
 
 	static void push(lua_State* ls, const T& value) {
 		// Alloc and construct a copy of value
 		T* const ptr = allocTemporary<T>(ls, value);
+		// Push copy as either light or full userdata, based on trait isLightweight<T>
 		Wrapper<T*>::push(ls, ptr);
 	}
 
 	static const T& pop(lua_State* ls, int idx) {
 		void* userData = lua_touserdata(ls, idx);
 		assert(userData);
-		T* ptr = nullptr;
-		std::memcpy(&ptr, userData, sizeof ptr);
 
+		// TODO Check isLightweight<T> instead ?
+		if (lua_islightuserdata(ls, idx)) {
 #if TY_LUABIND_TYPE_SAFE
-		// Check type
-		lua_getiuservalue(ls, idx, 1);
-		assert(! lua_isnil(ls, -1));
-		TypeId ptrTypeId;
-		ptrTypeId.impl = reinterpret_cast<const void*>(lua_tointeger(ls, -1));
-		if (! detail::compatibleTypes(ls, ptrTypeId, getTypeId<T>())) {
-			luaL_argerror(ls, idx, "Invalid pointer type");
-			ptr = nullptr;
-		}
+			if (! detail::checkPointerType(ls, userData, getTypeId<T>())) {
+				luaL_argerror(ls, idx, "Invalid pointer type");
+			}
 #endif
-
-		return *ptr;
-	}
-};
-
-// Helper to push and pop temporary objects as light user data
-template <class T>
-#if defined(__cpp_concepts) && __cpp_concepts >= 201907L
-requires std::is_trivially_destructible_v<T>
-#endif
-struct Lightweight {
-	static_assert(std::is_trivially_destructible_v<T>, "Lightweight trait requires a trivially destructible class");
-
-	static constexpr int getStackSize() {
-		return 1;
-	}
-	static int match(lua_State* ls, int idx) {
-		return lua_isuserdata(ls, idx);
-	}
-	static void push(lua_State* ls, const T& value) {
-		T* const ud = allocTemporary<T>(ls, value);
-		if (ud) {
-			lua_pushlightuserdata(ls, ud);
-#if TY_LUABIND_TYPE_SAFE
-			detail::registerTemporaryPointer(ls, ud, getTypeId<T>());
-#endif
+			return *static_cast<const T*>(userData);
 		}
 		else {
-			lua_pushnil(ls);
-		}
-	}
+			T* ptr = nullptr;
+			std::memcpy(&ptr, userData, sizeof ptr);
 
-	static void pushAsKey(lua_State* ls, const T& value) {
-		push(ls, value);
-	}
-
-	static const T& pop(lua_State* ls, int idx) {
-		void* userData = lua_touserdata(ls, idx);
-		assert(userData);
 #if TY_LUABIND_TYPE_SAFE
-		if (! detail::checkPointerType(ls, userData, getTypeId<T>())) {
-			luaL_argerror(ls, idx, "Invalid pointer type");
-		}
+			// Check type
+			lua_getiuservalue(ls, idx, 1);
+			assert(! lua_isnil(ls, -1));
+			TypeId ptrTypeId;
+			ptrTypeId.impl = reinterpret_cast<const void*>(lua_tointeger(ls, -1));
+			if (! detail::compatibleTypes(ls, ptrTypeId, getTypeId<T>())) {
+				luaL_argerror(ls, idx, "Invalid pointer type");
+				ptr = nullptr;
+			}
 #endif
-		return *static_cast<const T*>(userData);
+			return *ptr;
+		}
 	}
 };
-
-// Traits
-template <class T>
-inline constexpr bool isLightweight = std::is_base_of_v<Lightweight<T>, Wrapper<T>>;
 
 template <>
 class Wrapper<Nil> {
@@ -159,7 +129,7 @@ template <class F>
 #if defined(__cpp_concepts) && __cpp_concepts >= 201907L
 requires std::floating_point<F>
 #endif
-class FloatWrapper {
+    class FloatWrapper {
 public:
 	static constexpr int getStackSize() {
 		return 1;
@@ -290,7 +260,7 @@ public:
 			// lightweight type, push ptr as light user data
 			lua_pushlightuserdata(ls, ptr);
 #if TY_LUABIND_TYPE_SAFE
-			detail::registerTemporaryPointer(ls, ptr);
+			detail::registerTemporaryPointer(ls, ptr, getTypeId<T>()); // FIXME should not be here
 #endif
 		}
 		else {
@@ -309,11 +279,12 @@ public:
 				// Lookup class metatable in registry
 				const TypeName typeName = typeIdToName(typeId);
 				if (! typeName) {
-					lua_pushnil(ls);
-					luaL_error(ls, "Unregistered type");
-					return; // class not registered in C++
+					// Unregistered class T, push ptr as light user data
+					lua_pushlightuserdata(ls, ptr);
+					return;
 				}
 
+				// Construct and return a full userdata that wraps ptr
 				void* const userData = lua_newuserdatauv(ls, sizeof ptr, 1);
 				// Copy C++ pointer to Lua userdata
 				std::memcpy(userData, &ptr, sizeof ptr);
@@ -397,8 +368,7 @@ private:
 // enum specialization
 #if defined(__cpp_concepts) && __cpp_concepts >= 201907L
 template <typename T>
-requires std::is_enum_v<T>
-class Wrapper<T> {
+requires std::is_enum_v<T> class Wrapper<T> {
 #else
 template <typename T>
 class Wrapper<T, typename std::enable_if_t<std::is_enum_v<T>>> {

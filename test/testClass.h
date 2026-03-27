@@ -107,6 +107,22 @@ inline void addEnergy(Human* human, float value) {
 inline void addEnergy(int* /*notHuman*/, float /*value*/) {
 }
 
+inline GameObject* newGameObject() {
+	return new GameObject();
+}
+
+inline Human* newHuman(float initialSpeed, float initialEnergy) {
+	return new Human(initialSpeed, initialEnergy);
+}
+
+inline Biped* newBiped(float initialSpeed) {
+	return new Biped(initialSpeed);
+}
+
+inline void deleteGameObject(GameObject* obj) {
+	delete obj;
+}
+
 // Opaque C-Style class
 struct Material;
 Material* materialNew(float opacity);
@@ -146,12 +162,12 @@ inline Vec3 operator-(Vec3 lives, Vec3 weapon) {
 	return { lives.x - weapon.x, lives.y - weapon.y, lives.z - weapon.z };
 }
 
-inline Vec2 newVec2(float x, float y) {
-	return Vec2 { x, y };
+inline Vec2* newVec2(float x, float y) {
+	return new Vec2 { x, y };
 }
 
-inline Vec3 newVec3(float x, float y, float z) {
-	return Vec3 { x, y, z };
+inline Vec3* newVec3(float x, float y, float z) {
+	return new Vec3 { x, y, z };
 }
 
 inline Vec3 add(const Vec3& v0, const Vec3& v1) {

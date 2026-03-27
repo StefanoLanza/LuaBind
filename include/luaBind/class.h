@@ -22,9 +22,6 @@ int getClassMetatable(lua_State* ls);
 template <class T>
 Reference registerCppClass(lua_State* ls, const char* className, TypeId baseClassId);
 
-template <typename T, typename... argType>
-void registerDefaultNewOperator(lua_State* ls, int tableIndex);
-
 bool isAllocatedByLua(lua_State* ls, int userDataStackIndex);
 
 } // namespace Typhoon::LuaBind::detail

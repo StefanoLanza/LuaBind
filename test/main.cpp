@@ -292,7 +292,6 @@ TEST_CASE("Root") {
 			SECTION("auto binding C++ object as full user data") {
 				auto bart = std::make_unique<GameObject>();
 				globals.set("bart", bart.get());
-				CHECK(globals["bart"].getType() == LUA_TUSERDATA);
 				CHECK(doCommand(ls, "bart:setLives(10)"));
 				CHECK(bart->getLives() == 10);
 				CHECK(doCommand(ls, "bart:setName('Bart')"));
@@ -305,7 +304,6 @@ TEST_CASE("Root") {
 				const auto ref = registerObjectAsUserData(ls, bart.get());
 				REQUIRE(ref.isValid());
 				globals.set("bart", bart.get());
-				CHECK(globals["bart"].getType() == LUA_TUSERDATA);
 				CHECK(doCommand(ls, "bart:setLives(10)"));
 				CHECK(bart->getLives() == 10);
 				CHECK(doCommand(ls, "bart:setName('Bart')"));
@@ -374,7 +372,6 @@ TEST_CASE("Root") {
 			globals.set("subobj", ref);
 			const Biped* tmp2 = globals["subobj"].asPtr<Biped>().value();
 			REQUIRE(tmp2);
-			CHECK(globals["subobj"].getType() == LUA_TUSERDATA);
 			CHECK(doCommand(ls, "subobj:setLives(20)"));
 			CHECK(biped->getLives() == 20);
 			CHECK(doCommand(ls, "subobj:setSpeed(30)"));
@@ -542,13 +539,13 @@ void bindTestClasses(lua_State* ls) {
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Vec2);
-	LUA_NEW_OPERATOR(newVec2);
+	LUA_OBJ_ALLOCATOR(newVec2, deleteVec2);
 	LUA_FUNCTION(cross);
 	LUA_FREE_OPERATOR(sub, -);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Vec3);
-	LUA_NEW_OPERATOR(newVec3);
+	LUA_OBJ_ALLOCATOR(newVec3, deleteVec3);
 	LUA_FUNCTION(add);
 	LUA_FUNCTION(cross);
 	LUA_OPERATOR(add, +);

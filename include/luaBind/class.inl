@@ -15,8 +15,6 @@ constexpr int kLuaAllocated = 0;
 // Create a new object and return it to Lua as a full user data
 template <typename classType, typename retType, typename... argType, std::size_t... argIndices>
 int wrapNewImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
-	static_assert(std::is_same_v<classType*, retType>, "new function must return a pointer");
-
 	// Extract function pointer from upvalue
 	using func_ptr = retType (*)(argType...);
 	const void* const func_ud = lua_touserdata(ls, lua_upvalueindex(1));
@@ -52,7 +50,8 @@ int wrapNewImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 	lua_pushinteger(ls, getTypeId<classType>().value());
 	lua_setiuservalue(ls, -2, 1); // ud.userValue[1] = typeId
 
-	// Mark as heap allocated by Lua. This user value is queried in wrapDeleter<T>
+	// Mark for deletion during garbage collection. This user value is queried in wrapDeleter<T>
+	// Objects allocated in C++ and pushed to Lua do not have this user value and won't be deleted by Lua
 	lua_pushinteger(ls, kLuaAllocated);
 	lua_setiuservalue(ls, -2, 2); // ud.userValue[2] = kLuaAllocated
 	return 1;
@@ -60,12 +59,14 @@ int wrapNewImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 
 template <typename classType, typename retType, typename... argType>
 int wrapNew(lua_State* ls) {
+	static_assert(std::is_same_v<classType*, retType>, "new function must return a pointer");
 	return wrapNewImpl<classType, retType, argType...>(ls, std::index_sequence_for<argType...> {});
 }
 
 template <class T>
 int wrapDeleter(lua_State* ls) {
 	if (isAllocatedByLua(ls, 1)) {
+		// Object allocated by Lua e.g. Vec3.new() or Vec3()
 		// Extract pointer from user data
 		T* obj = nullptr;
 		std::memcpy(&obj, lua_touserdata(ls, 1), sizeof obj);
@@ -76,11 +77,13 @@ int wrapDeleter(lua_State* ls) {
 		using Deleter = void (*)(T*);
 		const auto deleter = serializePOD<Deleter>(ud);
 
-		deleter(obj); // object allocated by Lua
+		deleter(obj); 
 		return 0;
 	}
-	// else object was allocated by C++
-	return 0;
+	else {
+		// else object was allocated by C++ and registered as full user data
+		return 0;
+	}
 }
 
 template <class T>

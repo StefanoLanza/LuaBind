@@ -170,6 +170,14 @@ inline Vec3* newVec3(float x, float y, float z) {
 	return new Vec3 { x, y, z };
 }
 
+inline void deleteVec2(Vec2* v) {
+	delete v;
+}
+
+inline void deleteVec3(Vec3* v) {
+	delete v;
+}
+
 inline Vec3 add(const Vec3& v0, const Vec3& v1) {
 	return { v0.x + v1.x, v0.y + v1.y, v0.z + v1.z };
 }

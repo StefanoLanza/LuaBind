@@ -47,6 +47,12 @@ int freeFunctionWrapper(lua_State* ls) {
 
 template <typename retType, typename... argType>
 inline void registerFunction(lua_State* ls, retType (*functionPtr)(argType...), const char* functionName, int tableStackIndex) {
+#ifdef _DEBUG
+	lua_pushstring(ls, functionName);
+	lua_gettable(ls, tableStackIndex);
+	assert(lua_isnil(ls, -1)); // function with the same already registered
+	lua_pop(ls, 1);
+#endif
 	lua_pushstring(ls, functionName);
 	lua_CFunction luaFunc = freeFunctionWrapper<retType, argType...>;
 	pushFunctionAsUpvalue(ls, luaFunc, &functionPtr, sizeof(functionPtr));

@@ -52,6 +52,12 @@ int memberFunctionWrapper(lua_State* ls) {
 
 template <typename objType, typename retType, typename... argType>
 inline void registerMemberFunction(lua_State* ls, retType (objType::*func)(argType...), const char* functionName, int tableStackIndex) {
+#ifdef _DEBUG
+	lua_pushstring(ls, functionName);
+	lua_gettable(ls, tableStackIndex);
+	assert(lua_isnil(ls, -1)); // function with the same already registered
+	lua_pop(ls, 1);
+#endif
 	lua_pushstring(ls, functionName);
 	lua_CFunction luaFunc = memberFunctionWrapper<objType, retType, argType...>;
 	pushFunctionAsUpvalue(ls, luaFunc, &func, sizeof(func));
@@ -61,6 +67,12 @@ inline void registerMemberFunction(lua_State* ls, retType (objType::*func)(argTy
 // const
 template <typename objType, typename retType, typename... argType>
 inline void registerMemberFunction(lua_State* ls, retType (objType::*func)(argType...) const, const char* functionName, int tableStackIndex) {
+#ifdef _DEBUG
+	lua_pushstring(ls, functionName);
+	lua_gettable(ls, tableStackIndex);
+	assert(lua_isnil(ls, -1)); // function with the same already registered
+	lua_pop(ls, 1);
+#endif
 	lua_pushstring(ls, functionName);
 	lua_CFunction luaFunc = memberFunctionWrapper<objType, retType, argType...>;
 	pushFunctionAsUpvalue(ls, luaFunc, &func, sizeof(func));

@@ -93,7 +93,7 @@ Reference registerCppClass(lua_State* ls, const char* className, TypeId baseClas
 
 template <typename classType, typename retType, typename... argType>
 inline void registerNewOperator(lua_State* ls, int classTableStackIndex, retType (*functionPtr)(argType...)) {
-	static_assert(std::is_same_v<classType, std::remove_pointer_t<retType>>, "Invalid return type for new operator");
+	static_assert(std::is_base_of_v<classType, std::remove_pointer_t<retType>>, "Invalid return type for new operator");
 	void* buffer = lua_newuserdatauv(ls, sizeof functionPtr, 0);
 	std::memcpy(buffer, &functionPtr, sizeof functionPtr);
 	lua_pushcclosure(ls, wrapNew<classType, retType, argType...>, 1);

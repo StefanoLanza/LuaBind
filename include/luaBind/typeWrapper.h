@@ -280,7 +280,8 @@ public:
 				const TypeName typeName = typeIdToName(typeId);
 				if (! typeName) {
 					// Unregistered class T, push ptr as light user data
-					lua_pushlightuserdata(ls, ptr);
+					// T* might be a const pointer
+					lua_pushlightuserdata(ls, const_cast<std::remove_const_t<T>*>(ptr));
 					return;
 				}
 

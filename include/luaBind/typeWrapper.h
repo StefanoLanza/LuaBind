@@ -70,7 +70,7 @@ public:
 			ptrTypeId.impl = reinterpret_cast<const void*>(lua_tointeger(ls, -1));
 			if (! detail::compatibleTypes(ls, ptrTypeId, getTypeId<T>())) {
 				luaL_argerror(ls, idx, "Invalid pointer type");
-				ptr = nullptr;
+				//ptr = nullptr;
 			}
 #endif
 			return *ptr;
@@ -255,12 +255,15 @@ public:
 		if constexpr (std::is_void_v<T>) {
 			// void*, push ptr as light user data
 			lua_pushlightuserdata(ls, ptr);
+#if TY_LUABIND_TYPE_SAFE
+			detail::registerTemporaryPointer(ls, ptr, getTypeId<void>());
+#endif
 		}
 		else if constexpr (isLightweight<T>) {
 			// lightweight type, push ptr as light user data
 			lua_pushlightuserdata(ls, ptr);
 #if TY_LUABIND_TYPE_SAFE
-			detail::registerTemporaryPointer(ls, ptr, getTypeId<T>()); // FIXME should not be here
+			detail::registerTemporaryPointer(ls, ptr, getTypeId<T>());
 #endif
 		}
 		else {

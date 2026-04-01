@@ -145,16 +145,6 @@ int beginNamespace(lua_State* ls, const char* name);
 		detail::registerFunction(ls__, static_cast<ret_type (*)(__VA_ARGS__)>(&function), #function, tableStackIndex); \
 	} while (0)
 
-#define LUA_NEW_OPERATOR(function, ...)                                             \
-	do {                                                                            \
-		detail::registerNewOperator<boundClass__>(ls__, tableStackIndex, function); \
-	} while (0)
-
-#define LUA_DELETE_OPERATOR(function)                                                  \
-	do {                                                                               \
-		detail::registerDeleteOperator<boundClass__>(ls__, tableStackIndex, function); \
-	} while (0)
-
 #define LUA_OBJ_ALLOCATOR(create, destroy, ...)                                       \
 	do {                                                                              \
 		detail::registerNewOperator<boundClass__>(ls__, tableStackIndex, create);     \

@@ -146,20 +146,24 @@ struct Quat {
 	double x, y, z, w;
 };
 
-inline Vec2 cross([[maybe_unused]] const Vec2& lives, [[maybe_unused]] const Vec2& weapon) {
-	return {};
+inline float cross(const Vec2& a, const Vec2& b) {
+	return { a.x * b.y - a.y * b.x };
 }
 
-inline Vec3 cross([[maybe_unused]] const Vec3& lives, [[maybe_unused]] const Vec3& weapon) {
-	return {};
+inline Vec3 cross(const Vec3& a, const Vec3& b) {
+	return {
+		a.y * b.z - a.z * b.y,
+		a.z * b.x - a.x * b.z,
+		a.x * b.y - a.y * b.x,
+	};
 }
 
-inline Vec2 operator-(Vec2 lives, Vec2 weapon) {
-	return { lives.x + weapon.x, lives.y - weapon.y };
+inline Vec2 operator-(Vec2 a, Vec2 b) {
+	return { a.x + b.x, a.y - b.y };
 }
 
-inline Vec3 operator-(Vec3 lives, Vec3 weapon) {
-	return { lives.x - weapon.x, lives.y - weapon.y, lives.z - weapon.z };
+inline Vec3 operator-(Vec3 a, Vec3 b) {
+	return { a.x - b.x, a.y - b.y, a.z - b.z };
 }
 
 inline Vec2* newVec2(float x, float y) {
@@ -176,10 +180,6 @@ inline void deleteVec2(Vec2* v) {
 
 inline void deleteVec3(Vec3* v) {
 	delete v;
-}
-
-inline Vec3 add(const Vec3& v0, const Vec3& v1) {
-	return { v0.x + v1.x, v0.y + v1.y, v0.z + v1.z };
 }
 
 inline void setIdentity(Quat& q) {

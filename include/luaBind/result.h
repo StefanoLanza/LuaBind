@@ -20,7 +20,7 @@ using ResultT = std::expected<T, const char*>;
 
 #else
 
-#include <expected/include/tl/expected.hpp>
+#include <core/expected.hpp>
 
 namespace Typhoon::LuaBind {
 

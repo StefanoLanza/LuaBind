@@ -10,13 +10,6 @@
 
 #include <Catch/catch_amalgamated.hpp>
 
-// VISUAL LEAK DETECTOR
-#ifdef _DEBUG
-#if __has_include(<vld.h>)
-#include <vld.h>
-#endif
-#endif
-
 void foo() {
 	std::cout << "foo" << std::endl;
 }
@@ -24,9 +17,10 @@ void foo2(const std::string& str) {
 	std::cout << "foo2(" << str << ")" << std::endl;
 }
 
-// Treat Vec2 as a temporary, lightweight object in Lua
+// Treat Vec2 and Vec3 as a lightweight objects in Lua
 template <>
 constexpr bool Typhoon::LuaBind::isLightweight<Vec2> = true;
+
 template <>
 constexpr bool Typhoon::LuaBind::isLightweight<Vec3> = true;
 
@@ -51,7 +45,7 @@ TEST_CASE("Root") {
 		constexpr bool          weapon = true;
 		const char*             cstr = "Stefano";
 		const std::string       str { "Lanza" };
-#if 1
+		const std::string_view  strv { "Author" };
 		push(ls, speed);
 		CHECK(pop<char>(ls, -1) == speed);
 		push(ls, uc);
@@ -74,7 +68,8 @@ TEST_CASE("Root") {
 		CHECK(pop<std::string>(ls, -1) == cstr);
 		push(ls, str);
 		CHECK(pop<std::string>(ls, -1) == str);
-#endif
+		push(ls, strv);
+		CHECK(pop<std::string>(ls, -1) == strv);
 	}
 
 	SECTION("Warnings") {
@@ -131,7 +126,7 @@ TEST_CASE("Root") {
 		}
 
 		SECTION("ptr ptr") {
-			int         dummy;
+			int         dummy = 123;
 			const void* key = &dummy;
 			void* const value = &key;
 			table.set(key, value);
@@ -223,9 +218,8 @@ TEST_CASE("Root") {
 			CHECK(stringArray == testArray);
 		}
 
-#ifdef __cpp_lib_expected
 		SECTION("std::expected") {
-			using ParseResult = std::expected<std::string, int>;
+			using ParseResult = Expected<std::string, int>;
 			{
 				const ParseResult res { "stefano" };
 				const int         idx = lua_gettop(ls);
@@ -235,7 +229,7 @@ TEST_CASE("Root") {
 				CHECK(test.value() == res.value());
 			}
 			{
-				ParseResult res { std::unexpected(-1) };
+				ParseResult res = UNEXPECTED(-1);
 				const int   idx = lua_gettop(ls);
 				push(ls, res);
 				const ParseResult test = pop<ParseResult>(ls, idx + 1);
@@ -243,7 +237,6 @@ TEST_CASE("Root") {
 				CHECK(test.error() == -1);
 			}
 		}
-#endif
 
 #ifdef __cpp_lib_optional
 		SECTION("std::optional") {
@@ -273,7 +266,8 @@ TEST_CASE("Root") {
 			Table ptest = globals["ptest"].asTable().value();
 			REQUIRE(ptest);
 
-			Table properties = ptest["p"].asTable().value();;
+			Table properties = ptest["p"].asTable().value();
+			;
 			REQUIRE(properties);
 		}
 	}
@@ -535,7 +529,6 @@ void bindTestClasses(lua_State* ls) {
 	LUA_SETTER_GETTER(energy, setEnergy, getEnergy);
 	// C API
 	LUA_FUNCTION(addEnergy);
-	LUA_FUNCTION(getEnergy);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Vec2);
@@ -546,7 +539,6 @@ void bindTestClasses(lua_State* ls) {
 
 	LUA_BEGIN_CLASS(Vec3);
 	LUA_OBJ_ALLOCATOR(newVec3, deleteVec3);
-	LUA_FUNCTION(add);
 	LUA_FUNCTION(cross);
 	LUA_OPERATOR(add, +);
 	LUA_FREE_OPERATOR(sub, -);
@@ -557,8 +549,7 @@ void bindTestClasses(lua_State* ls) {
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Material);
-	LUA_NEW_OPERATOR(materialNew, float);
-	LUA_DELETE_OPERATOR(materialDestroy);
+	LUA_OBJ_ALLOCATOR(materialNew, materialDestroy);
 	LUA_FUNCTION_RENAMED(materialSetOpacity, setOpacity);
 	LUA_FUNCTION_RENAMED(materialGetOpacity, getOpacity);
 	LUA_END_CLASS();

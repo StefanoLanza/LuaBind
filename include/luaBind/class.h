@@ -5,8 +5,6 @@
 #include "reference.h"
 #include <core/typeId.h>
 
-struct lua_State;
-
 namespace Typhoon::LuaBind::detail {
 
 Reference registerCppClass(lua_State* ls, const char* className, TypeId classId, TypeId baseClassId);

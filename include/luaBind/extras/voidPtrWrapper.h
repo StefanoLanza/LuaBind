@@ -25,15 +25,28 @@ public:
 			return;
 		}
 
+		// TODO Query isLightweight(voidPtr.typeId) at runtime
+#if 0
+		if (isLightweight(voidPtr.typeId)) {
+			// lightweight type, push ptr as light user data
+			lua_pushlightuserdata(ls, ptr);
+#if TY_LUABIND_TYPE_SAFE
+			detail::registerTemporaryPointer(ls, ptr, voidPtr.typeId);
+#endif
+			return;
+		}
+#endif
+
 		// Try getting userdata associated with the pointer from registry
 		const lua_Integer ptrKey = detail::makePointerKey(voidPtr.ptr, voidPtr.typeId);
 		lua_pushinteger(ls, ptrKey);
 		lua_rawget(ls, LUA_REGISTRYINDEX);
 		if (lua_isnil(ls, -1)) {
-
 			const TypeName typeName = typeIdToName(voidPtr.typeId);
 			if (! typeName) {
-				luaL_error(ls, "Failed to push instance of VoidPtr. C++ class not registered");
+				// Unregistered class voidPtr.typeId, push ptr as light user data
+				lua_pushlightuserdata(ls, voidPtr.ptr);
+				return;
 			}
 
 			// Copy C++ pointer to Lua userdata

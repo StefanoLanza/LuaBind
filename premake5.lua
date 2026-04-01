@@ -31,8 +31,8 @@ cppdialect "c++20"
 location (workspacePath)
 characterset "MBCS"
 enablepch "Off"
-multiprocessorcompile("on")
-manifest("off")
+multiprocessorcompile "On"
+manifest "Off"
 exceptionhandling "Off"
 rtti "Off"
 startproject "UnitTest"
@@ -94,7 +94,7 @@ filter { filter_gcc }
 
 filter { filter_debug }
 	defines { "_DEBUG", "DEBUG", }
-	optimize("Off")
+	optimize "Off"
 	inlining "Default"
 	warnings "Extra"
 	symbols "Full"
@@ -104,7 +104,7 @@ filter { filter_release }
 	defines { "NDEBUG", }
 	buffersecuritycheck "off"
 	runtimechecks "Off"
-	optimize("Full")
+	optimize "Full"
 	inlining "Auto"
 	warnings "Extra"
 	symbols "Off"
@@ -113,25 +113,7 @@ filter { filter_release }
 
 filter {} -- clear filters
 
-project "Lua"
-	kind "StaticLib"
-	files { "external/lua/src/*.c", "external/lua/src/*.h", }
-	excludes { "external/lua/src/luac.c", "external/lua/src/lua.c", }
-	warnings "Off"
-
-require "external/core/core"
-
-project "LuaBind"
-	kind "StaticLib"
-	files { "src/**.cpp", "src/**.h", "src/**.inl", "include/luaBind/**.h", "include/luaBind/**.inl", }
-	includedirs { "./", "external", "include/luaBind", }
-	uses({"Core", })
-	links {"Lua", }
-	usage "INTERFACE"
-		uses {"Core" } -- propagate to customers
-		includedirs { "include" }
-		includedirs { "external" } -- Lua
-		links {"LuaBind" }
+requires { "luaBind" }
 
 if _OPTIONS["with-examples"] then
 	project "Example1"

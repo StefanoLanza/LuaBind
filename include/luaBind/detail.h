@@ -2,12 +2,14 @@
 
 #include <lua/src/lua.hpp>
 
+#include <core/scopedAllocator.h>
+#include <core/typeId.h>
+
 #include <cassert>
 #include <cstring>
 #include <cstdint>
 #include <utility>
 #include <type_traits>
-#include <core/typeId.h>
 
 namespace Typhoon::LuaBind::detail {
 
@@ -26,6 +28,14 @@ inline T serializePOD(const void* ptr) {
 }
 
 long long makePointerKey(const void* ptr, TypeId typeId);
+
+ScopedAllocator* getTemporaryAllocator(lua_State* ls);
+
+// Helper
+template <class T, class... ArgTypes>
+T* allocTemporary(lua_State* ls, ArgTypes&&... args) {
+	return getTemporaryAllocator(ls)->make<T>(std::forward<ArgTypes>(args)...);
+}
 
 #if TY_LUABIND_TYPE_SAFE
 

@@ -49,6 +49,14 @@ lua_Integer makePointerKey(const void* ptr, TypeId typeId) {
 	return hash64(std::make_pair(ptr, typeId));
 }
 
+ScopedAllocator* getTemporaryAllocator(lua_State* ls) {
+	return getContext(ls)->currScopedAllocator;
+}
+
+Allocator* getAllocator(lua_State* ls) {
+	return getContext(ls)->allocator;
+}
+
 #if TY_LUABIND_TYPE_SAFE
 
 namespace {

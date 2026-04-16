@@ -31,8 +31,6 @@ struct MemoryStats {
 	size_t maxAllocatedSize;
 };
 
-struct Context;
-
 using WarningFunction = std::function<void(const char*)>;
 
 lua_State*         createState(Allocator& allocator);
@@ -46,7 +44,7 @@ const char*        getPath(lua_State* ls);
 void               setPath(lua_State* ls, const char* path);
 const char*        getErrorMessage(lua_State* ls, int error);
 int                getMemoryInUse(lua_State* ls);
-const MemoryStats& getMemoryStats(const Context* context);
+const MemoryStats& getMemoryStats(lua_State* ls);
 
 class Scope : Uncopyable {
 public:
@@ -54,8 +52,8 @@ public:
 	~Scope();
 
 private:
-	Context*         context;
-	ScopedAllocator  allocator;
+	void*            context;
+	ScopedAllocator  scopedAllocator;
 	ScopedAllocator* prevAllocator;
 };
 
@@ -63,14 +61,6 @@ template <class T>
 inline Reference makeRef(lua_State* ls, const T& obj) {
 	push(ls, obj);
 	return Reference { luaL_ref(ls, LUA_REGISTRYINDEX) };
-}
-
-Typhoon::ScopedAllocator* getTemporaryAllocator(lua_State* ls);
-
-// Helper
-template <class T, class... ArgTypes>
-T* allocTemporary(lua_State* ls, ArgTypes&&... args) {
-	return getTemporaryAllocator(ls)->make<T>(std::forward<ArgTypes>(args)...);
 }
 
 } // namespace Typhoon::LuaBind

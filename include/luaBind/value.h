@@ -4,7 +4,6 @@
 #include "stackIndex.h"
 #include "typeWrapper.h"
 #include <core/typeId.h>
-#include <core/uncopyable.h>
 
 #include <optional>
 
@@ -12,7 +11,7 @@ namespace Typhoon::LuaBind {
 
 class Table;
 
-class Value : Uncopyable {
+class Value {
 public:
 	Value(lua_State* ls, StackIndex stackIndex);
 	Value(const Value& value) = delete;
@@ -62,7 +61,7 @@ std::optional<T*> Value::asPtr() const {
 
 template <class T>
 std::optional<T> Value::as() const {
-	if constexpr (std::is_same_v<T, Nil>) { 
+	if constexpr (std::is_same_v<T, Nil>) {
 		return asNil();
 	}
 	else if constexpr (std::is_same_v<T, bool>) {

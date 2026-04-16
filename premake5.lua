@@ -113,7 +113,7 @@ filter { filter_release }
 
 filter {} -- clear filters
 
-requires { "luaBind" }
+require "luaBind"
 
 if _OPTIONS["with-examples"] then
 	project "Example1"

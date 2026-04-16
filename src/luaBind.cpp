@@ -42,16 +42,12 @@ void luaWarningFunction(void* ud, const char* msg, [[maybe_unused]] int tocont) 
 
 namespace detail {
 
-Context* getContext(lua_State* ls) {
+	Context* getContext(lua_State* ls) {
 	lua_pushvalue(ls, LUA_REGISTRYINDEX);
 	lua_getfield(ls, -1, contextKey);
 	auto context = static_cast<Context*>(lua_touserdata(ls, -1));
 	lua_pop(ls, 2);
 	return context;
-}
-
-Allocator* getAllocator(lua_State* ls) {
-	return getContext(ls)->allocator;
 }
 
 } // namespace detail
@@ -182,8 +178,8 @@ int getMemoryInUse(lua_State* ls) {
 	return lua_gc(ls, LUA_GCCOUNT, 0);
 }
 
-const MemoryStats& getMemoryStats(const Context* context) {
-	return context->memoryStats;
+const MemoryStats& getMemoryStats(lua_State* ls) {
+	return detail::getContext(ls)->memoryStats;
 }
 
 Result doCommand(lua_State* ls, const char* command) {
@@ -212,17 +208,13 @@ Result doBuffer(lua_State* ls, const char* buffer, size_t size, const char* name
 
 Scope::Scope(lua_State* ls)
     : context { detail::getContext(ls) }
-    , allocator { *context->tempAllocator } {
-	prevAllocator = context->currScopedAllocator;
-	context->currScopedAllocator = &allocator;
+    , scopedAllocator { *static_cast<Context*>(context)->tempAllocator } {
+	prevAllocator = static_cast<Context*>(context)->currScopedAllocator;
+	static_cast<Context*>(context)->currScopedAllocator = &scopedAllocator;
 }
 
 Scope::~Scope() {
-	context->currScopedAllocator = prevAllocator;
-}
-
-ScopedAllocator* getTemporaryAllocator(lua_State* ls) {
-	return detail::getContext(ls)->currScopedAllocator;
+	static_cast<Context*>(context)->currScopedAllocator = prevAllocator;
 }
 
 } // namespace Typhoon::LuaBind

@@ -17,9 +17,6 @@
 
 namespace Typhoon::LuaBind {
 
-template <class T, class... ArgTypes>
-T* allocTemporary(lua_State* ls, ArgTypes&&... args);
-
 // Traits
 template <class T>
 inline constexpr bool isLightweight = false;
@@ -40,7 +37,7 @@ public:
 
 	static void push(lua_State* ls, const T& value) {
 		// Alloc and construct a copy of value
-		T* const ptr = allocTemporary<T>(ls, value);
+		T* const ptr = detail::allocTemporary<T>(ls, value);
 		// Push copy as either light or full userdata, based on trait isLightweight<T>
 		Wrapper<T*>::push(ls, ptr);
 	}
@@ -70,7 +67,7 @@ public:
 			ptrTypeId.impl = reinterpret_cast<const void*>(lua_tointeger(ls, -1));
 			if (! detail::compatibleTypes(ls, ptrTypeId, getTypeId<T>())) {
 				luaL_argerror(ls, idx, "Invalid pointer type");
-				//ptr = nullptr;
+				// ptr = nullptr;
 			}
 #endif
 			return *ptr;

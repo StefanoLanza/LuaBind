@@ -5,30 +5,22 @@
 
 namespace Typhoon::LuaBind {
 
-// Wrapper for std::pair
+// Wrapper for std::tuple
 template <typename... Args>
 class Wrapper<std::tuple<Args...>> {
 private:
 	using TupleType = std::tuple<Args...>;
 
 	template <size_t index>
-	static constexpr int getTotalStackSize() {
-		using E = std::tuple_element_t<index, TupleType>;
-		int stackSize = Wrapper<E>::getStackSize();
-		if constexpr (index + 1 < std::tuple_size_v<TupleType>) {
-			stackSize += getTotalStackSize<index + 1>();
-		}
-		return stackSize;
-	}
-
-	template <size_t index>
 	static bool getMatch(lua_State* ls, int idx) {
 		using E = std::tuple_element_t<index, TupleType>;
-		bool match = Wrapper<E>::match(ls, idx);
-		if constexpr (index + 1 < std::tuple_size_v<TupleType>) {
-			match = match && getMatch<index + 1>(ls, Wrapper<E>::getStackSize() + idx);
+		if (! Wrapper<E>::match(ls, idx)) {
+			return false;
 		}
-		return match;
+		if constexpr (index + 1 < std::tuple_size_v<TupleType>) {
+			return getMatch<index + 1>(ls, idx + Wrapper<E>::getStackSize());
+		}
+		return true;
 	}
 
 	template <std::size_t... argIndices>
@@ -47,7 +39,7 @@ private:
 
 public:
 	static constexpr int getStackSize() {
-		return getTotalStackSize<0>();
+		return (Wrapper<Args>::getStackSize() + ... + 0);
 	}
 	static int match(lua_State* ls, int idx) {
 		return getMatch<0>(ls, idx);

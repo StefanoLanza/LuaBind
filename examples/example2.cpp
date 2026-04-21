@@ -10,7 +10,10 @@
 void runExample(lua_State* ls);
 
 const char* script = R"(
-	testObject = {
+	local type = type
+	local error = error
+	
+	global testObject = {
 		name = "Penguin",
 		canFly = false,
 		speed = 10.,

@@ -1,8 +1,8 @@
 #include "detail.h"
 #include "autoBlock.h"
 #include "class.h"
-#include "table.h"
 #include "context.h"
+#include "table.h"
 #include <cassert>
 #include <core/hash.h>
 #include <memory>
@@ -74,6 +74,18 @@ bool compatibleTypes(const Context& context, TypeId first, TypeId second) {
 }
 
 } // namespace
+
+#ifdef _DEBUG
+void checkDanglingPointer(lua_State* ls, const void* ptr, int stackIndex) {
+	auto     tempAllocator = getTemporaryAllocator(ls);
+	uint32_t marker = extractMarkerFromPointer(ptr);
+	if (marker == 0 ||                                   // stable pointer
+	    (1 + tempAllocator->getEpoch() % 7) == marker) { // temporary pointer
+		return;                                          // valid
+	}
+	luaL_argerror(ls, stackIndex, "invalid temporary pointer");
+}
+#endif
 
 void registerBaseClass(lua_State* ls, TypeId super, TypeId base) {
 	auto context = getContext(ls);

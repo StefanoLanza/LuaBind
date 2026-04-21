@@ -4,12 +4,15 @@
 
 #include <core/scopedAllocator.h>
 #include <core/typeId.h>
+#ifdef _DEBUG
+#include <core/ptrUtil.h>
+#endif
 
 #include <cassert>
-#include <cstring>
 #include <cstdint>
-#include <utility>
+#include <cstring>
 #include <type_traits>
+#include <utility>
 
 namespace Typhoon::LuaBind::detail {
 
@@ -34,8 +37,17 @@ ScopedAllocator* getTemporaryAllocator(lua_State* ls);
 // Helper
 template <class T, class... ArgTypes>
 T* allocTemporary(lua_State* ls, ArgTypes&&... args) {
-	return getTemporaryAllocator(ls)->make<T>(std::forward<ArgTypes>(args)...);
+	auto allocator = getTemporaryAllocator(ls);
+	T*   ptr = allocator->make<T>(std::forward<ArgTypes>(args)...);
+#ifdef _DEBUG
+	ptr = decoratePointer(ptr, 1 + (allocator->getEpoch() % 7));
+#endif
+	return ptr;
 }
+
+#ifdef _DEBUG
+void checkDanglingPointer(lua_State* ls, const void* ptr, int stackIndex);
+#endif
 
 #if TY_LUABIND_TYPE_SAFE
 

@@ -200,7 +200,7 @@ void runExample(lua_State* ls) {
 	obj1.setName("cppMonster");
 
 	// Expose cpp object to Lua as a full userdata
-	const Reference ref0 { registerObjectAsUserData(ls, &obj0) /*, ls*/ };
+	const Reference ref0 { registerObjectAsUserData(ls, &obj0) };
 	getGlobals(ls).rawSet("cppHuman", ref0);
 
 	// Expose cpp object to Lua as a table. This way, in Lua we can associate custom elements to the object

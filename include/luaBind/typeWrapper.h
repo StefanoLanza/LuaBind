@@ -46,21 +46,20 @@ public:
 		void* userData = lua_touserdata(ls, idx);
 		assert(userData);
 
-		// TODO Check isLightweight<T> instead ?
+		T* ptr = nullptr;
 		if (lua_islightuserdata(ls, idx)) {
 #if TY_LUABIND_TYPE_SAFE
 			if (! detail::checkPointerType(ls, userData, getTypeId<T>())) {
 				luaL_argerror(ls, idx, "Invalid pointer type");
 			}
 #endif
-			return *static_cast<const T*>(userData);
+			ptr = static_cast<T*>(userData);
 		}
 		else {
-			T* ptr = nullptr;
 			std::memcpy(&ptr, userData, sizeof ptr);
 
 #if TY_LUABIND_TYPE_SAFE
-			// Check type
+			// Check type. For userdata, type is embedded as uservalue
 			lua_getiuservalue(ls, idx, 1);
 			assert(! lua_isnil(ls, -1));
 			TypeId ptrTypeId;
@@ -70,8 +69,12 @@ public:
 				// ptr = nullptr;
 			}
 #endif
-			return *ptr;
 		}
+#ifdef _DEBUG
+		detail::checkDanglingPointer(ls, ptr, idx);
+		ptr = undecoratePointer(ptr);
+#endif
+		return *ptr;
 	}
 };
 
@@ -359,6 +362,10 @@ public:
 		else if (luaType == LUA_TNIL) {
 			ptr = nullptr;
 		}
+#ifdef _DEBUG
+		detail::checkDanglingPointer(ls, ptr, idx);
+		ptr = undecoratePointer(ptr);
+#endif
 		return ptr;
 	}
 

@@ -56,6 +56,10 @@ Vec3 operator-(Vec3 a, Vec3 b) {
 	return { a.x - b.x, a.y - b.y, a.z - b.z };
 }
 
+std::tuple<double, double, double> vec3XYZ(Vec3 v) {
+	return { v.x, v.y, v.z };
+}
+
 const char* initScript = R"(
 	print ("Init")
 	-- Stress test allocator
@@ -63,12 +67,13 @@ const char* initScript = R"(
 		local v = Vec3.new(0., 0., 0.)
 	end
 
-	-- TODO global gameObj =
-	gameObj = {
+	global gameObj = {
 		pos = Vec3.new(0., 0., 0.),
 		vel = Vec3.new(1., 2., 3.),
 		angles = Vec3.new(0., 0., 0.),
 	}
+
+	global dangling = nil
 )";
 
 const char* updateScript = R"(
@@ -84,14 +89,26 @@ const char* updateScript = R"(
 	-- Euler integration
 	local newVel = Vec3.madd(vel, accel, dt * dt)
 	local newPos = Vec3.madd(pos, newVel, dt)
-	print(string.format("  pos: %.3f   %.3f   %.3f",  Vec3.getX(newPos), Vec3.getY(newPos), Vec3.getZ(newPos)));
-	print(string.format("  vel: %.3f   %.3f   %.3f",  Vec3.getX(newVel), Vec3.getY(newVel), Vec3.getZ(newVel)));
-	print(string.format("  angles: %.3f   %.3f   %.3f",  Vec3.getX(newAngles), Vec3.getY(newAngles), Vec3.getZ(newAngles)));
+	print(string.format("  pos: %.3f   %.3f   %.3f",  Vec3.xyz(newPos)));
+	print(string.format("  vel: %.3f   %.3f   %.3f",  Vec3.xyz(newVel)));
+	print(string.format("  angles: %.3f   %.3f   %.3f",  Vec3.xyz(newAngles)));
 
 	-- Store computed values in the game object
 	Vec3.store(gameObj.pos, newPos)
 	Vec3.store(gameObj.vel, newVel)
 	Vec3.store(gameObj.angles, newAngles)
+)";
+
+const char* testScript = R"(
+	print ("Test dangling pointer")
+
+	local angles = Vec3.add(gameObj.angles, Vec3.set(0.1, 0.2, 0.3)) -- rotate
+	if not dangling then
+		dangling = angles
+	end
+	-- This should trigger an "invalid temporary pointer" error the second time,
+	-- since dangling was temporarily allocated in a previous frame
+	local invalid = Vec3.scale(dangling, 2.0)
 )";
 
 int main(int /*argc*/, char* /*argv*/[]) {
@@ -119,11 +136,16 @@ void runExample(lua_State* ls) {
 
 	// Simulate update loop
 	for (int i = 0; i < 10; ++i) {
-		// Reset the memory buffer of temporary objects like Vec3
+		// Reset the allocator of temporary objects like Vec3
 		LuaBind::resetAllocator(ls);
 
 		// Simulate a frame
-		if (Result res = doCommand(ls, updateScript); ! res) {
+		//if (Result res = doCommand(ls, updateScript); ! res) {
+			//std::cout << res.error() << std::endl;
+		//}
+
+		// Test dangling pointer
+		if (Result res = doCommand(ls, testScript); ! res) {
 			std::cout << res.error() << std::endl;
 		}
 	}
@@ -138,6 +160,7 @@ void bindClasses(lua_State* ls) {
 	LUA_FUNCTION_RENAMED(vec3Store, store);
 	LUA_FUNCTION_RENAMED(vec3Madd, madd);
 	LUA_FUNCTION_RENAMED(vec3Scale, scale);
+	LUA_FUNCTION_RENAMED(vec3XYZ, xyz);	
 	LUA_FREE_OPERATOR(add, +);
 	LUA_FREE_OPERATOR(sub, -);
 	LUA_GETTER(x, getX);

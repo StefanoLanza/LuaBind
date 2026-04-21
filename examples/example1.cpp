@@ -11,7 +11,7 @@ void runExample(lua_State* ls);
 void printTable(const LuaBind::Table& table);
 
 const char* script = R"(
-	testTable = {
+	global testTable = {
 		name = "Stefano",
 		surName = "Lanza",
 		age = 46,

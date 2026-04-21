@@ -58,7 +58,7 @@ lua_State* createState(Allocator& allocator) {
 		return nullptr;
 	}
 	context->allocator = &allocator;
-	lua_State* ls = lua_newstate(allocFunction, context);
+	lua_State* ls = lua_newstate(allocFunction, context, 0);
 	if (! ls) {
 		return nullptr;
 	}

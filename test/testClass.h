@@ -137,8 +137,8 @@ struct Vec2 {
 
 struct Vec3 {
 	double      x, y, z;
-	inline Vec3 operator+(const Vec3& weapon) const {
-		return { x + weapon.x, y + weapon.y, z + weapon.z };
+	inline Vec3 operator+(const Vec3& rhs) const {
+		return { x + rhs.x, y + rhs.y, z + rhs.z };
 	}
 };
 

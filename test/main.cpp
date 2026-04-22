@@ -402,9 +402,9 @@ TEST_CASE("Root") {
 		}
 
 		SECTION("temporaries") {
-			CHECK(doCommand(ls, "vec0 = Vec3.new(0., 1., 2.)"));
-			CHECK(doCommand(ls, "vec1 = Vec3.new(3., 4., 5.)"));
-			CHECK(doCommand(ls, "vec2 = Vec3.add(vec0, vec1)"));
+			CHECK(doCommand(ls, "global vec0 = Vec3.new(0., 1., 2.)"));
+			CHECK(doCommand(ls, "global vec1 = Vec3.new(3., 4., 5.)"));
+			CHECK(doCommand(ls, "global vec2 = Vec3.add(vec0, vec1)"));
 			const Vec3* vptr = globals["vec0"].asPtr<Vec3>().value_or(nullptr);
 			REQUIRE(vptr);
 			if (vptr) {
@@ -413,7 +413,6 @@ TEST_CASE("Root") {
 				CHECK(vptr->z == 2.);
 			}
 			const Vec3* v1ptr = globals["vec1"].asPtr<Vec3>().value_or(nullptr);
-			;
 			REQUIRE(v1ptr);
 			if (v1ptr) {
 				CHECK(v1ptr->x == 3.);
@@ -421,7 +420,6 @@ TEST_CASE("Root") {
 				CHECK(v1ptr->z == 5.);
 			}
 			const Vec3* v2ptr = globals["vec2"].asPtr<Vec3>().value_or(nullptr);
-			;
 			REQUIRE(v2ptr);
 			if (v2ptr) {
 				CHECK(v2ptr->x == 3.);

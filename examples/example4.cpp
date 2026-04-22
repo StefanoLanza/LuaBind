@@ -74,6 +74,7 @@ const char* initScript = R"(
 	}
 
 	global dangling = nil
+	global iter = 0
 )";
 
 const char* updateScript = R"(

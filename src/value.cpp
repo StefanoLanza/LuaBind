@@ -146,6 +146,10 @@ std::optional<void*> Value::toPtrChecked([[maybe_unused]] TypeId typeId) const {
 #if TY_LUABIND_TYPE_SAFE
 		res = detail::checkPointerType(ls, ud, typeId);
 #endif
+#ifdef _DEBUG
+		detail::checkDanglingPointer(ls, ud, -1);
+		ud = undecoratePointer(ud);
+#endif
 	}
 	else if (luaType == LUA_TUSERDATA) {
 		std::memcpy(&ud, lua_touserdata(ls, -1), sizeof ud);

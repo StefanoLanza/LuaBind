@@ -14,7 +14,7 @@ namespace Typhoon::LuaBind {
 struct Context {
 	lua_State*       ls;
 	Allocator*       allocator;
-	LinearAllocator* tempAllocator;
+	ArenaAllocator*  tempAllocator;
 	ScopedAllocator* scopedAllocator;
 	ScopedAllocator* currScopedAllocator;
 	MemoryStats      memoryStats;

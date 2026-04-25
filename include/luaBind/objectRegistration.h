@@ -18,7 +18,7 @@ void unregisterTable(lua_State* ls, Reference ref);
 
 void unregisterObject(lua_State* ls, Reference ref);
 
-void unregisterObject(lua_State* ls, void* objectPtr);
+void unregisterObject(lua_State* ls, void* objectPtr, TypeId typeId);
 
 template <class T>
 Reference registerObjectAsUserData(lua_State* ls, T* objectPtr) {

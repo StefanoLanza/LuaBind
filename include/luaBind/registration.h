@@ -6,12 +6,12 @@
 #include "memberFunctionWrapper.h"
 #include "objectRegistration.h"
 #include "stdArrayWrapper.h"
-#include "stdPairWrapper.h"
-#include "stdTupleWrapper.h"
-#include "stdSharedPtrWrapper.h"
-#include "stdVectorWrapper.h"
 #include "stdExpectedWrapper.h"
 #include "stdOptionalWrapper.h"
+#include "stdPairWrapper.h"
+#include "stdSharedPtrWrapper.h"
+#include "stdTupleWrapper.h"
+#include "stdVectorWrapper.h"
 #include "tableWrapper.h"
 #include <cassert>
 
@@ -51,58 +51,53 @@ int beginNamespace(lua_State* ls, const char* name);
 	static_assert(std::is_base_of_v<baseClass, class>); \
 	LUA_BEGIN_CLASS_(class, #class, Typhoon::getTypeId<baseClass>())
 
-#define LUA_ADD_METHOD(func)                                                               \
+#define LUA_METHOD(func)                                                                   \
 	do {                                                                                   \
 		detail::registerMemberFunction(ls__, &boundClass__::func, #func, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_OVERLOADED_METHOD(func, ret_type, ...)                                                                                           \
+#define LUA_METHOD_OVERLOAD(func, ret_type, ...)                                                                                                 \
 	do {                                                                                                                                         \
 		detail::registerMemberFunction(ls__, static_cast<ret_type (boundClass__::*)(__VA_ARGS__)>(&boundClass__::func), #func, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_OVERLOADED_METHOD_CONST(func, ret_type, ...)                                                                         \
+#define LUA_METHOD_OVERLOAD_CONST(func, ret_type, ...)                                                                               \
 	do {                                                                                                                             \
 		detail::registerMemberFunction(ls__, static_cast<ret_type (boundClass__::*)(__VA_ARGS__) const>(&boundClass__::func), #func, \
 		                               tableStackIndex);                                                                             \
 	} while (0)
 
-#define LUA_ADD_C_FUNCTION_RENAMED(func, funcName) \
-	do {                                           \
-		lua_pushliteral(ls__, #funcName);          \
-		lua_pushcfunction(ls__, &func);            \
-		lua_settable(ls__, tableStackIndex);       \
+#define LUA_C_FUNCTION_RENAMED(func, funcName) \
+	do {                                       \
+		lua_pushliteral(ls__, #funcName);      \
+		lua_pushcfunction(ls__, &func);        \
+		lua_settable(ls__, tableStackIndex);   \
 	} while (0)
 
-#define LUA_ADD_FREE_FUNCTION(function)                                       \
-	do {                                                                      \
-		detail::registerFunction(ls__, function, #function, tableStackIndex); \
-	} while (0)
-
-#define LUA_ADD_STATIC_FUNCTION_RENAMED(function, functionName)                                 \
+#define LUA_STATIC_FUNCTION_RENAMED(function, functionName)                                     \
 	do {                                                                                        \
 		detail::registerFunction(ls__, boundClass__::function, #functionName, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_STATIC_FUNCTION(function) LUA_ADD_STATIC_FUNCTION_RENAMED(function, function)
+#define LUA_STATIC_FUNCTION(function) LUA_STATIC_FUNCTION_RENAMED(function, function)
 
-#define LUA_ADD_OPERATOR(name, op)                                                                \
+#define LUA_OPERATOR(name, op)                                                                    \
 	do {                                                                                          \
 		detail::registerMemberFunction(ls__, &boundClass__::operator op, #name, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_OPERATOR_OVERLOAD(name, op, RetType, ...)                                                                            \
+#define LUA_OPERATOR_OVERLOAD(name, op, RetType, ...)                                                                                \
 	do {                                                                                                                             \
 		detail::registerMemberFunction(ls__, static_cast<RetType (boundClass__::*)(__VA_ARGS__)>(&boundClass__::operator op), #name, \
 		                               tableStackIndex);                                                                             \
 	} while (0)
 
-#define LUA_ADD_FREE_OPERATOR(name, op)                                                                                \
+#define LUA_FREE_OPERATOR(name, op)                                                                                    \
 	do {                                                                                                               \
 		detail::registerFunction(ls__, detail::Overload<boundClass__>::resolve(&operator op), #name, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_FREE_OPERATOR_OVERLOAD(name, op, RetType, ...)                                                       \
+#define LUA_FREE_OPERATOR_OVERLOAD(name, op, RetType, ...)                                                           \
 	do {                                                                                                             \
 		detail::registerFunction(ls__, static_cast<RetType (*)(__VA_ARGS__)>(&operator op), #name, tableStackIndex); \
 	} while (0)
@@ -131,6 +126,7 @@ int beginNamespace(lua_State* ls, const char* name);
 #define LUA_BEGIN_NAMESPACE(name)  \
 	do {                           \
 		AutoBlock autoBlock(ls__); \
+		using boundClass__ = void; \
 		const int tableStackIndex = detail::beginNamespace(ls__, #name);
 
 #define LUA_END_NAMESPACE() \
@@ -142,25 +138,15 @@ int beginNamespace(lua_State* ls, const char* name);
 		detail::registerFunction(ls__, detail::Overload<boundClass__>::resolve(function), #functionName, tableStackIndex); \
 	} while (0)
 
-#define LUA_ADD_FUNCTION(function) LUA_FUNCTION_RENAMED(function, function)
+#define LUA_FUNCTION(function) LUA_FUNCTION_RENAMED(function, function)
 
-#define LUA_ADD_OVERLOADED_FUNCTION(function, ret_type, ...)                                                           \
+#define LUA_FUNCTION_OVERLOAD(function, ret_type, ...)                                                                 \
 	do {                                                                                                               \
 		detail::registerFunction(ls__, static_cast<ret_type (*)(__VA_ARGS__)>(&function), #function, tableStackIndex); \
 	} while (0)
 
-// TODO How to infer the new operator arguments ?
-#define LUA_SET_DEFAULT_NEW_OPERATOR(...)                                                                    \
-	do {                                                                                                     \
-		detail::registerDefaultNewOperator<boundClass__ __VA_OPT__(,) __VA_ARGS__>(ls__, tableStackIndex); \
-	} while (0)
-
-#define LUA_NEW_OPERATOR(function, ...)                                             \
-	do {                                                                            \
-		detail::registerNewOperator<boundClass__>(ls__, tableStackIndex, function); \
-	} while (0)
-
-#define LUA_DELETE_OPERATOR(function)                                                  \
-	do {                                                                               \
-		detail::registerDeleteOperator<boundClass__>(ls__, tableStackIndex, function); \
+#define LUA_OBJ_ALLOCATOR(create, destroy, ...)                                       \
+	do {                                                                              \
+		detail::registerNewOperator<boundClass__>(ls__, tableStackIndex, create);     \
+		detail::registerDeleteOperator<boundClass__>(ls__, tableStackIndex, destroy); \
 	} while (0)

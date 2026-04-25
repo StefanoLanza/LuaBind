@@ -6,9 +6,9 @@
 namespace Typhoon::LuaBind {
 
 TableIterator::TableIterator(lua_State* ls, int tableRef, int index)
-    : ls(ls)
-    , tableRef(tableRef)
-    , index(index) {
+    : ls { ls }
+    , tableRef { tableRef }
+    , index { index } {
 }
 
 TableIterator& TableIterator::operator++() {

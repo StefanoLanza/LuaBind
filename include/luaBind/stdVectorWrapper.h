@@ -11,12 +11,12 @@ namespace Typhoon::LuaBind {
 template <class T>
 class Wrapper<std::vector<T>> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_istable(ls, idx);
 	}
-
 	static void push(lua_State* ls, const std::vector<T>& v) {
 		Table table = newTable(ls);
 
@@ -29,7 +29,6 @@ public:
 		// push table on stack
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, table.getReference().getValue());
 	};
-
 	//\note the container is not cleared
 	static std::vector<T> pop(lua_State* ls, int idx) {
 		// Open table from stack
@@ -44,9 +43,11 @@ public:
 		for (;;) {
 			Value value = table[i];
 			if (value) {
-				T elm;
-				if (value.cast(elm)) {
-					v.insert(v.end(), elm);
+				if (auto element = value.as<T>(); element) {
+					v.push_back(std::move(element.value()));
+				}
+				else {
+					v.push_back(T {});
 				}
 			}
 			else {

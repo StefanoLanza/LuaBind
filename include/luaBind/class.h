@@ -5,8 +5,6 @@
 #include "reference.h"
 #include <core/typeId.h>
 
-struct lua_State;
-
 namespace Typhoon::LuaBind::detail {
 
 Reference registerCppClass(lua_State* ls, const char* className, TypeId classId, TypeId baseClassId);
@@ -21,9 +19,6 @@ int getClassMetatable(lua_State* ls);
 
 template <class T>
 Reference registerCppClass(lua_State* ls, const char* className, TypeId baseClassId);
-
-template <typename T, typename... argType>
-void registerDefaultNewOperator(lua_State* ls, int tableIndex);
 
 bool isAllocatedByLua(lua_State* ls, int userDataStackIndex);
 

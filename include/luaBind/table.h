@@ -30,7 +30,7 @@ public:
 
 	//
 	Reference getReference() const {
-		return Reference(ref);
+		return Reference { ref };
 	}
 
 	//! Return the result of the length operator ('#')

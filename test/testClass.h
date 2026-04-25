@@ -107,6 +107,22 @@ inline void addEnergy(Human* human, float value) {
 inline void addEnergy(int* /*notHuman*/, float /*value*/) {
 }
 
+inline GameObject* newGameObject() {
+	return new GameObject();
+}
+
+inline Human* newHuman(float initialSpeed, float initialEnergy) {
+	return new Human(initialSpeed, initialEnergy);
+}
+
+inline Biped* newBiped(float initialSpeed) {
+	return new Biped(initialSpeed);
+}
+
+inline void deleteGameObject(GameObject* obj) {
+	delete obj;
+}
+
 // Opaque C-Style class
 struct Material;
 Material* materialNew(float opacity);
@@ -121,8 +137,8 @@ struct Vec2 {
 
 struct Vec3 {
 	double      x, y, z;
-	inline Vec3 operator+(const Vec3& weapon) const {
-		return { x + weapon.x, y + weapon.y, z + weapon.z };
+	inline Vec3 operator+(const Vec3& rhs) const {
+		return { x + rhs.x, y + rhs.y, z + rhs.z };
 	}
 };
 
@@ -130,32 +146,40 @@ struct Quat {
 	double x, y, z, w;
 };
 
-inline Vec2 cross([[maybe_unused]] const Vec2& lives, [[maybe_unused]] const Vec2& weapon) {
-	return {};
+inline float cross(const Vec2& a, const Vec2& b) {
+	return { a.x * b.y - a.y * b.x };
 }
 
-inline Vec3 cross([[maybe_unused]] const Vec3& lives, [[maybe_unused]] const Vec3& weapon) {
-	return {};
+inline Vec3 cross(const Vec3& a, const Vec3& b) {
+	return {
+		a.y * b.z - a.z * b.y,
+		a.z * b.x - a.x * b.z,
+		a.x * b.y - a.y * b.x,
+	};
 }
 
-inline Vec2 operator-(Vec2 lives, Vec2 weapon) {
-	return { lives.x + weapon.x, lives.y - weapon.y };
+inline Vec2 operator-(Vec2 a, Vec2 b) {
+	return { a.x + b.x, a.y - b.y };
 }
 
-inline Vec3 operator-(Vec3 lives, Vec3 weapon) {
-	return { lives.x - weapon.x, lives.y - weapon.y, lives.z - weapon.z };
+inline Vec3 operator-(Vec3 a, Vec3 b) {
+	return { a.x - b.x, a.y - b.y, a.z - b.z };
 }
 
-inline Vec2 newVec2(float x, float y) {
-	return Vec2 { x, y };
+inline Vec2* newVec2(float x, float y) {
+	return new Vec2 { x, y };
 }
 
-inline Vec3 newVec3(float x, float y, float z) {
-	return Vec3 { x, y, z };
+inline Vec3* newVec3(float x, float y, float z) {
+	return new Vec3 { x, y, z };
 }
 
-inline Vec3 add(const Vec3& v0, const Vec3& v1) {
-	return { v0.x + v1.x, v0.y + v1.y, v0.z + v1.z };
+inline void deleteVec2(Vec2* v) {
+	delete v;
+}
+
+inline void deleteVec3(Vec3* v) {
+	delete v;
 }
 
 inline void setIdentity(Quat& q) {

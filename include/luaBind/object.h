@@ -2,10 +2,9 @@
 
 #include "reference.h"
 #include "result.h"
+
 #include <cassert>
 #include <utility>
-
-struct lua_State;
 
 namespace Typhoon::LuaBind {
 
@@ -45,7 +44,7 @@ public:
 	 * @return
 	 */
 	template <typename RetType, typename... ArgTypes>
-	Result callMethodRet(const char* func, RetType& ret, const ArgTypes&... args) const;
+	ResultT<RetType> callMethodRet(const char* func, const ArgTypes&... args) const;
 
 	/**
 	 * @brief

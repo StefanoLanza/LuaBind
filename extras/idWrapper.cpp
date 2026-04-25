@@ -1,1 +1,1 @@
-#include "idWrapper.h"
+#include <luaBind/extras/idWrapper.h>

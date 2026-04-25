@@ -2,25 +2,19 @@
 
 #include "config.h"
 
-#include "boxing.h"
 #include "detail.h"
 #include "reference.h"
+#include "stackUtils.h"
 #include <core/typeId.h>
 #include <type_traits>
 
 namespace Typhoon::LuaBind::detail {
 
 constexpr int kLuaAllocated = 0;
-constexpr int kCppAllocated = 1;
-
-template <typename T, typename... argType>
-T* defaultNew(argType... args) {
-	return new T { std::forward<argType>(args)... };
-}
 
 // Create a new object and return it to Lua as a full user data
-template <typename retType, typename... argType, std::size_t... argIndices>
-int wrapNewImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...> indx) {
+template <typename classType, typename retType, typename... argType, std::size_t... argIndices>
+int wrapNewImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 	// Extract function pointer from upvalue
 	using func_ptr = retType (*)(argType...);
 	const void* const func_ud = lua_touserdata(ls, lua_upvalueindex(1));
@@ -28,7 +22,7 @@ int wrapNewImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...>
 
 	// Get stack size of all arguments
 	// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument
-	const int argStackSize[] = { Wrapper<argType>::stackSize..., 0 };
+	const int argStackSize[] = { Wrapper<argType>::getStackSize()..., 0 };
 
 	// Compute stack indices
 	int argStackIndex[sizeof...(argType) + 1] = {};
@@ -43,53 +37,36 @@ int wrapNewImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...>
 	// Pop and pass args
 	const auto obj = func(Wrapper<argType>::pop(ls, argStackIndex[argIndices])...);
 
-	if constexpr (isLightweight<retType>) {
-		// Push lightweight object as light user data
-		Lightweight<retType>::push(ls, obj);
-	}
-	else {
-		// Allocate full user data and store the object pointer in it
-		void* const ud = lua_newuserdatauv(ls, sizeof obj, 1);
-		std::memcpy(ud, &obj, sizeof obj);
+	// Allocate full user data and embed the object pointer in it
+	void* const ud = lua_newuserdatauv(ls, sizeof obj, 2);
+	std::memcpy(ud, &obj, sizeof obj);
 
-		// Associate metatable
-		const auto className = typeName<std::remove_pointer_t<retType>>();
-		assert(className);
-		luaL_getmetatable(ls, className);
-		lua_setmetatable(ls, -2);
+	// Associate metatable
+	const auto className = typeName<classType>();
+	assert(className);
+	luaL_getmetatable(ls, className);
+	lua_setmetatable(ls, -2);
 
-		// Mark as heap allocated by Lua. This user value is queried in wrapDefaultDelete<T>
-		lua_pushinteger(ls, kLuaAllocated);
-		lua_setiuservalue(ls, -2, 1); // ud.userValue[1] = kLuaAllocated
+	lua_pushinteger(ls, getTypeId<classType>().value());
+	lua_setiuservalue(ls, -2, 1); // ud.userValue[1] = typeId
 
-#if TY_LUABIND_TYPE_SAFE
-		registerPointer(ls, obj);
-#endif
-	}
+	// Mark for deletion during garbage collection. This user value is queried in wrapDeleter<T>
+	// Objects allocated in C++ and pushed to Lua do not have this user value and won't be deleted by Lua
+	lua_pushinteger(ls, kLuaAllocated);
+	lua_setiuservalue(ls, -2, 2); // ud.userValue[2] = kLuaAllocated
 	return 1;
 }
 
-template <typename retType, typename... argType>
+template <typename classType, typename retType, typename... argType>
 int wrapNew(lua_State* ls) {
-	return wrapNewImpl<retType, argType...>(ls, std::index_sequence_for<argType...> {});
-}
-
-template <class T>
-int wrapDefaultDelete(lua_State* ls) {
-	if (isAllocatedByLua(ls, 1)) {
-		// Extract pointer from user data
-		T* obj = nullptr;
-		std::memcpy(&obj, lua_touserdata(ls, 1), sizeof obj);
-		assert(obj);
-		delete obj; // object allocated by Lua
-	}
-	// else object was allocated by C++
-	return 0;
+	static_assert(std::is_same_v<classType*, retType>, "new function must return a pointer");
+	return wrapNewImpl<classType, retType, argType...>(ls, std::index_sequence_for<argType...> {});
 }
 
 template <class T>
 int wrapDeleter(lua_State* ls) {
 	if (isAllocatedByLua(ls, 1)) {
+		// Object allocated by Lua e.g. Vec3.new() or Vec3()
 		// Extract pointer from user data
 		T* obj = nullptr;
 		std::memcpy(&obj, lua_touserdata(ls, 1), sizeof obj);
@@ -100,48 +77,37 @@ int wrapDeleter(lua_State* ls) {
 		using Deleter = void (*)(T*);
 		const auto deleter = serializePOD<Deleter>(ud);
 
-		deleter(obj); // object allocated by Lua
+		deleter(obj); 
+		return 0;
 	}
-	// else object was allocated by C++
-	return 0;
+	else {
+		// else object was allocated by C++ and registered as full user data
+		return 0;
+	}
 }
 
 template <class T>
 Reference registerCppClass(lua_State* ls, const char* className, TypeId baseClassId) {
-	const Reference ref = registerCppClass(ls, className, Typhoon::getTypeId<T>(), baseClassId);
-	if constexpr (isLightweight<T>) {
-		// Lightweight types get boxing functions
-		lua_rawgeti(ls, LUA_REGISTRYINDEX, ref.getValue()); // table
-		const int tableStackIndex = lua_gettop(ls);
-		pushBoxingFunctions<T>(ls, tableStackIndex);
-		lua_pop(ls, 1);
-	}
-	return ref;
+	return registerCppClass(ls, className, Typhoon::getTypeId<T>(), baseClassId);
 }
 
 template <typename classType, typename retType, typename... argType>
 inline void registerNewOperator(lua_State* ls, int classTableStackIndex, retType (*functionPtr)(argType...)) {
-	static_assert(std::is_same_v<classType, std::remove_pointer_t<retType>>, "Invalid return type for new operator");
+	static_assert(std::is_base_of_v<classType, std::remove_pointer_t<retType>>, "Invalid return type for new operator");
 	void* buffer = lua_newuserdatauv(ls, sizeof functionPtr, 0);
 	std::memcpy(buffer, &functionPtr, sizeof functionPtr);
-	lua_pushcclosure(ls, wrapNew<retType, argType...>, 1);
+	lua_pushcclosure(ls, wrapNew<classType, retType, argType...>, 1);
 	lua_setfield(ls, classTableStackIndex, "new"); // table.new = wrapNew
 }
 
 template <typename classType, typename argType>
 inline void registerDeleteOperator(lua_State* ls, int classTableStackIndex, void (*functionPtr)(argType*)) {
-	static_assert(std::is_same_v<classType, argType>, "Invalid argument type for delete operator");
+	static_assert(std::is_base_of_v<argType, classType>, "Invalid argument type for delete operator");
 	// Store pointer to delete function as upvalue of wrapDeleter<argType>
 	void* buffer = lua_newuserdatauv(ls, sizeof functionPtr, 0);
 	std::memcpy(buffer, &functionPtr, sizeof functionPtr);
 	lua_pushcclosure(ls, wrapDeleter<argType>, 1);
 	lua_setfield(ls, classTableStackIndex, "__gc"); // mt.__gc = wrapDeleter
-}
-
-template <typename T, typename... argType>
-void registerDefaultNewOperator(lua_State* ls, int classTableStackIndex) {
-	auto actualNew = defaultNew<T, argType...>;
-	registerNewAndDeleteOperators(ls, classTableStackIndex, wrapNew<T*, argType...>, wrapDefaultDelete<T>, &actualNew, sizeof actualNew);
 }
 
 } // namespace Typhoon::LuaBind::detail

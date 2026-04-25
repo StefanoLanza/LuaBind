@@ -2,10 +2,9 @@ namespace Typhoon::LuaBind {
 
 template <class KeyType, class ValueType>
 void Table::set(const KeyType& key, const ValueType& value) {
-	static_assert(Wrapper<const KeyType&>::stackSize == 1);
-	static_assert(Wrapper<const ValueType&>::stackSize == 1);
+	static_assert(Wrapper<const KeyType&>::getStackSize() == 1);
+	static_assert(Wrapper<const ValueType&>::getStackSize() == 1);
 
-	assert(isValid());
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	Wrapper<const KeyType&>::pushAsKey(ls, key);
 	Wrapper<const ValueType&>::push(ls, value);
@@ -15,10 +14,9 @@ void Table::set(const KeyType& key, const ValueType& value) {
 
 template <class KeyType, class ValueType>
 void Table::rawSet(const KeyType& key, const ValueType& value) {
-	static_assert(Wrapper<const KeyType&>::stackSize == 1);
-	static_assert(Wrapper<const ValueType&>::stackSize == 1);
+	static_assert(Wrapper<const KeyType&>::getStackSize() == 1);
+	static_assert(Wrapper<const ValueType&>::getStackSize() == 1);
 
-	assert(isValid());
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	Wrapper<const KeyType&>::pushAsKey(ls, key);
 	Wrapper<const ValueType&>::push(ls, value);
@@ -28,9 +26,8 @@ void Table::rawSet(const KeyType& key, const ValueType& value) {
 
 template <class ValueType>
 void Table::rawSeti(lua_Integer i, const ValueType& value) {
-	static_assert(Wrapper<const ValueType&>::stackSize == 1);
+	static_assert(Wrapper<const ValueType&>::getStackSize() == 1);
 
-	assert(isValid());
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	Wrapper<const ValueType&>::push(ls, value);
 	// table[i] = value
@@ -40,9 +37,8 @@ void Table::rawSeti(lua_Integer i, const ValueType& value) {
 
 template <class KeyType>
 Value Table::operator[](const KeyType& key) const {
-	static_assert(Wrapper<const KeyType&>::stackSize == 1);
+	static_assert(Wrapper<const KeyType&>::getStackSize() == 1);
 
-	assert(isValid());
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
 	Wrapper<const KeyType&>::pushAsKey(ls, key);
 	lua_gettable(ls, -2);

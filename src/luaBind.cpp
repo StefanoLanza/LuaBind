@@ -5,8 +5,9 @@
 #include "detail.h"
 #include "result.h"
 #include "table.h"
+
 #include <algorithm>
-#include <core/allocator.h>
+#include <core/scopedAllocator.h>
 
 namespace Typhoon::LuaBind {
 
@@ -27,7 +28,7 @@ void* allocFunction(void* ud, void* ptr, size_t osize, size_t nsize) {
 		++stats.allocationCount;
 		stats.allocatedMemory += nsize;
 		stats.maxAllocatedSize = std::max(stats.maxAllocatedSize, nsize);
-		pret = allocator->realloc(ptr, nsize, Allocator::defaultAlignment);
+		pret = allocator->realloc(ptr, osize, nsize, Allocator::defaultAlignment);
 	}
 	return pret;
 }
@@ -41,20 +42,12 @@ void luaWarningFunction(void* ud, const char* msg, [[maybe_unused]] int tocont) 
 
 namespace detail {
 
-Context* getContext(lua_State* ls) {
+	Context* getContext(lua_State* ls) {
 	lua_pushvalue(ls, LUA_REGISTRYINDEX);
 	lua_getfield(ls, -1, contextKey);
 	auto context = static_cast<Context*>(lua_touserdata(ls, -1));
 	lua_pop(ls, 2);
 	return context;
-}
-
-Allocator* getAllocator(lua_State* ls) {
-	return getContext(ls)->allocator;
-}
-
-LinearAllocator* getTemporaryAllocator(lua_State* ls) {
-	return getContext(ls)->tempAllocator;
 }
 
 } // namespace detail
@@ -65,7 +58,7 @@ lua_State* createState(Allocator& allocator) {
 		return nullptr;
 	}
 	context->allocator = &allocator;
-	lua_State* ls = lua_newstate(allocFunction, context);
+	lua_State* ls = lua_newstate(allocFunction, context, 0);
 	if (! ls) {
 		return nullptr;
 	}
@@ -77,7 +70,9 @@ lua_State* createState(Allocator& allocator) {
 	globals.setFunction("RegisterLuaClass", detail::registerLuaClass);
 	globals.setFunction("GetClassMetatable", detail::getClassMetatable);
 
-	context->tempAllocator = allocator.construct<PagedAllocator>(std::ref(allocator), PagedAllocator::defaultPageSize);
+	context->tempAllocator = allocator.construct<PagedAllocator>(allocator, PagedAllocator::defaultPageSize);
+	context->scopedAllocator = allocator.construct<ScopedAllocator>(*context->tempAllocator);
+	context->currScopedAllocator = context->scopedAllocator;
 
 	// Associate context with ls
 	lua_pushvalue(ls, LUA_REGISTRYINDEX);
@@ -91,8 +86,12 @@ lua_State* createState(Allocator& allocator) {
 void closeState(lua_State* ls) {
 	auto context = detail::getContext(ls);
 	lua_close(ls);
-	context->allocator->destroy(context->tempAllocator);
-	context->allocator->destroy(context);
+	if (context->allocator) {
+		context->allocator->destroy(context->scopedAllocator);
+		context->allocator->destroy(context->tempAllocator);
+		context->allocator->destroy(context);
+		context->allocator = nullptr;
+	}
 }
 
 void setWarningFunction(lua_State* ls, WarningFunction warningFunction) {
@@ -103,7 +102,10 @@ void setWarningFunction(lua_State* ls, WarningFunction warningFunction) {
 
 void resetAllocator(lua_State* ls) {
 	auto context = detail::getContext(ls);
-	context->tempAllocator->rewind();
+	context->scopedAllocator->destroyAll();
+#if TY_LUABIND_TYPE_SAFE
+	context->tempPointerMap.clear();
+#endif
 }
 
 void registerLoader(lua_State* ls, lua_CFunction loader, void* userData) {
@@ -176,8 +178,8 @@ int getMemoryInUse(lua_State* ls) {
 	return lua_gc(ls, LUA_GCCOUNT, 0);
 }
 
-const MemoryStats& getMemoryStats(const Context* context) {
-	return context->memoryStats;
+const MemoryStats& getMemoryStats(lua_State* ls) {
+	return detail::getContext(ls)->memoryStats;
 }
 
 Result doCommand(lua_State* ls, const char* command) {
@@ -194,24 +196,25 @@ Result doBuffer(lua_State* ls, const char* buffer, size_t size, const char* name
 	const auto error = luaL_loadbuffer(ls, buffer, size, name);
 
 	if (const char* errMsg = getErrorMessage(ls, error); errMsg) {
-		return Result(errMsg);
+		return UNEXPECTED(errMsg);
 	}
 	else if (0 != lua_pcall(ls, 0, 0, errfunc_index)) {
-		errMsg = lua_tostring(ls, -1);
-		return Result(errMsg);
+		return UNEXPECTED(lua_tostring(ls, -1));
 	}
 	else {
-		return Result(true);
+		return {};
 	}
 }
 
 Scope::Scope(lua_State* ls)
-    : tempAllocator(detail::getContext(ls)->tempAllocator)
-    , offs(tempAllocator->getOffset()) {
+    : context { detail::getContext(ls) }
+    , scopedAllocator { *static_cast<Context*>(context)->tempAllocator } {
+	prevAllocator = static_cast<Context*>(context)->currScopedAllocator;
+	static_cast<Context*>(context)->currScopedAllocator = &scopedAllocator;
 }
 
 Scope::~Scope() {
-	tempAllocator->rewind(offs);
+	static_cast<Context*>(context)->currScopedAllocator = prevAllocator;
 }
 
 } // namespace Typhoon::LuaBind

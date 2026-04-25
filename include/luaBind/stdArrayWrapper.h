@@ -7,14 +7,15 @@
 namespace Typhoon::LuaBind {
 
 // Wrapper for std::vector
-// Limitations: only support containers of primitive values (those supported by LUA::Value)
+// Limitations: only support containers of primitive values (those supported by LuaBind::Value)
 template <typename T, size_t Size>
 class Wrapper<std::array<T, Size>> {
 	using ArrayType = std::array<T, Size>;
 
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_istable(ls, idx);
 	}
@@ -48,7 +49,10 @@ public:
 		for (size_t i = 0; i < array.size(); ++i, ++tableIndex) {
 			Value value = table[tableIndex];
 			if (value) {
-				value.cast(array[i]);
+				if (auto v = value.as<T>(); v) {
+					array[i] = v.value();
+				}
+				// else leave array[i] as is
 			}
 			else {
 				break; // nil

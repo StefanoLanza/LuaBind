@@ -6,16 +6,20 @@
 #include "object.h"
 #include "objectRegistration.h"
 #include "registration.h"
+#include "result.h"
 #include "table.h"
 #include "tableIterator.h"
-#include "typeSafefy.h"
 #include "uniqueRef.h"
 #include "value.h"
 
+#include <core/scopedAllocator.h>
+#include <core/uncopyable.h>
+
 namespace Typhoon {
-	class Allocator;
-	class LinearAllocator;
-}
+
+class Allocator;
+
+} // namespace Typhoon
 
 namespace Typhoon::LuaBind {
 
@@ -26,9 +30,6 @@ struct MemoryStats {
 	size_t freeCount;
 	size_t maxAllocatedSize;
 };
-
-struct Context;
-class Result;
 
 using WarningFunction = std::function<void(const char*)>;
 
@@ -43,25 +44,18 @@ const char*        getPath(lua_State* ls);
 void               setPath(lua_State* ls, const char* path);
 const char*        getErrorMessage(lua_State* ls, int error);
 int                getMemoryInUse(lua_State* ls);
-const MemoryStats& getMemoryStats(const Context* context);
+const MemoryStats& getMemoryStats(lua_State* ls);
 
-class Scope {
+class Scope : Uncopyable {
 public:
-	Scope(lua_State* ls);
+	explicit Scope(lua_State* ls);
 	~Scope();
-private:
-	LinearAllocator* tempAllocator;
-	void* offs;
-};
 
-template <class T, class... ArgTypes>
-inline T* newTemporary(lua_State* ls, ArgTypes... args) {
-	if (void* mem = detail::allocTemporary(ls, sizeof(T), alignof(T)); mem) {
-		// Construct
-		return new (mem) T { std::forward<ArgTypes>(args)... };
-	}
-	return nullptr;
-}
+private:
+	void*            context;
+	ScopedAllocator  scopedAllocator;
+	ScopedAllocator* prevAllocator;
+};
 
 template <class T>
 inline Reference makeRef(lua_State* ls, const T& obj) {

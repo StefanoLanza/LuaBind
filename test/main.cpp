@@ -1,22 +1,14 @@
 #include "testClass.h"
 #include <core/allocator.h>
 #include <core/typedVoidPtr.h>
-#include <extras/voidPtrWrapper.h>
+#include <luaBind/extras/voidPtrWrapper.h>
 #include <luaBind/luaBind.h>
 
 #include <array>
 #include <string>
 #include <vector>
 
-#define CATCH_CONFIG_RUNNER
-#include <Catch-master/single_include/catch2/catch.hpp>
-
-// VISUAL LEAK DETECTOR
-#ifdef _DEBUG
-#if __has_include(<vld.h>)
-#include <vld.h>
-#endif
-#endif
+#include <Catch/catch_amalgamated.hpp>
 
 void foo() {
 	std::cout << "foo" << std::endl;
@@ -25,19 +17,14 @@ void foo2(const std::string& str) {
 	std::cout << "foo2(" << str << ")" << std::endl;
 }
 
-// Treat Vec2 as a temporary, lightweight object in Lua
+// Treat Vec2 and Vec3 as a lightweight objects in Lua
 template <>
-class LuaBind::Wrapper<Vec2> : public LuaBind::Lightweight<Vec2> {};
+constexpr bool Typhoon::LuaBind::isLightweight<Vec2> = true;
 
-// Treat Vec3 as a temporary, lightweight object in Lua
 template <>
-class LuaBind::Wrapper<Vec3> : public LuaBind::Lightweight<Vec3> {};
+constexpr bool Typhoon::LuaBind::isLightweight<Vec3> = true;
 
 void bindTestClasses(lua_State* ls);
-
-int main(int argc, char* argv[]) {
-	return Catch::Session().run(argc, argv);
-}
 
 TEST_CASE("Root") {
 	using namespace LuaBind;
@@ -58,7 +45,7 @@ TEST_CASE("Root") {
 		constexpr bool          weapon = true;
 		const char*             cstr = "Stefano";
 		const std::string       str { "Lanza" };
-#if 1
+		const std::string_view  strv { "Author" };
 		push(ls, speed);
 		CHECK(pop<char>(ls, -1) == speed);
 		push(ls, uc);
@@ -81,7 +68,8 @@ TEST_CASE("Root") {
 		CHECK(pop<std::string>(ls, -1) == cstr);
 		push(ls, str);
 		CHECK(pop<std::string>(ls, -1) == str);
-#endif
+		push(ls, strv);
+		CHECK(pop<std::string>(ls, -1) == strv);
 	}
 
 	SECTION("Warnings") {
@@ -122,7 +110,7 @@ TEST_CASE("Root") {
 			CHECK(lua_gettop(ls) == 0);
 			CHECK_FALSE(table[key].isNil());
 			CHECK(table[key].getType() == LUA_TNUMBER);
-			CHECK(static_cast<int>(table[key]) == value);
+			CHECK(table[key].as<int>() == value);
 			CHECK(lua_gettop(ls) == 0);
 		}
 
@@ -133,19 +121,19 @@ TEST_CASE("Root") {
 			CHECK(lua_gettop(ls) == 0);
 			CHECK_FALSE(table[key].isNil());
 			CHECK(table[key].getType() == LUA_TNUMBER);
-			CHECK(static_cast<double>(table[key]) == value);
+			CHECK(table[key].as<double>() == value);
 			CHECK(lua_gettop(ls) == 0);
 		}
 
 		SECTION("ptr ptr") {
-			int         dummy;
+			int         dummy = 123;
 			const void* key = &dummy;
 			void* const value = &key;
 			table.set(key, value);
 			CHECK(lua_gettop(ls) == 0);
 			CHECK_FALSE(table[key].isNil());
 			CHECK(table[key].getType() == LUA_TLIGHTUSERDATA);
-			CHECK(static_cast<void*>(table[key]) == value);
+			CHECK(table[key].asUserData() == value);
 			CHECK(lua_gettop(ls) == 0);
 		}
 
@@ -156,7 +144,7 @@ TEST_CASE("Root") {
 			CHECK(lua_gettop(ls) == 0);
 			CHECK_FALSE(table[key].isNil());
 			CHECK(table[key].getType() == LUA_TSTRING);
-			CHECK(static_cast<std::string>(table[key]) == value);
+			CHECK(! strcmp(table[key].asString().value(), value));
 			CHECK(lua_gettop(ls) == 0);
 		}
 
@@ -167,7 +155,7 @@ TEST_CASE("Root") {
 			CHECK(lua_gettop(ls) == 0);
 			CHECK_FALSE(table[key].isNil());
 			CHECK(table[key].getType() == LUA_TNUMBER);
-			CHECK(static_cast<int>(table[key]) == value);
+			CHECK(table[key].as<int>() == value);
 			CHECK(lua_gettop(ls) == 0);
 		}
 
@@ -178,7 +166,7 @@ TEST_CASE("Root") {
 			CHECK(lua_gettop(ls) == 0);
 			CHECK_FALSE(table[key].isNil());
 			CHECK(table[key].getType() == LUA_TNUMBER);
-			CHECK(static_cast<float>(table[key]) == value);
+			CHECK(table[key].as<float>() == value);
 			CHECK(lua_gettop(ls) == 0);
 		}
 
@@ -189,7 +177,7 @@ TEST_CASE("Root") {
 			CHECK(lua_gettop(ls) == 0);
 			CHECK_FALSE(table[key].isNil());
 			CHECK(table[key].getType() == LUA_TSTRING);
-			CHECK(static_cast<std::string>(table[key]) == value);
+			CHECK(std::string_view { table[key].asString().value() } == value);
 			CHECK(lua_gettop(ls) == 0);
 		}
 	}
@@ -230,58 +218,56 @@ TEST_CASE("Root") {
 			CHECK(stringArray == testArray);
 		}
 
-#ifdef __cpp_lib_expected
-        SECTION("std::expected") {
-	        using ParseResult = std::expected<std::string, int>;
+		SECTION("std::expected") {
+			using ParseResult = Expected<std::string, int>;
 			{
-				const ParseResult res { "stefano"  };
-				const int       idx = lua_gettop(ls);
+				const ParseResult res { "stefano" };
+				const int         idx = lua_gettop(ls);
 				push(ls, res);
 				const ParseResult test = pop<ParseResult>(ls, idx + 1);
 				CHECK(test.has_value());
 				CHECK(test.value() == res.value());
-	        }
-	        {
-		        ParseResult res { std::unexpected(-1) };
-		        const int         idx = lua_gettop(ls);
-		        push(ls, res);
-		        const ParseResult test = pop<ParseResult>(ls, idx + 1);
-		        CHECK(!test.has_value());
-		        CHECK(test.error() == -1);
-	        }
-        }
-#endif
+			}
+			{
+				ParseResult res = UNEXPECTED(-1);
+				const int   idx = lua_gettop(ls);
+				push(ls, res);
+				const ParseResult test = pop<ParseResult>(ls, idx + 1);
+				CHECK(! test.has_value());
+				CHECK(test.error() == -1);
+			}
+		}
 
 #ifdef __cpp_lib_optional
-        SECTION("std::optional") {
-	        using Optional = std::optional<std::string>;
-	        {
-		        const Optional opt { "manlio" };
-		        const int      idx = lua_gettop(ls);
-		        push(ls, opt);
-		        const Optional test = pop<Optional>(ls, idx + 1);
-		        CHECK(test.has_value());
-		        CHECK(test.value() == opt.value());
-	        }
-	        {
-		        const Optional opt = std::nullopt;		        
-		        const int      idx = lua_gettop(ls);
-		        push(ls, opt);
-		        const Optional test = pop<Optional>(ls, idx + 1);
-		        CHECK(!test.has_value());
-	        }
-        }
+		SECTION("std::optional") {
+			using Optional = std::optional<std::string>;
+			{
+				const Optional opt { "manlio" };
+				const int      idx = lua_gettop(ls);
+				push(ls, opt);
+				const Optional test = pop<Optional>(ls, idx + 1);
+				CHECK(test.has_value());
+				CHECK(test.value() == opt.value());
+			}
+			{
+				const Optional opt = std::nullopt;
+				const int      idx = lua_gettop(ls);
+				push(ls, opt);
+				const Optional test = pop<Optional>(ls, idx + 1);
+				CHECK(! test.has_value());
+			}
+		}
 #endif
-
 	}
 
 	SECTION("Properties") {
 		Table globals = getGlobals(ls);
 		if (globals["ptest"]) {
-			Table ptest = (Table)globals["ptest"];
+			Table ptest = globals["ptest"].asTable().value();
 			REQUIRE(ptest);
 
-			Table properties = (Table)ptest["p"];
+			Table properties = ptest["p"].asTable().value();
+			;
 			REQUIRE(properties);
 		}
 	}
@@ -289,7 +275,7 @@ TEST_CASE("Root") {
 	SECTION("VoidPtr") {
 		Biped biped { 10.f };
 		biped.setName("Biped");
-		const Typhoon::VoidPtr voidPtr = Typhoon::MakeVoidPtr(&biped);
+		const Typhoon::VoidPtr voidPtr = Typhoon::makeVoidPtr(&biped);
 		push(ls, voidPtr);
 	}
 
@@ -297,13 +283,21 @@ TEST_CASE("Root") {
 		Table globals = getGlobals(ls);
 		Table registry = getRegistry(ls);
 		SECTION("base class") {
+			SECTION("auto binding C++ object as full user data") {
+				auto bart = std::make_unique<GameObject>();
+				globals.set("bart", bart.get());
+				CHECK(doCommand(ls, "bart:setLives(10)"));
+				CHECK(bart->getLives() == 10);
+				CHECK(doCommand(ls, "bart:setName('Bart')"));
+				CHECK(bart->getName() == "Bart");
+				globals.set("bart", nil);
+				CHECK(lua_gettop(ls) == 0);
+			}
 			SECTION("binding C++ object as full user data") {
 				auto       bart = std::make_unique<GameObject>();
 				const auto ref = registerObjectAsUserData(ls, bart.get());
 				REQUIRE(ref.isValid());
-				CHECK(registry[bart.get()].isNil() == false);
 				globals.set("bart", bart.get());
-				CHECK(globals["bart"].getType() == LUA_TUSERDATA);
 				CHECK(doCommand(ls, "bart:setLives(10)"));
 				CHECK(bart->getLives() == 10);
 				CHECK(doCommand(ls, "bart:setName('Bart')"));
@@ -311,16 +305,15 @@ TEST_CASE("Root") {
 				if (ref) {
 					unregisterObject(ls, ref);
 				}
-				CHECK(registry[bart.get()].isNil());
 				globals.set("bart", nil);
 				CHECK(lua_gettop(ls) == 0);
 			}
 
+			// TODO Remove ?
 			SECTION("binding C++ object as table") {
 				auto       fred = std::make_unique<GameObject>();
 				const auto ref = registerObjectAsTable(ls, fred.get());
 				REQUIRE(ref.isValid());
-				CHECK(registry[fred.get()].isNil() == false);
 				globals.set("fred", fred.get());
 				CHECK(globals["fred"].getType() == LUA_TTABLE);
 				CHECK(doCommand(ls, "fred:setLives(20)"));
@@ -328,7 +321,6 @@ TEST_CASE("Root") {
 				CHECK(doCommand(ls, "fred:setName('Fred')"));
 				CHECK(fred->getName() == "Fred");
 				unregisterObject(ls, ref);
-				CHECK(registry[fred.get()].isNil() == true);
 				globals.set("fred", nil);
 				CHECK(lua_gettop(ls) == 0);
 			}
@@ -337,7 +329,7 @@ TEST_CASE("Root") {
 				auto       barney = std::make_unique<GameObject>();
 				const auto ref = registerObjectAsLightUserData(ls, barney.get());
 				REQUIRE(ref.isValid());
-				globals.set("barney", barney.get());
+				globals.set("barney", ref);
 				CHECK(globals["barney"].getType() == LUA_TLIGHTUSERDATA);
 
 				CHECK(doCommand(ls, "GameObject.setLives(barney, 20)"));
@@ -360,6 +352,11 @@ TEST_CASE("Root") {
 				CHECK(doCommand(ls, "obj = nil"));
 				CHECK(lua_gettop(ls) == 0);
 			}
+
+			SECTION("pushing C++ object to Lua") {
+				GameObject obj;
+				push(ls, obj);
+			}
 		}
 
 		SECTION("sub class") {
@@ -367,14 +364,13 @@ TEST_CASE("Root") {
 			const auto ref = registerObjectAsUserData(ls, biped.get());
 			REQUIRE(ref.isValid());
 			globals.set("subobj", ref);
-			const Biped* tmp2 = static_cast<const Biped*>(globals["subobj"]);
+			const Biped* tmp2 = globals["subobj"].asPtr<Biped>().value();
 			REQUIRE(tmp2);
-			CHECK(globals["subobj"].getType() == LUA_TUSERDATA);
-			doCommand(ls, "subobj:setLives(20)");
+			CHECK(doCommand(ls, "subobj:setLives(20)"));
 			CHECK(biped->getLives() == 20);
-			doCommand(ls, "subobj:setSpeed(30)");
+			CHECK(doCommand(ls, "subobj:setSpeed(30)"));
 			CHECK(biped->getSpeed() == 30.f);
-			doCommand(ls, "subobj:setName('Homer')");
+			CHECK(doCommand(ls, "subobj:setName('Homer')"));
 			CHECK(biped->getNameRef() == "Homer");
 
 			unregisterObject(ls, ref);
@@ -395,36 +391,35 @@ TEST_CASE("Root") {
 			CHECK(doCommand(ls, "human:setName('Rocky')"));
 			CHECK(human.getName() == "Rocky");
 
-			doCommand(ls, "energy = human:getEnergy()");
-			const float energy = (float)globals["energy"];
-			CHECK(energy == human.energy);
+			CHECK(doCommand(ls, "energy = human:getEnergy()"));
+			CHECK(globals["energy"].as<float>() == human.energy);
 
-			doCommand(ls, "energy = human:setEnergy(20)");
+			CHECK(doCommand(ls, "energy = human:setEnergy(20)"));
 			CHECK(20 == human.energy);
 
 			// C API
-			doCommand(ls, "Human.addEnergy(human, 10.)");
+			CHECK(doCommand(ls, "Human.addEnergy(human, 10.)"));
 		}
 
 		SECTION("temporaries") {
-			CHECK(doCommand(ls, "vec0 = Vec3.new(0., 1., 2.)"));
-			CHECK(doCommand(ls, "vec1 = Vec3.new(3., 4., 5.)"));
-			CHECK(doCommand(ls, "vec2 = Vec3.add(vec0, vec1)"));
-			const Vec3* vptr = static_cast<const Vec3*>(globals["vec0"]);
+			CHECK(doCommand(ls, "global vec0 = Vec3.new(0., 1., 2.)"));
+			CHECK(doCommand(ls, "global vec1 = Vec3.new(3., 4., 5.)"));
+			CHECK(doCommand(ls, "global vec2 = Vec3.add(vec0, vec1)"));
+			const Vec3* vptr = globals["vec0"].asPtr<Vec3>().value_or(nullptr);
 			REQUIRE(vptr);
 			if (vptr) {
 				CHECK(vptr->x == 0.);
 				CHECK(vptr->y == 1.);
 				CHECK(vptr->z == 2.);
 			}
-			const Vec3* v1ptr = static_cast<const Vec3*>(globals["vec1"]);
+			const Vec3* v1ptr = globals["vec1"].asPtr<Vec3>().value_or(nullptr);
 			REQUIRE(v1ptr);
 			if (v1ptr) {
 				CHECK(v1ptr->x == 3.);
 				CHECK(v1ptr->y == 4.);
 				CHECK(v1ptr->z == 5.);
 			}
-			const Vec3* v2ptr = static_cast<const Vec3*>(globals["vec2"]);
+			const Vec3* v2ptr = globals["vec2"].asPtr<Vec3>().value_or(nullptr);
 			REQUIRE(v2ptr);
 			if (v2ptr) {
 				CHECK(v2ptr->x == 3.);
@@ -432,10 +427,10 @@ TEST_CASE("Root") {
 				CHECK(v2ptr->z == 7.);
 			}
 #if TY_LUABIND_TYPE_SAFE
-			const Vec3* v = static_cast<const Vec3*>(globals["vec0"]);
+			const Vec3* v = globals["vec0"].asPtr<Vec3>().value_or(nullptr);
 			CHECK(v);
 			CHECK(! doCommand(ls, "Quat.setIdentity(vec0)"));
-			const Quat* q = static_cast<const Quat*>(globals["vec0"]);
+			const Quat* q = globals["vec0"].asPtr<Quat>().value_or(nullptr);
 			CHECK(q == nullptr);
 #endif
 		}
@@ -503,59 +498,56 @@ void bindTestClasses(lua_State* ls) {
 	LUA_BEGIN_BINDING(ls);
 
 	LUA_BEGIN_NAMESPACE(Globals);
-	LUA_ADD_FREE_FUNCTION(foo);
-	LUA_ADD_FREE_FUNCTION(foo2);
+	LUA_FUNCTION(foo);
+	LUA_FUNCTION(foo2);
 	LUA_END_NAMESPACE();
 
 	LUA_BEGIN_CLASS(GameObject);
-	LUA_SET_DEFAULT_NEW_OPERATOR();
-	LUA_ADD_METHOD(setName);
-	LUA_ADD_METHOD(getNameRef);
-	LUA_ADD_METHOD(getName);
-	LUA_ADD_METHOD(setLives);
-	LUA_ADD_METHOD(setWeapon);
-	LUA_ADD_METHOD(getLives);
-	LUA_ADD_METHOD(getWeapon);
-	LUA_ADD_METHOD(getState);
-	LUA_ADD_METHOD(setState);
-	LUA_ADD_OVERLOADED_METHOD(overloaded, void, float);
+	LUA_OBJ_ALLOCATOR(newGameObject, deleteGameObject);
+	LUA_METHOD(setName);
+	LUA_METHOD(getNameRef);
+	LUA_METHOD(getName);
+	LUA_METHOD(setLives);
+	LUA_METHOD(setWeapon);
+	LUA_METHOD(getLives);
+	LUA_METHOD(getWeapon);
+	LUA_METHOD(getState);
+	LUA_METHOD(setState);
+	LUA_METHOD_OVERLOAD(overloaded, void, float);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Biped, GameObject);
-	LUA_SET_DEFAULT_NEW_OPERATOR(float);
-	LUA_ADD_METHOD(getSpeed);
-	LUA_ADD_METHOD(setSpeed);
+	LUA_OBJ_ALLOCATOR(newBiped, deleteGameObject);
+	LUA_METHOD(getSpeed);
+	LUA_METHOD(setSpeed);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Human, Biped);
-	LUA_SET_DEFAULT_NEW_OPERATOR(float, float);
+	LUA_OBJ_ALLOCATOR(newHuman, deleteGameObject);
 	LUA_SETTER_GETTER(energy, setEnergy, getEnergy);
 	// C API
-	LUA_ADD_FUNCTION(addEnergy);
-	LUA_ADD_FUNCTION(getEnergy);
+	LUA_FUNCTION(addEnergy);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Vec2);
-	LUA_NEW_OPERATOR(newVec2);
-	LUA_ADD_FUNCTION(cross);
-	LUA_ADD_FREE_OPERATOR(sub, -);
+	LUA_OBJ_ALLOCATOR(newVec2, deleteVec2);
+	LUA_FUNCTION(cross);
+	LUA_FREE_OPERATOR(sub, -);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Vec3);
-	LUA_NEW_OPERATOR(newVec3);
-	LUA_ADD_FUNCTION(add);
-	LUA_ADD_FUNCTION(cross);
-	LUA_ADD_OPERATOR(add, +);
-	LUA_ADD_FREE_OPERATOR(sub, -);
+	LUA_OBJ_ALLOCATOR(newVec3, deleteVec3);
+	LUA_FUNCTION(cross);
+	LUA_OPERATOR(add, +);
+	LUA_FREE_OPERATOR(sub, -);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Quat);
-	LUA_ADD_FUNCTION(setIdentity);
+	LUA_FUNCTION(setIdentity);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_CLASS(Material);
-	LUA_NEW_OPERATOR(materialNew, float);
-	LUA_DELETE_OPERATOR(materialDestroy);
+	LUA_OBJ_ALLOCATOR(materialNew, materialDestroy);
 	LUA_FUNCTION_RENAMED(materialSetOpacity, setOpacity);
 	LUA_FUNCTION_RENAMED(materialGetOpacity, getOpacity);
 	LUA_END_CLASS();

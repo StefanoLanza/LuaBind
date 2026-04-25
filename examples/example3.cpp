@@ -7,6 +7,8 @@
 #include <iostream>
 #include <string>
 
+namespace {
+
 void bindClasses(lua_State* ls);
 void runExample(lua_State* ls);
 
@@ -20,23 +22,46 @@ enum class Weapon {
 	rifle = 1,
 };
 
+struct GameObjectMeta {
+	uint64_t    uid = 0;
+	std::string name;
+	std::string path;
+
+	const std::string& getName() const {
+		std::cout << "GameObjectMeta::getName" << std::endl;
+		return name;
+	}
+};
+
+struct PhysicsData; // example of third party API
+
+PhysicsData* allocPhysics() {
+	uintptr_t ptr = 0xdeafbeef;
+	return reinterpret_cast<PhysicsData*>(ptr);
+}
+
+float getMass(const PhysicsData* /*physics*/) {
+	return 10.f;
+}
+
 class GameObject {
 public:
 	GameObject()
-	    : state(GameObjectState::alive) {
+	    : state(GameObjectState::alive)
+	    , physics(allocPhysics()) {
 		std::cout << "GameObject::constructor" << std::endl;
 	}
 	virtual ~GameObject() {
-		std::cout << "GameObject::destructor (name: " << name << ")" << std::endl;
+		std::cout << "GameObject::destructor (name: " << metaData.name << ")" << std::endl;
 	}
 
 	void setName(std::string v) {
 		std::cout << "GameObject::setName (arg: " << v << ")" << std::endl;
-		name = std::move(v);
+		metaData.name = std::move(v);
 	}
 	const std::string& getName() const {
 		std::cout << "GameObject::getName" << std::endl;
-		return name;
+		return metaData.name;
 	}
 	GameObjectState getState() const {
 		std::cout << "GameObject::getState" << std::endl;
@@ -46,20 +71,27 @@ public:
 		std::cout << "GameObject::setState" << std::endl;
 		state = s;
 	}
+	const GameObjectMeta& getMeta() const {
+		return metaData;
+	}
+	PhysicsData* getPhysics() const {
+		return physics;
+	}
 
 protected:
-	std::string     name;
+	GameObjectMeta  metaData;
 	GameObjectState state;
+	PhysicsData*    physics;
 };
 
-class Human : public GameObject {
+class Human final : public GameObject {
 public:
 	Human()
 	    : weapon(Weapon::hand) {
 		std::cout << "Human::constructor" << std::endl;
 	}
 	~Human() {
-		std::cout << "Human::destructor (name: " << name << ")" << std::endl;
+		std::cout << "Human::destructor (name: " << metaData.name << ")" << std::endl;
 	}
 	Weapon getWeapon() const {
 		return weapon;
@@ -72,14 +104,14 @@ private:
 	Weapon weapon;
 };
 
-class Monster : public GameObject {
+class Monster final : public GameObject {
 public:
 	Monster()
 	    : hunger(0) {
 		std::cout << "Monster::constructor" << std::endl;
 	}
 	~Monster() {
-		std::cout << "Monster::destructor (name: " << name << ")" << std::endl;
+		std::cout << "Monster::destructor (name: " << metaData.name << ")" << std::endl;
 	}
 	float getHunger() const {
 		return hunger;
@@ -92,19 +124,43 @@ private:
 	float hunger;
 };
 
+Human* newHuman() {
+	return new Human;
+}
+
+Monster* newMonster() {
+	return new Monster;
+}
+
+void deleteGameObject(GameObject* obj) {
+	delete obj;
+}
+
 const char* script = R"(
 	-- Create an object in Lua directly
---	local luaHuman = Human.new()
---	luaHuman:setName("luaHuman")
---	local name = luaHuman:getName()
---	print ("luaHuman name:"..name)
+	local luaHuman = Human.new()
+	luaHuman:setName("luaHuman")
+	local name = luaHuman:getName()
+	print ("luaHuman name:"..name)
+
+	local weapon_hand = 0
+	local weapon_rifle = 1
 
 	-- cppHuman and cppMonster were created by native code and bound to Lua
 
 	-- cppMonster is a user data
 	assert(type(cppHuman) == "userdata")
-	local name = cppHuman:getName()
+	local meta = cppHuman:getMeta()
+	assert(type(meta) == "userdata")
+	local name = meta:getName()
 	print ("cppHuman name:"..name)
+	cppHuman:setWeapon(weapon_rifle)
+	local weapon = cppHuman:getWeapon()
+	print ("cppHuman weapon:"..weapon)
+	local humanBody = cppHuman:getPhysics()
+	assert(type(humanBody) == "userdata" or type(humanBody) == "nil")
+	local mass = physics.getMass(humanBody)
+	print ("cppHuman mass:"..mass)
 
 	-- cppMonster is a table
 	assert(type(cppMonster) == "table")
@@ -118,16 +174,20 @@ const char* script = R"(
 	cppMonster.preys = { cppHuman, luaHuman }
 )";
 
+} // namespace
+
 int main(int /*argc*/, char* /*argv*/[]) {
 	std::cout << "LuaBind version: " << LuaBind::getVersionString() << std::endl;
 	Typhoon::HeapAllocator heapAllocator;
-	const auto ls = LuaBind::createState(heapAllocator);
+	const auto             ls = LuaBind::createState(heapAllocator);
 	bindClasses(ls);
 	runExample(ls);
 	LuaBind::closeState(ls);
 
 	return 0;
 }
+
+namespace {
 
 void runExample(lua_State* ls) {
 	using namespace LuaBind;
@@ -140,7 +200,7 @@ void runExample(lua_State* ls) {
 	obj1.setName("cppMonster");
 
 	// Expose cpp object to Lua as a full userdata
-	const Reference ref0 { registerObjectAsUserData(ls, &obj0)/*, ls*/ };
+	const Reference ref0 { registerObjectAsUserData(ls, &obj0) };
 	getGlobals(ls).rawSet("cppHuman", ref0);
 
 	// Expose cpp object to Lua as a table. This way, in Lua we can associate custom elements to the object
@@ -148,7 +208,7 @@ void runExample(lua_State* ls) {
 	getGlobals(ls).rawSet("cppMonster", ref1);
 
 	if (Result res = doCommand(ls, script); ! res) {
-		std::cout << res.getErrorMessage() << std::endl;
+		std::cout << res.error() << std::endl;
 	}
 
 	// Unregister objects
@@ -159,24 +219,36 @@ void runExample(lua_State* ls) {
 void bindClasses(lua_State* ls) {
 	LUA_BEGIN_BINDING(ls);
 
+	LUA_BEGIN_CLASS(GameObjectMeta);
+	LUA_METHOD(getName);
+	LUA_END_CLASS();
+
 	LUA_BEGIN_CLASS(GameObject);
-	LUA_ADD_METHOD(setName);
-	LUA_ADD_METHOD(getName);
-	LUA_ADD_METHOD(getState);
-	LUA_ADD_METHOD(setState);
+	LUA_METHOD(setName);
+	LUA_METHOD(getName);
+	LUA_METHOD(getState);
+	LUA_METHOD(setState);
+	LUA_METHOD(getMeta);
+	LUA_METHOD(getPhysics);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Human, GameObject);
-	LUA_SET_DEFAULT_NEW_OPERATOR();
-	LUA_ADD_METHOD(setWeapon);
-	LUA_ADD_METHOD(getWeapon);
+	LUA_OBJ_ALLOCATOR(newHuman, deleteGameObject);
+	LUA_METHOD(setWeapon);
+	LUA_METHOD(getWeapon);
 	LUA_END_CLASS();
 
 	LUA_BEGIN_SUB_CLASS(Monster, GameObject);
-	LUA_SET_DEFAULT_NEW_OPERATOR();
-	LUA_ADD_METHOD(setHunger);
-	LUA_ADD_METHOD(getHunger);
+	LUA_OBJ_ALLOCATOR(newMonster, deleteGameObject);
+	LUA_METHOD(setHunger);
+	LUA_METHOD(getHunger);
 	LUA_END_CLASS();
+
+	LUA_BEGIN_NAMESPACE(physics);
+	LUA_FUNCTION(getMass);
+	LUA_END_NAMESPACE();
 
 	LUA_END_BINDING();
 }
+
+} // namespace

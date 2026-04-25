@@ -8,10 +8,10 @@ namespace Typhoon::LuaBind {
 class Reference {
 public:
 	constexpr Reference()
-	    : value(LUA_NOREF) {
+	    : value { LUA_NOREF } {
 	}
 	explicit Reference(int value)
-	    : value(value) {
+	    : value { value } {
 	}
 
 	int getValue() const {

@@ -7,8 +7,6 @@
 
 namespace Typhoon::LuaBind {
 
-class Value;
-
 struct TableKeyValue {
 	Value key;
 	Value value;

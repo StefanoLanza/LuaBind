@@ -4,7 +4,6 @@
 #include "detail.h"
 #include "table.h"
 #include <cassert>
-#include <unordered_map>
 
 namespace Typhoon::LuaBind::detail {
 
@@ -14,7 +13,7 @@ namespace {
 void registerClassInGlobals(lua_State* ls, const char* className, int metatableIndex) {
 	AutoBlock autoBlock(ls);
 
-	// globals[classname] = methodsIndex
+	// globals[classname] = metatableIndex
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
 	lua_pushstring(ls, className);
 	lua_pushvalue(ls, metatableIndex);
@@ -108,8 +107,8 @@ void registerNewAndDeleteOperators(lua_State* ls, int tableIndex, lua_CFunction 
 
 	lua_getmetatable(ls, tableIndex); // mt
 	assert(lua_istable(ls, -1));
-	lua_pushcfunction(ls, wrapDelete); // mt, deleteFunction
-	lua_setfield(ls, -2, "__gc");      // mt.__gc = deleteFunction
+	lua_pushcfunction(ls, wrapDelete); // mt, wrapDelete
+	lua_setfield(ls, -2, "__gc");      // mt.__gc = wrapDelete
 }
 
 int registerLuaClass(lua_State* ls) {
@@ -150,7 +149,7 @@ bool isAllocatedByLua(lua_State* ls, int userDataStackIndex) {
 	if (! lua_isuserdata(ls, userDataStackIndex)) {
 		return 0; // object registered as table
 	}
-	if (lua_getiuservalue(ls, userDataStackIndex, 1) != LUA_TNONE) {
+	if (lua_getiuservalue(ls, userDataStackIndex, 2) != LUA_TNONE) {
 		assert(lua_tointeger(ls, -1) == kLuaAllocated);
 		res = true;
 	}

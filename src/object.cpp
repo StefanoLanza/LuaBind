@@ -5,8 +5,8 @@
 namespace Typhoon::LuaBind {
 
 Object::Object(lua_State* ls, Reference ref)
-    : ls(ls)
-    , ref(ref.getValue()) {
+    : ls { ls }
+    , ref { ref.getValue() } {
 	assert(ref.isValid());
 }
 
@@ -16,8 +16,8 @@ bool Object::hasMethod(const char* func) const {
 
 	// Push self
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
+	assert(lua_isuserdata(ls, -1) || lua_istable(ls, -1));
 	const int stackIndex = lua_gettop(ls);
-	assert(lua_isuserdata(ls, stackIndex) || lua_istable(ls, stackIndex));
 
 	// Get function from the object's table
 	lua_getfield(ls, stackIndex, func);
@@ -29,7 +29,7 @@ Result Object::callMethod(const char* func) const {
 
 	const auto [validCall, resStackIndex] = beginCall(func);
 	if (! validCall) {
-		return Result { false };
+		return UNEXPECTED("Invalid call");
 	}
 	return callMethodImpl(0, 0);
 }
@@ -64,14 +64,13 @@ Result Object::callMethodImpl(int narg, int nres) const {
 	// arg1
 	// ..
 	// argn     (-1)
-
 	const int lres = lua_pcall(ls, 1 + narg, nres, 0);
-	Result    res(true);
-	if (0 != lres) {
-		res = Result { lua_tostring(ls, -1) };
+	if (lres == 0) {
+		return {};
 	}
-
-	return res;
+	else {
+		return UNEXPECTED(lua_tostring(ls, -1));
+	}
 }
 
 } // namespace Typhoon::LuaBind

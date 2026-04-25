@@ -9,7 +9,7 @@
 namespace Typhoon::LuaBind::detail {
 
 template <typename retType, typename... argTypes, std::size_t... argIndices>
-int freeFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, argIndices...> indx) {
+int freeFunctionWrapperImpl(lua_State* ls, std::index_sequence<argIndices...> indx) {
 	// Extract function pointer from Lua user data
 	using func_ptr = retType (*)(argTypes...);
 	const void* const func_ud = lua_touserdata(ls, lua_upvalueindex(1));
@@ -17,7 +17,7 @@ int freeFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, ar
 
 	// Get stack size of all arguments
 	// Because of C++ rules, by creating an array GetStackSize is called in the correct order for each argument
-	constexpr int argStackSize[] = { Wrapper<argTypes>::stackSize..., 0 };
+	constexpr int argStackSize[] = { Wrapper<argTypes>::getStackSize()..., 0 };
 
 	// Compute stack indices
 	int argStackIndex[sizeof...(argTypes) + 1] = {};
@@ -36,7 +36,7 @@ int freeFunctionWrapperImpl(lua_State* ls, std::integer_sequence<std::size_t, ar
 	}
 	else {
 		Wrapper<retType>::push(ls, func(Wrapper<argTypes>::pop(ls, argStackIndex[argIndices])...));
-		return Wrapper<retType>::stackSize;
+		return Wrapper<retType>::getStackSize();
 	}
 }
 
@@ -47,13 +47,19 @@ int freeFunctionWrapper(lua_State* ls) {
 
 template <typename retType, typename... argType>
 inline void registerFunction(lua_State* ls, retType (*functionPtr)(argType...), const char* functionName, int tableStackIndex) {
+#ifdef _DEBUG
+	lua_pushstring(ls, functionName);
+	lua_gettable(ls, tableStackIndex);
+	assert(lua_isnil(ls, -1)); // function with the same already registered
+	lua_pop(ls, 1);
+#endif
 	lua_pushstring(ls, functionName);
 	lua_CFunction luaFunc = freeFunctionWrapper<retType, argType...>;
 	pushFunctionAsUpvalue(ls, luaFunc, &functionPtr, sizeof(functionPtr));
 	lua_settable(ls, tableStackIndex);
 }
 
-// Pick the overload with the first argument matching the bound class
+// Pick the overload whose first argument matches the bound class
 template <typename T>
 struct Overload {
 	template <typename retType, typename... argType>
@@ -74,6 +80,19 @@ struct Overload {
 	}
 	template <typename retType, typename... argType>
 	static auto resolve(retType(func)(const T& self, argType...)) {
+		return func;
+	}
+	template <typename retType, typename... argType>
+	static auto resolve(retType(func)(argType...)) {
+		return func;
+	}
+};
+
+// Used for namespaces, which have no class bound
+template <>
+struct Overload<void> {
+	template <typename retType, typename... argType>
+	static auto resolve(retType(func)(argType...)) {
 		return func;
 	}
 };

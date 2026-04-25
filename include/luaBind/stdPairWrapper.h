@@ -9,11 +9,13 @@ namespace Typhoon::LuaBind {
 template <typename T1, typename T2>
 class Wrapper<std::pair<T1, T2>> {
 	using pairType = std::pair<T1, T2>;
-public:
-	static constexpr int stackSize = Wrapper<T1>::stackSize + Wrapper<T2>::stackSize;
 
+public:
+	static constexpr int getStackSize() {
+		return Wrapper<T1>::getStackSize() + Wrapper<T2>::getStackSize();
+	}
 	static int match(lua_State* ls, int idx) {
-		const int idx2 = idx + Wrapper<T1>::stackSize;
+		const int idx2 = idx + Wrapper<T1>::getStackSize();
 		return Wrapper<T1>::match(ls, idx) && Wrapper<T2>::match(ls, idx2);
 	}
 	static void push(lua_State* ls, const pairType& pair) {
@@ -21,7 +23,7 @@ public:
 		Wrapper<T2>::push(ls, pair.second);
 	}
 	static pairType pop(lua_State* ls, int idx) {
-		const int idx2 = idx + Wrapper<T1>::stackSize;
+		const int idx2 = idx + Wrapper<T1>::getStackSize();
 		return { Wrapper<T1>::pop(ls, idx), Wrapper<T2>::pop(ls, idx2) };
 	}
 };

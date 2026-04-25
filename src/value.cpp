@@ -2,21 +2,20 @@
 #include "context.h"
 #include "stackUtils.h"
 #include "table.h"
-#include "typeSafefy.h"
 #include <cassert>
 
 namespace Typhoon::LuaBind {
 
 Value::Value(lua_State* ls, StackIndex stackIndex)
-    : ls(ls) {
+    : ls { ls } {
 	// Create and store a reference to the value on the stack
 	lua_pushvalue(ls, stackIndex.getIndex());
 	ref = luaL_ref(ls, LUA_REGISTRYINDEX);
 }
 
 Value::Value(Value&& value) noexcept
-    : ls(value.ls)
-    , ref(value.ref) {
+    : ls { value.ls }
+    , ref { value.ref } {
 	value.ref = LUA_NOREF;
 }
 
@@ -42,104 +41,157 @@ int Value::getType() const {
 }
 
 bool Value::isNil() const {
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	const bool isNil = lua_isnil(ls, -1);
-	lua_pop(ls, 1);
-	return isNil;
+	return getType() == LUA_TNIL;
 }
 
-bool Value::cast(int& value) const {
+std::optional<Nil> Value::asNil() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = toInteger(ls, -1, value);
+	if (! lua_isnil(ls, -1)) {
+		lua_pop(ls, 1);
+		return std::nullopt;
+	}
 	lua_pop(ls, 1);
-	return res;
+	return Nil {};
 }
 
-bool Value::cast(double& value) const {
+std::optional<bool> Value::asBool() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = toDouble(ls, -1, value);
+	if (lua_isboolean(ls, -1)) {
+		bool b = lua_toboolean(ls, -1) ? true : false;
+		lua_pop(ls, 1);
+		return b;
+	}
 	lua_pop(ls, 1);
-	return res;
+	return std::nullopt;
 }
 
-bool Value::cast(float& value) const {
+std::optional<lua_Integer> Value::asInteger() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = toFloat(ls, -1, value);
+	lua_Integer i = lua_tointeger(ls, -1);
+	if (i != 0 || lua_isinteger(ls, -1)) { /* avoid extra test when d is not 0 */
+		lua_pop(ls, 1);
+		return i;
+	}
 	lua_pop(ls, 1);
-	return res;
+	return std::nullopt;
 }
 
-bool Value::cast(std::string& str) const {
+std::optional<lua_Number> Value::asNumber() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = toString(ls, -1, str);
+	// Note: lua_isnumber returns true for strings that can be converted to a number
+	if (lua_isnumber(ls, -1)) {
+	//if (lua_type(ls, -1) == LUA_TNUMBER) {
+		lua_Number d = lua_tonumber(ls, -1);
+		lua_pop(ls, 1);
+		return d;
+	}
 	lua_pop(ls, 1);
-	return res;
+	return std::nullopt;
 }
 
-bool Value::cast(const char*& str) const {
+std::optional<const char*> Value::asString() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = toString(ls, -1, str);
+	// Note: lua_isstring returns true for numbers that can be converted to a string
+	if (lua_isstring(ls, -1)) {
+	//if (lua_type(ls, -1) == LUA_TSTRING) {
+		const char* str = lua_tostring(ls, -1);
+		lua_pop(ls, 1);
+		return str;
+	}
 	lua_pop(ls, 1);
-	return res;
+	return std::nullopt;
 }
 
-bool Value::cast(bool& value) const {
+std::optional<void*> Value::asUserData() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = toBool(ls, -1, value);
-	lua_pop(ls, 1);
-	return res;
-}
-
-bool Value::cast(void*& ptr) const {
-	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = false;
-	ptr = nullptr;
 	const int luaType = lua_type(ls, -1);
 	if (luaType == LUA_TLIGHTUSERDATA) {
-		ptr = lua_touserdata(ls, -1);
-		res = true;
+		void* ptr = lua_touserdata(ls, -1);
+		lua_pop(ls, 1);
+		return ptr;
 	}
 	else if (luaType == LUA_TUSERDATA) {
+		void* ptr = nullptr;
 		std::memcpy(&ptr, lua_touserdata(ls, -1), sizeof ptr);
-		res = true;
+		lua_pop(ls, 1);
+		return ptr;
 	}
+	// Not a userdata
 	lua_pop(ls, 1);
-	return res;
+	return std::nullopt;
 }
 
-bool Value::cast(Table& table) const {
+std::optional<Table> Value::asTable() const {
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = false;
 	if (lua_istable(ls, -1)) {
-		table = Table(ls, topStackIndex);
-		res = true;
+		Table table = Table(ls, topStackIndex);
+		lua_pop(ls, 1);
+		return table;
 	}
+	// Not a table
 	lua_pop(ls, 1);
-	return res;
+	return std::nullopt;
 }
 
-bool Value::cast(void*& userData, [[maybe_unused]] TypeId typeId) const {
+std::optional<void*> Value::toPtrChecked([[maybe_unused]] TypeId typeId) const {
+	void* ud = nullptr;
 	lua_rawgeti(ls, LUA_REGISTRYINDEX, ref);
-	bool res = false;
-	userData = nullptr;
 	const int luaType = lua_type(ls, -1);
-	if (luaType == LUA_TLIGHTUSERDATA) {
-		userData = lua_touserdata(ls, -1);
+	bool      res = false;
+	if (luaType == LUA_TNIL) {
+		// Nil represents a null ptr
 	}
-	else if (luaType == LUA_TUSERDATA) {
-		std::memcpy(&userData, lua_touserdata(ls, -1), sizeof userData);
-	}
-	lua_pop(ls, 1);
-	if (userData) {
-		res = true;
+	else if (luaType == LUA_TLIGHTUSERDATA) {
+		ud = lua_touserdata(ls, -1);
 #if TY_LUABIND_TYPE_SAFE
-		if (! detail::tryCheckPointerType(ls, userData, typeId)) {
-			userData = nullptr;
-			res = false;
-		}
+		res = detail::checkPointerType(ls, ud, typeId);
+#endif
+#ifdef _DEBUG
+		detail::checkDanglingPointer(ls, ud, -1);
+		ud = undecoratePointer(ud);
 #endif
 	}
-	return res;
+	else if (luaType == LUA_TUSERDATA) {
+		std::memcpy(&ud, lua_touserdata(ls, -1), sizeof ud);
+#if TY_LUABIND_TYPE_SAFE
+		lua_getiuservalue(ls, -1, 1);
+		assert(! lua_isnil(ls, -1));
+		TypeId ptrTypeId;
+		ptrTypeId.impl = reinterpret_cast<const void*>(lua_tointeger(ls, -1));
+		res = detail::compatibleTypes(ls, ptrTypeId, typeId);
+		lua_pop(ls, 1);
+#else
+		res = true;
+#endif
+	}
+	else if (luaType == LUA_TTABLE) {
+		// Pointer as _ptr field of a table
+		lua_getfield(ls, -1, "_ptr");
+		ud = lua_touserdata(ls, -1);
+		lua_pop(ls, 1); // _ptr
+		if (ud) {
+#if TY_LUABIND_TYPE_SAFE
+			lua_getfield(ls, -1, "_typeid");
+			assert(lua_islightuserdata(ls, -1));
+			TypeId ptrTypeId;
+			ptrTypeId.impl = lua_touserdata(ls, -1);
+			lua_pop(ls, 1);
+			res = detail::compatibleTypes(ls, ptrTypeId, typeId);
+#else
+			res = true;
+#endif
+		}
+		else {
+			res = false; // table does not represent a pointer
+		}
+	}
+	// else invalid Lua type
+
+	lua_pop(ls, 1); // lua_rawgeti
+	if (res) {
+		return ud;
+	}
+	return std::nullopt;
 }
 
 } // namespace Typhoon::LuaBind

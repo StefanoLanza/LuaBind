@@ -10,37 +10,48 @@ newoption {
 }
 
 -- Global settings
-local workspacePath = path.join("build/", _ACTION)  -- e.g. build/vs2019
+local workspacePath = path.join("build/", _ACTION)  -- e.g. build/vs2022
 
 -- Filters
-local filter_vs = "action:vs*"
 local filter_gcc = "toolset:gcc"
 local filter_clang = "toolset:clang"
-local filter_xcode = "action:xcode*"
+local filter_windows = "system:windows"
+local filter_msvc = "toolset:msc*"
 local filter_gmake = "action:gmake*"
 local filter_x86 = "platforms:x86"
-local filter_x64 = "platforms:x86_64"
+local filter_x64 = "platforms:x64"
 local filter_debug =  "configurations:Debug*"
 local filter_release =  "configurations:Release*"
 
-workspace ("Typhoon-LuaBind")
+workspace ("LuaBind")
 configurations { "Debug", "Release" }
-platforms { "x86", "x86_64" }
+platforms { "x86", "x64" }
 language "C++"
+cppdialect "c++20"
 location (workspacePath)
 characterset "MBCS"
-flags   { "MultiProcessorCompile", }
-startproject "UnitTest"
+enablepch "Off"
+multiprocessorcompile "On"
+manifest "Off"
 exceptionhandling "Off"
-defines { "TY_LUABIND_TYPE_SAFE=1", }
-cppdialect "c++17"
 rtti "Off"
+startproject "UnitTest"
+defines { "TY_LUABIND_TYPE_SAFE=1", }
 
-filter { filter_vs }
+-- A small helper to rename x86_64 to x64
+function get_arch()
+    return "%{cfg.architecture == 'x86_64' and 'x64' or cfg.architecture}"
+end
+
+-- Binaries e.g. build/vs2022/bin/x64/Release/UnitTest.exe
+targetdir (workspacePath .. "/bin/" .. get_arch() .. "/%{cfg.buildcfg}")
+
+filter { filter_msvc }
 	buildoptions
 	{
 		"/permissive-",
 		"/Zc:preprocessor",  -- support for __VA_OPT__ in C++20
+		"/Zc:__cplusplus",   -- __cplusplus will now report 202002L (for C++20)
 	}
 	system "Windows"
 	defines {
@@ -50,22 +61,16 @@ filter { filter_vs }
 		"_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1", 
 	}
 
-filter { filter_xcode }
-	system "macosx"
-	systemversion("10.12") -- MACOSX_DEPLOYMENT_TARGET
-
 filter { filter_x86 }
 	architecture "x86"
 	  
 filter { filter_x64 }
 	architecture "x86_64"
 	
-filter { filter_vs }
-
-filter { filter_vs, filter_x86, }
+filter { filter_windows, filter_x86, }
 	defines { "WIN32", "_WIN32", }
 
-filter { filter_vs, filter_x64, }
+filter { filter_windows, filter_x64, }
 	defines { "WIN64", "_WIN64", }
 
 filter { filter_clang, filter_debug, }
@@ -76,10 +81,11 @@ filter { filter_clang, filter_debug, }
 		"/fsanitize=address",
 	}
 	-- Turn off incompatible options
-	flags { "NoIncrementalLink", "NoRuntimeChecks", }
+	incrementallink "Off"
+	runtimechecks "Off"
 	editAndContinue "Off"
 
-filter { filter_vs, filter_release, }
+filter { filter_msvc, filter_release, }
 	defines { "_ITERATOR_DEBUG_LEVEL=0", "_SECURE_SCL=0", }
 
 filter { filter_gcc }
@@ -88,8 +94,7 @@ filter { filter_gcc }
 
 filter { filter_debug }
 	defines { "_DEBUG", "DEBUG", }
-	flags   { "NoManifest", }
-	optimize("Off")
+	optimize "Off"
 	inlining "Default"
 	warnings "Extra"
 	symbols "Full"
@@ -97,75 +102,63 @@ filter { filter_debug }
 
 filter { filter_release }
 	defines { "NDEBUG", }
-	flags   { "NoManifest", "LinkTimeOptimization", "NoBufferSecurityCheck", "NoRuntimeChecks", }
-	optimize("Full")
+	buffersecuritycheck "off"
+	runtimechecks "Off"
+	optimize "Full"
 	inlining "Auto"
 	warnings "Extra"
 	symbols "Off"
 	runtime "Release"
+	linktimeoptimization "On"
 
-filter {}
+filter {} -- clear filters
 
-project("Lua")
-	kind "StaticLib"
-	files { "external/lua/src/*.c", "external/lua/src/*.h", }
-	excludes { "external/lua/src/luac.c", "external/lua/src/lua.c", } 
-
-project("Core")
-	kind "StaticLib"
-	files { "external/core/**.cpp", "external/core/**.h", }
-	externalincludedirs { "./", "external", }
-
-project("LuaBind")
-	kind "StaticLib"
-	files { "src/**.cpp", "src/**.h", "src/**.inl", "include/luaBind/**.h", "include/luaBind/**.inl", }
-	externalincludedirs { "./", "external", "include/luaBind", }
-	links({"Core", "Lua"})
+require "luaBind"
 
 if _OPTIONS["with-examples"] then
-	project("Example1")
+	project "Example1"
 		kind "ConsoleApp"
 		files "examples/example1.cpp"
-		externalincludedirs { "./", "external", "include", }
-		links({"LuaBind", })
+		uses {"LuaBind", }
 		filter { filter_gmake }
 			links({"Core", "Lua"})
 		filter {}
 
-	project("Example2")
+	project "Example2"
 		kind "ConsoleApp"
 		files "examples/example2.cpp"
-		externalincludedirs { "./", "external", "include", }
-		links({"LuaBind", })
+		uses {"LuaBind", }
 		filter { filter_gmake }
 			links({"Core", "Lua"})
 		filter {}
 
-	project("Example3")
+	project "Example3"
 		kind "ConsoleApp"
 		files "examples/example3.cpp"
-		externalincludedirs { "./", "external", "include", }
-		links({"LuaBind", })
+		uses {"LuaBind", }
 		filter { filter_gmake }
 			links({"Core", "Lua"})
 		filter {}
 
-	project("Example4")
+	project "Example4"
 		kind "ConsoleApp"
 		files "examples/example4.cpp"
-		externalincludedirs { "./", "external", "include", }
-		links({"LuaBind", })
+		uses {"LuaBind", }
 		filter { filter_gmake }
 			links({"Core", "Lua"})
 		filter {}
 end
 
 if _OPTIONS["with-tests"] then
-	project("UnitTest")
+		project("Catch")
+		kind "StaticLib"
+		files { "external/Catch/*.cpp", "external", "external/Catch/*.hpp", } 
+		includedirs { "external/Catch", }	
+		project("UnitTest")
 		kind "ConsoleApp"
 		files "test/*.*"
-		externalincludedirs { "./", "external", "include", }
-		links({"LuaBind", })
+		links({"Catch",})
+		uses({"LuaBind", })
 		filter { filter_gmake }
 			links({"Core", "Lua"})
 		filter {}

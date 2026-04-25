@@ -1,14 +1,15 @@
 #pragma once
 
+#include "detail.h"
 #include "nil.h"
 #include "reference.h"
 #include "stackIndex.h"
-#include "typeSafefy.h"
+
 #include <cassert>
 #include <cstring>
 #include <limits>
-#include <lua/src/lua.hpp>
 #include <string>
+#include <type_traits>
 
 #if __cplusplus >= 202002L
 #include <concepts>
@@ -16,49 +17,73 @@
 
 namespace Typhoon::LuaBind {
 
-namespace detail {
-
+// Traits
 template <class T>
-T* allocTemporary(lua_State* ls);
-
-template <typename...>
-struct always_false {
-	static constexpr bool value = false;
-};
-
-} // namespace detail
-
-template <class T, class... ArgTypes>
-inline T* newTemporary(lua_State* ls, ArgTypes... args);
+inline constexpr bool isLightweight = false;
 
 // typename = void is used for specializations based on std::enable_if. See the enum specialization
+// Generic wrapper
 template <class T, typename = void>
 class Wrapper {
 public:
-	// Traits
-	static constexpr int stackSize = 0; // undefined
+	static constexpr int getStackSize() {
+		return 1;
+	}
 
-	static int match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
-		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
-		return 0;
+	static int match(lua_State* ls, int idx) {
+		// TODO Check isLightweight<T> ?
+		return lua_isuserdata(ls, idx);
 	}
-	static void pushAsKey([[maybe_unused]] lua_State* ls, T) {
-		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
+
+	static void push(lua_State* ls, const T& value) {
+		// Alloc and construct a copy of value
+		T* const ptr = detail::allocTemporary<T>(ls, value);
+		// Push copy as either light or full userdata, based on trait isLightweight<T>
+		Wrapper<T*>::push(ls, ptr);
 	}
-	static void push([[maybe_unused]] lua_State* ls, T) {
-		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
-	}
-	static T pop([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
-		static_assert(detail::always_false<T>::value, "Not implemented. Specialize Wrapper for this type.");
-		return {};
+
+	static const T& pop(lua_State* ls, int idx) {
+		void* userData = lua_touserdata(ls, idx);
+		assert(userData);
+
+		T* ptr = nullptr;
+		if (lua_islightuserdata(ls, idx)) {
+#if TY_LUABIND_TYPE_SAFE
+			if (! detail::checkPointerType(ls, userData, getTypeId<T>())) {
+				luaL_argerror(ls, idx, "Invalid pointer type");
+			}
+#endif
+			ptr = static_cast<T*>(userData);
+		}
+		else {
+			std::memcpy(&ptr, userData, sizeof ptr);
+
+#if TY_LUABIND_TYPE_SAFE
+			// Check type. For userdata, type is embedded as uservalue
+			lua_getiuservalue(ls, idx, 1);
+			assert(! lua_isnil(ls, -1));
+			TypeId ptrTypeId;
+			ptrTypeId.impl = reinterpret_cast<const void*>(lua_tointeger(ls, -1));
+			if (! detail::compatibleTypes(ls, ptrTypeId, getTypeId<T>())) {
+				luaL_argerror(ls, idx, "Invalid pointer type");
+				// ptr = nullptr;
+			}
+#endif
+		}
+#ifdef _DEBUG
+		detail::checkDanglingPointer(ls, ptr, idx);
+		ptr = undecoratePointer(ptr);
+#endif
+		return *ptr;
 	}
 };
 
 template <>
 class Wrapper<Nil> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_isnil(ls, idx);
 	}
@@ -74,13 +99,14 @@ public:
 };
 
 template <class I>
-#if __cplusplus >= 202002L
+#if defined(__cpp_concepts) && __cpp_concepts >= 201907L
 requires std::integral<I>
 #endif
-class IntegerWrapper {
+    class IntegerWrapper {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_isinteger(ls, idx);
 	}
@@ -100,13 +126,14 @@ public:
 };
 
 template <class F>
-#if __cplusplus >= 202002L
+#if defined(__cpp_concepts) && __cpp_concepts >= 201907L
 requires std::floating_point<F>
 #endif
-class FloatWrapper {
+    class FloatWrapper {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_isnumber(ls, idx);
 	}
@@ -160,8 +187,9 @@ class Wrapper<float> : public FloatWrapper<float> {};
 template <>
 class Wrapper<bool> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_isboolean(ls, idx);
 	}
@@ -176,8 +204,9 @@ public:
 template <>
 class Wrapper<const char*> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_type(ls, idx) == LUA_TSTRING;
 	}
@@ -194,47 +223,94 @@ public:
 
 // C literal string
 template <size_t Size>
-class Wrapper<const char(&)[Size]> : public Wrapper<const char*> {};
+class Wrapper<const char (&)[Size]> : public Wrapper<const char*> {};
 
-//! Raw pointer wrapper
+// Raw pointer wrapper
 template <class T>
 class Wrapper<T*> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		const int luaType = lua_type(ls, idx);
 		return (luaType == LUA_TLIGHTUSERDATA || luaType == LUA_TUSERDATA || luaType == LUA_TTABLE || luaType == LUA_TNIL);
 	}
 
 	static void pushAsKey(lua_State* ls, T* ptr) {
-		lua_pushlightuserdata(ls, const_cast<non_const_ptr>(ptr));
-	}
-
-	static void push(lua_State* ls, T* ptr) {
 		if (ptr) {
-			// Remove const from pointer type
-			void* const ud = const_cast<non_const_ptr>(ptr);
-
-			// Get userdata/table associated with the pointer from registry
-			lua_pushlightuserdata(ls, ud);
-			lua_rawget(ls, LUA_REGISTRYINDEX);
-			if (lua_isnil(ls, -1)) {
-				// The ptr is not registered
-				// Return it as light user data
-				lua_pop(ls, 1);
-				lua_pushlightuserdata(ls, ud);
-
-#if TY_LUABIND_TYPE_SAFE
-				detail::registerPointer(ls, ptr);
-#endif
-			}
-			else {
-				// The ptr has been registered. Return it
-			}
+			lua_pushlightuserdata(ls, const_cast<non_const_ptr>(ptr));
 		}
 		else {
 			lua_pushnil(ls);
+		}
+	}
+
+	static void push(lua_State* ls, T* ptr) {
+		if (! ptr) {
+			lua_pushnil(ls);
+			return;
+		}
+
+		if constexpr (std::is_void_v<T>) {
+			// void*, push ptr as light user data
+			lua_pushlightuserdata(ls, ptr);
+#if TY_LUABIND_TYPE_SAFE
+			detail::registerTemporaryPointer(ls, ptr, getTypeId<void>());
+#endif
+		}
+		else if constexpr (isLightweight<T>) {
+			// lightweight type, push ptr as light user data
+			lua_pushlightuserdata(ls, ptr);
+#if TY_LUABIND_TYPE_SAFE
+			detail::registerTemporaryPointer(ls, ptr, getTypeId<T>());
+#endif
+		}
+		else {
+			// Embed ptr into full user data
+
+			const TypeId      typeId = getTypeId<T>();
+			const lua_Integer ptrKey = detail::makePointerKey(ptr, typeId);
+
+			// Get userdata/table associated with the pointer from registry
+			lua_pushinteger(ls, ptrKey);
+			lua_rawget(ls, LUA_REGISTRYINDEX);
+			if (lua_isnil(ls, -1)) {
+				// The ptr is not cached
+				lua_pop(ls, 1);
+
+				// Lookup class metatable in registry
+				const TypeName typeName = typeIdToName(typeId);
+				if (! typeName) {
+					// Unregistered class T, push ptr as light user data
+					// T* might be a const pointer
+					lua_pushlightuserdata(ls, const_cast<std::remove_const_t<T>*>(ptr));
+					return;
+				}
+
+				// Construct and return a full userdata that wraps ptr
+				void* const userData = lua_newuserdatauv(ls, sizeof ptr, 1);
+				// Copy C++ pointer to Lua userdata
+				std::memcpy(userData, &ptr, sizeof ptr);
+				const int userDataIndex = lua_gettop(ls);
+
+				// Set metatable of user data
+				luaL_getmetatable(ls, typeName);
+				assert(lua_istable(ls, -1));
+				lua_setmetatable(ls, userDataIndex);
+
+				// Save typeId, for type checking
+				lua_pushinteger(ls, typeId.value());
+				lua_setiuservalue(ls, userDataIndex, 1); // ud.userValue[1] = typeId
+
+				// Cache association ptr -> user data in registry
+				lua_pushinteger(ls, ptrKey);
+				lua_pushvalue(ls, userDataIndex);
+				lua_rawset(ls, LUA_REGISTRYINDEX);
+			}
+			else {
+				// Cached ptr, return its associated userdata
+			}
 		}
 	}
 
@@ -242,31 +318,53 @@ public:
 		T*        ptr = nullptr;
 		const int luaType = lua_type(ls, idx);
 		if (luaType == LUA_TLIGHTUSERDATA) {
-			// Light user data
 			ptr = static_cast<T*>(lua_touserdata(ls, idx));
+#if TY_LUABIND_TYPE_SAFE
+			if (! detail::checkPointerType(ls, ptr, getTypeId<T>())) {
+				ptr = nullptr;
+				luaL_argerror(ls, idx, "Invalid pointer type");
+			}
+#endif
 		}
 		else if (luaType == LUA_TUSERDATA) {
 			std::memcpy(&ptr, lua_touserdata(ls, idx), sizeof ptr);
+#if TY_LUABIND_TYPE_SAFE
+			lua_getiuservalue(ls, idx, 1);
+			assert(! lua_isnil(ls, -1));
+			TypeId ptrTypeId;
+			ptrTypeId.impl = reinterpret_cast<const void*>(lua_tointeger(ls, -1));
+			if (! detail::compatibleTypes(ls, ptrTypeId, getTypeId<T>())) {
+				ptr = nullptr;
+				luaL_argerror(ls, idx, "invalid pointer type");
+			}
+#endif
 		}
 		else if (luaType == LUA_TTABLE) {
 			// Pointer as _ptr field of a table
 			lua_getfield(ls, idx, "_ptr");
-			if (! lua_isuserdata(ls, -1)) {
-				lua_pop(ls, 1);
-				luaL_error(ls, "cannot retrieve raw pointer to C++ object: invalid _ptr field");
-			}
 			ptr = static_cast<T*>(lua_touserdata(ls, -1));
 			lua_pop(ls, 1);
+			if (! ptr) {
+				luaL_error(ls, "cannot retrieve raw pointer to C++ object: invalid _ptr field");
+			}
+#if TY_LUABIND_TYPE_SAFE
+			lua_getfield(ls, idx, "_typeid");
+			assert(lua_islightuserdata(ls, -1));
+			TypeId ptrTypeId;
+			ptrTypeId.impl = lua_touserdata(ls, -1);
+			lua_pop(ls, 1);
+			if (! detail::compatibleTypes(ls, ptrTypeId, getTypeId<T>())) {
+				ptr = nullptr;
+				luaL_argerror(ls, idx, "invalid pointer type");
+			}
+#endif
 		}
 		else if (luaType == LUA_TNIL) {
 			ptr = nullptr;
 		}
-
-#if TY_LUABIND_TYPE_SAFE
-		if (ptr && ! detail::checkPointerType(ls, ptr, getTypeId(ptr))) {
-			ptr = nullptr;
-			luaL_argerror(ls, idx, "invalid pointer type");
-		}
+#ifdef _DEBUG
+		detail::checkDanglingPointer(ls, ptr, idx);
+		ptr = undecoratePointer(ptr);
 #endif
 		return ptr;
 	}
@@ -276,11 +374,17 @@ private:
 };
 
 // enum specialization
+#if defined(__cpp_concepts) && __cpp_concepts >= 201907L
+template <typename T>
+requires std::is_enum_v<T> class Wrapper<T> {
+#else
 template <typename T>
 class Wrapper<T, typename std::enable_if_t<std::is_enum_v<T>>> {
+#endif
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_isnumber(ls, idx);
 	}
@@ -299,8 +403,9 @@ public:
 template <>
 class Wrapper<StackIndex> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
 		return true;
 	}
@@ -320,8 +425,9 @@ public:
 template <>
 class Wrapper<Reference> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match([[maybe_unused]] lua_State* ls, [[maybe_unused]] int idx) {
 		return true;
 	}
@@ -332,13 +438,15 @@ public:
 		lua_rawgeti(ls, LUA_REGISTRYINDEX, ref.getValue());
 	}
 	// pop is forbidden. The user should register references manually
+	static Reference pop(lua_State* ls, int index) = delete;
 };
 
 template <>
 class Wrapper<std::string> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_type(ls, idx) == LUA_TSTRING;
 	}
@@ -357,8 +465,9 @@ public:
 template <>
 class Wrapper<std::string_view> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return lua_type(ls, idx) == LUA_TSTRING;
 	}
@@ -374,99 +483,17 @@ public:
 	}
 };
 
-// Helper to push and pop temporary objects as light user data
+// Const reference wrapper. Treat as value
 template <class T>
-struct Lightweight {
-	static constexpr int stackSize = 1;
+class Wrapper<const T&> : public Wrapper<T> {};
 
-	static int match(lua_State* ls, int idx) {
-		return lua_isuserdata(ls, idx);
-	}
-	static void push(lua_State* ls, const T& value) {
-		void* const mem = detail::allocTemporary<T>(ls);
-		if (mem) {
-			T* ud = new (mem) T { value };
-#if TY_LUABIND_TYPE_SAFE
-			detail::registerPointer(ls, ud);
-#endif
-			lua_pushlightuserdata(ls, ud);
-		}
-		else {
-			lua_pushnil(ls);
-		}
-	}
-	static T pop(lua_State* ls, int idx) {
-		void* userData = lua_touserdata(ls, idx);
-		assert(userData);
-#if TY_LUABIND_TYPE_SAFE
-		if (! detail::checkPointerType<T>(ls, userData)) {
-			luaL_argerror(ls, idx, "Invalid pointer type"); // TODO better message
-		}
-#endif
-		return *static_cast<const T*>(userData);
-	}
-};
-
-template <class T>
-inline constexpr bool isLightweight = std::is_base_of_v<Lightweight<T>, Wrapper<T>>;
-
-//! Const reference wrapper
-template <class T>
-class Wrapper<const T&> {
-	// If Wrapper<T> specialization of Wrapper<T> exists, use that to push and pop
-	// Otherwise, treat the reference as a pointer
-	static constexpr bool isDefined = (Wrapper<T>::stackSize > 0);
-	using PopType = std::conditional_t<isDefined, T, const T&>;
-
-public:
-	static constexpr int stackSize = isDefined ? Wrapper<T>::stackSize : 1;
-
-	static int match(lua_State* ls, int idx) {
-		if constexpr (isDefined) {
-			return Wrapper<T>::match(ls, idx);
-		}
-		else {
-			return Wrapper<const T*>::match(ls, idx);
-		}
-	}
-	static PopType pop(lua_State* ls, int idx) {
-		if constexpr (isDefined) {
-			// Pop and return value
-			return Wrapper<T>::pop(ls, idx);
-		}
-		else {
-			// Pop pointer and convert to const reference
-			return *Wrapper<const T*>::pop(ls, idx);
-		}
-	}
-	static void push(lua_State* ls, const T& ref) {
-		if constexpr (isDefined) {
-			// Push a copy
-			Wrapper<T>::push(ls, ref);
-		}
-		else {
-			// Convert to pointer and push
-			Wrapper<const T*>::push(ls, &ref);
-		}
-	}
-	static void pushAsKey(lua_State* ls, const T& ref) {
-		if constexpr (isDefined) {
-			// Push a copy
-			Wrapper<T>::pushAsKey(ls, ref);
-		}
-		else {
-			// Convert to pointer and push
-			Wrapper<const T*>::pushAsKey(ls, &ref);
-		}
-	}
-};
-
-//! Reference wrapper
+// Reference wrapper. Treat as pointer
 template <class T>
 class Wrapper<T&> {
 public:
-	static constexpr int stackSize = 1;
-
+	static constexpr int getStackSize() {
+		return 1;
+	}
 	static int match(lua_State* ls, int idx) {
 		return Wrapper<T*>::match(ls, idx);
 	}

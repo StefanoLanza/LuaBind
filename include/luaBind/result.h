@@ -1,29 +1,12 @@
 #pragma once
 
-#include <cstdarg>
+#include <core/expected.h>
 
 namespace Typhoon::LuaBind {
 
-class Result {
-public:
-	explicit Result(bool result);
-	explicit Result(const char* errorMessage);
-	bool getResult() const {
-		return result;
-	}
-	const char* getErrorMessage() const {
-		return errorMessage;
-	}
-	explicit operator bool() const {
-		return result;
-	}
+using Result = Expected<void, const char*>;
 
-private:
-	void setErrorMessage(const char* msg, va_list args);
-
-private:
-	bool        result;
-	const char* errorMessage;
-};
+template <typename T>
+using ResultT = Expected<T, const char*>;
 
 } // namespace Typhoon::LuaBind

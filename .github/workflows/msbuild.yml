@@ -55,7 +55,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
           # 'recursive' ensures submodules within submodules are also fetched
         submodules: recursive
@@ -63,7 +63,8 @@ jobs:
         fetch-depth: 0
 
     - name: Cache Premake5
-      uses: actions/cache@v4
+      id: cache-premake
+      uses: actions/cache@v5
       with:
         path: premake
         key: premake-5.0.0-beta8
@@ -114,7 +115,7 @@ jobs:
       uses: microsoft/setup-msbuild@v1.0.2
 
     - name: Cache build outputs
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           build
@@ -122,7 +123,7 @@ jobs:
     
     - name: Build solution
       if: runner.os == 'Windows'
-      working-directory: ${{env.GITHUB_WORKSPACE}}
+      working-directory: ${{ github.workspace }}
       # Add additional options to the MSBuild command line here (like platform or verbosity level).
       # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
       run: msbuild /m /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.vs_platform }} ${{env.VS_SLN_FILE_PATH}}

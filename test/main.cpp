@@ -29,8 +29,8 @@ void bindTestClasses(lua_State* ls);
 TEST_CASE("Root") {
 	using namespace LuaBind;
 
-	Typhoon::C_Allocator allocator;
-	lua_State* const     ls = LuaBind::createState(allocator);
+	Typhoon::HeapAllocator allocator;
+	lua_State* const       ls = LuaBind::createState(allocator);
 	bindTestClasses(ls);
 
 	SECTION("Builtins") {

@@ -151,15 +151,17 @@ end
 
 if _OPTIONS["with-tests"] then
 		project("Catch")
-		kind "StaticLib"
-		files { "external/Catch/*.cpp", "external", "external/Catch/*.hpp", } 
-		includedirs { "external/Catch", }	
+			kind "StaticLib"
+			files { "external/Catch/*.cpp", "external", "external/Catch/*.hpp", } 
+			includedirs { "external/Catch", }	
+			warnings "Off"
+		
 		project("UnitTest")
-		kind "ConsoleApp"
-		files "test/*.*"
-		links({"Catch",})
-		uses({"LuaBind", })
-		filter { filter_gmake }
-			links({"Core", "Lua"})
-		filter {}
+			kind "ConsoleApp"
+			files "test/*.*"
+			links({"Catch",})
+			uses({"LuaBind", })
+			filter { filter_gmake }
+				links({"Core", "Lua"})
+			filter {}
 end

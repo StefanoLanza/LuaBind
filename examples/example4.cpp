@@ -114,7 +114,7 @@ const char* testScript = R"(
 
 int main(int /*argc*/, char* /*argv*/[]) {
 	std::cout << "LuaBind version: " << LuaBind::getVersionString() << std::endl;
-	Typhoon::HeapAllocator       heapAllocator;
+	Typhoon::C_Allocator         heapAllocator;
 	Typhoon::PoolAllocator<Vec3> vec3Allocator { heapAllocator, 1024 };
 	gVec3Allocator = &vec3Allocator;
 	lua_State* const ls = LuaBind::createState(heapAllocator);
@@ -141,8 +141,8 @@ void runExample(lua_State* ls) {
 		LuaBind::resetAllocator(ls);
 
 		// Simulate a frame
-		//if (Result res = doCommand(ls, updateScript); ! res) {
-			//std::cout << res.error() << std::endl;
+		// if (Result res = doCommand(ls, updateScript); ! res) {
+		// std::cout << res.error() << std::endl;
 		//}
 
 		// Test dangling pointer
@@ -161,7 +161,7 @@ void bindClasses(lua_State* ls) {
 	LUA_FUNCTION_RENAMED(vec3Store, store);
 	LUA_FUNCTION_RENAMED(vec3Madd, madd);
 	LUA_FUNCTION_RENAMED(vec3Scale, scale);
-	LUA_FUNCTION_RENAMED(vec3XYZ, xyz);	
+	LUA_FUNCTION_RENAMED(vec3XYZ, xyz);
 	LUA_FREE_OPERATOR(add, +);
 	LUA_FREE_OPERATOR(sub, -);
 	LUA_GETTER(x, getX);

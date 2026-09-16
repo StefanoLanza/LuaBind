@@ -53,7 +53,7 @@ ScopedAllocator* getTemporaryAllocator(lua_State* ls) {
 	return getContext(ls)->currScopedAllocator;
 }
 
-Allocator* getAllocator(lua_State* ls) {
+HeapAllocator* getAllocator(lua_State* ls) {
 	return getContext(ls)->allocator;
 }
 

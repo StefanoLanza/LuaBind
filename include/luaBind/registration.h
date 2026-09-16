@@ -31,15 +31,15 @@ int beginNamespace(lua_State* ls, const char* name);
 	}                     \
 	while (0)
 
-#define LUA_BEGIN_CLASS_(class, className, baseClassId)                                             \
-	do {                                                                                            \
-		using boundClass__ = class;                                                                 \
-		const Reference ref = detail::registerCppClass<boundClass__>(ls__, className, baseClassId); \
-		if (ref) {                                                                                  \
-			AutoBlock autoBlock(ls__);                                                              \
-			lua_rawgeti(ls__, LUA_REGISTRYINDEX, ref.getValue());                                   \
-			assert(lua_istable(ls__, -1));                                                          \
-			const int tableStackIndex = lua_gettop(ls__);                                           \
+#define LUA_BEGIN_CLASS_(class, className, baseClassId)                                                      \
+	do {                                                                                                     \
+		using boundClass__ = class;                                                                          \
+		const Reference ref = LuaBind::detail::registerCppClass<boundClass__>(ls__, className, baseClassId); \
+		if (ref) {                                                                                           \
+			AutoBlock autoBlock(ls__);                                                                       \
+			lua_rawgeti(ls__, LUA_REGISTRYINDEX, ref.getValue());                                            \
+			assert(lua_istable(ls__, -1));                                                                   \
+			const int tableStackIndex = lua_gettop(ls__);                                                    \
 			(void)tableStackIndex;
 
 #define LUA_BEGIN_CLASS_NAMED(class, name) LUA_BEGIN_CLASS_(class, #name, Typhoon::nullTypeId)
@@ -51,20 +51,21 @@ int beginNamespace(lua_State* ls, const char* name);
 	static_assert(std::is_base_of_v<baseClass, class>); \
 	LUA_BEGIN_CLASS_(class, #class, Typhoon::getTypeId<baseClass>())
 
-#define LUA_METHOD(func)                                                                   \
-	do {                                                                                   \
-		detail::registerMemberFunction(ls__, &boundClass__::func, #func, tableStackIndex); \
+#define LUA_METHOD(func)                                                                            \
+	do {                                                                                            \
+		LuaBind::detail::registerMemberFunction(ls__, &boundClass__::func, #func, tableStackIndex); \
 	} while (0)
 
-#define LUA_METHOD_OVERLOAD(func, ret_type, ...)                                                                                                 \
-	do {                                                                                                                                         \
-		detail::registerMemberFunction(ls__, static_cast<ret_type (boundClass__::*)(__VA_ARGS__)>(&boundClass__::func), #func, tableStackIndex); \
+#define LUA_METHOD_OVERLOAD(func, ret_type, ...)                                                                                        \
+	do {                                                                                                                                \
+		LuaBind::detail::registerMemberFunction(ls__, static_cast<ret_type (boundClass__::*)(__VA_ARGS__)>(&boundClass__::func), #func, \
+		                                        tableStackIndex);                                                                       \
 	} while (0)
 
-#define LUA_METHOD_OVERLOAD_CONST(func, ret_type, ...)                                                                               \
-	do {                                                                                                                             \
-		detail::registerMemberFunction(ls__, static_cast<ret_type (boundClass__::*)(__VA_ARGS__) const>(&boundClass__::func), #func, \
-		                               tableStackIndex);                                                                             \
+#define LUA_METHOD_OVERLOAD_CONST(func, ret_type, ...)                                                                                        \
+	do {                                                                                                                                      \
+		LuaBind::detail::registerMemberFunction(ls__, static_cast<ret_type (boundClass__::*)(__VA_ARGS__) const>(&boundClass__::func), #func, \
+		                                        tableStackIndex);                                                                             \
 	} while (0)
 
 #define LUA_C_FUNCTION_RENAMED(func, funcName) \
@@ -81,35 +82,35 @@ int beginNamespace(lua_State* ls, const char* name);
 
 #define LUA_STATIC_FUNCTION(function) LUA_STATIC_FUNCTION_RENAMED(function, function)
 
-#define LUA_OPERATOR(name, op)                                                                    \
-	do {                                                                                          \
-		detail::registerMemberFunction(ls__, &boundClass__::operator op, #name, tableStackIndex); \
+#define LUA_OPERATOR(name, op)                                                                             \
+	do {                                                                                                   \
+		LuaBind::detail::registerMemberFunction(ls__, &boundClass__::operator op, #name, tableStackIndex); \
 	} while (0)
 
-#define LUA_OPERATOR_OVERLOAD(name, op, RetType, ...)                                                                                \
-	do {                                                                                                                             \
-		detail::registerMemberFunction(ls__, static_cast<RetType (boundClass__::*)(__VA_ARGS__)>(&boundClass__::operator op), #name, \
-		                               tableStackIndex);                                                                             \
+#define LUA_OPERATOR_OVERLOAD(name, op, RetType, ...)                                                                                         \
+	do {                                                                                                                                      \
+		LuaBind::detail::registerMemberFunction(ls__, static_cast<RetType (boundClass__::*)(__VA_ARGS__)>(&boundClass__::operator op), #name, \
+		                                        tableStackIndex);                                                                             \
 	} while (0)
 
-#define LUA_FREE_OPERATOR(name, op)                                                                                    \
-	do {                                                                                                               \
-		detail::registerFunction(ls__, detail::Overload<boundClass__>::resolve(&operator op), #name, tableStackIndex); \
+#define LUA_FREE_OPERATOR(name, op)                                                                                             \
+	do {                                                                                                                        \
+		LuaBind::detail::registerFunction(ls__, detail::Overload<boundClass__>::resolve(&operator op), #name, tableStackIndex); \
 	} while (0)
 
-#define LUA_FREE_OPERATOR_OVERLOAD(name, op, RetType, ...)                                                           \
-	do {                                                                                                             \
-		detail::registerFunction(ls__, static_cast<RetType (*)(__VA_ARGS__)>(&operator op), #name, tableStackIndex); \
+#define LUA_FREE_OPERATOR_OVERLOAD(name, op, RetType, ...)                                                                    \
+	do {                                                                                                                      \
+		LuaBind::detail::registerFunction(ls__, static_cast<RetType (*)(__VA_ARGS__)>(&operator op), #name, tableStackIndex); \
 	} while (0)
 
-#define LUA_GETTER(memberVar, methodName)                                                                                        \
-	do {                                                                                                                         \
-		detail::registerGetter(ls__, &boundClass__::memberVar, offsetof(boundClass__, memberVar), #methodName, tableStackIndex); \
+#define LUA_GETTER(memberVar, methodName)                                                                                                 \
+	do {                                                                                                                                  \
+		LuaBind::detail::registerGetter(ls__, &boundClass__::memberVar, offsetof(boundClass__, memberVar), #methodName, tableStackIndex); \
 	} while (0)
 
-#define LUA_SETTER(memberVar, methodName)                                                                                        \
-	do {                                                                                                                         \
-		detail::registerSetter(ls__, &boundClass__::memberVar, offsetof(boundClass__, memberVar), #methodName, tableStackIndex); \
+#define LUA_SETTER(memberVar, methodName)                                                                                                 \
+	do {                                                                                                                                  \
+		LuaBind::detail::registerSetter(ls__, &boundClass__::memberVar, offsetof(boundClass__, memberVar), #methodName, tableStackIndex); \
 	} while (0)
 
 #define LUA_SETTER_GETTER(memberVar, setterMethodName, getterMethodName) \
@@ -127,26 +128,26 @@ int beginNamespace(lua_State* ls, const char* name);
 	do {                           \
 		AutoBlock autoBlock(ls__); \
 		using boundClass__ = void; \
-		const int tableStackIndex = detail::beginNamespace(ls__, #name);
+		const int tableStackIndex = LuaBind::detail::beginNamespace(ls__, #name);
 
 #define LUA_END_NAMESPACE() \
 	}                       \
 	while (0)
 
-#define LUA_FUNCTION_RENAMED(function, functionName)                                                                       \
-	do {                                                                                                                   \
-		detail::registerFunction(ls__, detail::Overload<boundClass__>::resolve(function), #functionName, tableStackIndex); \
+#define LUA_FUNCTION_RENAMED(function, functionName)                                                                                         \
+	do {                                                                                                                                     \
+		LuaBind::detail::registerFunction(ls__, LuaBind::detail::Overload<boundClass__>::resolve(function), #functionName, tableStackIndex); \
 	} while (0)
 
 #define LUA_FUNCTION(function) LUA_FUNCTION_RENAMED(function, function)
 
-#define LUA_FUNCTION_OVERLOAD(function, ret_type, ...)                                                                 \
-	do {                                                                                                               \
-		detail::registerFunction(ls__, static_cast<ret_type (*)(__VA_ARGS__)>(&function), #function, tableStackIndex); \
+#define LUA_FUNCTION_OVERLOAD(function, ret_type, ...)                                                                          \
+	do {                                                                                                                        \
+		LuaBind::detail::registerFunction(ls__, static_cast<ret_type (*)(__VA_ARGS__)>(&function), #function, tableStackIndex); \
 	} while (0)
 
-#define LUA_OBJ_ALLOCATOR(create, destroy, ...)                                       \
-	do {                                                                              \
-		detail::registerNewOperator<boundClass__>(ls__, tableStackIndex, create);     \
-		detail::registerDeleteOperator<boundClass__>(ls__, tableStackIndex, destroy); \
+#define LUA_OBJ_ALLOCATOR(create, destroy, ...)                                                \
+	do {                                                                                       \
+		LuaBind::detail::registerNewOperator<boundClass__>(ls__, tableStackIndex, create);     \
+		LuaBind::detail::registerDeleteOperator<boundClass__>(ls__, tableStackIndex, destroy); \
 	} while (0)

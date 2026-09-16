@@ -16,8 +16,8 @@ namespace {
 const char* contextKey = "__context";
 
 void* allocFunction(void* ud, void* ptr, size_t osize, size_t nsize) {
-	Allocator*   allocator = static_cast<Context*>(ud)->allocator;
-	MemoryStats& stats = static_cast<Context*>(ud)->memoryStats;
+	HeapAllocator* allocator = static_cast<Context*>(ud)->allocator;
+	MemoryStats&   stats = static_cast<Context*>(ud)->memoryStats;
 	stats.allocatedMemory -= osize;
 	void* pret = nullptr;
 	if (nsize == 0) {
@@ -42,7 +42,7 @@ void luaWarningFunction(void* ud, const char* msg, [[maybe_unused]] int tocont) 
 
 namespace detail {
 
-	Context* getContext(lua_State* ls) {
+Context* getContext(lua_State* ls) {
 	lua_pushvalue(ls, LUA_REGISTRYINDEX);
 	lua_getfield(ls, -1, contextKey);
 	auto context = static_cast<Context*>(lua_touserdata(ls, -1));
@@ -52,7 +52,7 @@ namespace detail {
 
 } // namespace detail
 
-lua_State* createState(Allocator& allocator) {
+lua_State* createState(HeapAllocator& allocator) {
 	auto context = allocator.construct<Context>();
 	if (! context) {
 		return nullptr;

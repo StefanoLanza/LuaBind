@@ -21,8 +21,8 @@ const char* script = R"(
 
 int main(int /*argc*/, char* /*argv*/[]) {
 	std::cout << "LuaBind version: " << LuaBind::getVersionString() << std::endl;
-	Typhoon::HeapAllocator heapAllocator;
-	lua_State* const       ls = LuaBind::createState(heapAllocator);
+	Typhoon::C_Allocator heapAllocator;
+	lua_State* const     ls = LuaBind::createState(heapAllocator);
 	runExample(ls);
 	LuaBind::closeState(ls);
 
@@ -44,8 +44,8 @@ void runExample(lua_State* ls) {
 
 	const char* name = testTable["name"].asString().value_or("");
 	std::string surName = testTable["age"].as<std::string>().value_or("");
-	int  age = testTable["age"].as<int>().value_or(0);
-	bool male = testTable["male"].as<bool>().value_or(true);
+	int         age = testTable["age"].as<int>().value_or(0);
+	bool        male = testTable["male"].as<bool>().value_or(true);
 
 	std::cout << std::boolalpha;
 	std::cout << "Name:" << name << std::endl;

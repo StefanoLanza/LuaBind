@@ -178,8 +178,8 @@ const char* script = R"(
 
 int main(int /*argc*/, char* /*argv*/[]) {
 	std::cout << "LuaBind version: " << LuaBind::getVersionString() << std::endl;
-	Typhoon::HeapAllocator heapAllocator;
-	const auto             ls = LuaBind::createState(heapAllocator);
+	Typhoon::C_Allocator heapAllocator;
+	const auto           ls = LuaBind::createState(heapAllocator);
 	bindClasses(ls);
 	runExample(ls);
 	LuaBind::closeState(ls);

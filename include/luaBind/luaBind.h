@@ -15,12 +15,6 @@
 #include <core/scopedAllocator.h>
 #include <core/uncopyable.h>
 
-namespace Typhoon {
-
-class Allocator;
-
-} // namespace Typhoon
-
 namespace Typhoon::LuaBind {
 
 // Memory statistics
@@ -33,7 +27,7 @@ struct MemoryStats {
 
 using WarningFunction = std::function<void(const char*)>;
 
-lua_State*         createState(Allocator& allocator);
+lua_State*         createState(HeapAllocator& allocator);
 void               closeState(lua_State* ls);
 void               setWarningFunction(lua_State* ls, WarningFunction warningFunction);
 Result             doCommand(lua_State*, const char* command);
